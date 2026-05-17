@@ -2,14 +2,27 @@ import { UnitSystem } from "./values";
 
 export type UserSettingsId = string
 
-export interface UserSettings {
-  id: string;
-  unitSystem: UnitSystem;
+export interface EquipmentSettings {
   barWeight: number;
   availablePlates: number[];
-  defaultRestTimeSec: number | null;
+}
+
+export interface UserSettings {
+  id: UserSettingsId;
+  unitSystem: UnitSystem;
+  barWeight: number;
+  equipmentByUnit: {
+    kg: EquipmentSettings;
+    lb: EquipmentSettings;
+  };
+  availablePlates: number[];
+  restTimeByLiftFamilySec: {
+    bench: number;
+    squat: number;
+    deadlift: number;
+  };
   autoRestTimerEnabled: boolean;
-  hapticFeedbackEnabled: boolean;
+  hapticFeedbackEnabled: boolean;  
   createdAt: number;
   updatedAt: number;
 } 
