@@ -1,15 +1,18 @@
-import { TemplateId } from "./template/domain";
-import { SetType, WorkoutStatus } from "./values";
-import { VariationId } from "./variation";
+import { LiftFamily, SetType } from "../domain.types";
+import { TemplateId } from "../templates/templates.types";
+import { VariationId } from "../variations/variation.types";
 
 export type WorkoutId = string;
 export type WorkoutSectionId = string;
 export type WorkoutSetId = string;
 
+export type WorkoutStatus = "active" | "completed";
+
 export interface Workout {
   id: WorkoutId;
   sourceTemplateId: TemplateId | null;
   status: WorkoutStatus;
+  activeSetId: WorkoutSetId | null;
   startedAt: number;
   finishedAt: number | null;
   createdAt: number;
@@ -20,6 +23,7 @@ export interface WorkoutSection {
   id: WorkoutSectionId;
   workoutId: WorkoutId;
   variationId: VariationId;
+  liftFamily: LiftFamily;
   notes: string | null;
   orderIndex: number;
   createdAt: number;
@@ -36,4 +40,14 @@ export interface WorkoutSet {
   finishedAt: number | null;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface WorkoutAggregate {
+  workout: Workout;
+  sections: WorkoutSectionAggregate[];
+}
+
+export interface WorkoutSectionAggregate {
+  section: WorkoutSection;
+  sets: WorkoutSet[];
 }
