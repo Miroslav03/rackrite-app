@@ -1,10 +1,12 @@
-import { LiftFamily, SetType } from "../domain.types";
-import { VariationId } from "../variations/variation.types";
+import { LiftFamily, SetType } from "@/domain/domain.types";
+import { VariationId } from "@/domain/variations/variation.types";
+
 import {
-    assertWorkoutAggregateInvariants,
     assertWorkoutCanAddSection,
-    assertWorkoutIsEditable,
-} from "./workout.invariants";
+    assertWorkoutIsActive,
+    assertWorkoutSectionExists,
+} from "./assertions/workout.contracts";
+import { assertWorkoutAggregateInvariants } from "./assertions/workout.invariants";
 import {
     WorkoutAggregate,
     WorkoutId,
@@ -24,6 +26,15 @@ type AddWorkoutSectionInput = {
   variationId: VariationId;
   now: number;
   initialSetType?: SetType;
+};
+
+type AddWorkoutSetInput = {
+  sectionId: WorkoutSectionId;
+  setId: WorkoutSetId;
+  now: number;
+  setType?: SetType;
+  weight?: number | null;
+  reps?: number | null;
 };
 
 export function createEmptyWorkout({
@@ -53,7 +64,7 @@ export function addWorkoutSection(
   workoutAggregate: WorkoutAggregate,
   input: AddWorkoutSectionInput,
 ): WorkoutAggregate {
-  assertWorkoutIsEditable(workoutAggregate);
+  assertWorkoutIsActive(workoutAggregate);
   assertWorkoutCanAddSection(workoutAggregate, input.liftFamily);
 
   const section = {
@@ -71,7 +82,7 @@ export function addWorkoutSection(
     id: input.setId,
     workoutSectionId: input.sectionId,
     setIndex: 0,
-    type: "working" as SetType,
+    type: input.initialSetType ?? "working",
     weight: null,
     reps: null,
     finishedAt: null,
@@ -92,6 +103,54 @@ export function addWorkoutSection(
         sets: [firstSet],
       },
     ],
+  };
+
+  assertWorkoutAggregateInvariants(nextWorkoutAggregate);
+
+  return nextWorkoutAggregate;
+}
+
+export function addWorkoutSet(
+  workoutAggregate: WorkoutAggregate,
+  input: AddWorkoutSetInput,
+): WorkoutAggregate {
+  assertWorkoutIsActive(workoutAggregate);
+  assertWorkoutSectionExists(workoutAggregate, input.sectionId);
+
+  const updatedSections = workoutAggregate.sections.map(
+    (workoutSectionAggregate) => {
+      if (workoutSectionAggregate.section.id !== input.sectionId)
+        return workoutSectionAggregate;
+
+      const newSet = {
+        id: input.setId,
+        workoutSectionId: input.sectionId,
+        setIndex: workoutSectionAggregate.sets.length,
+        type: input.setType ?? "working",
+        weight: input.weight ?? null,
+        reps: input.reps ?? null,
+        finishedAt: null,
+        createdAt: input.now,
+        updatedAt: input.now,
+      };
+
+      return {
+        section: {
+          ...workoutSectionAggregate.section,
+          updatedAt: input.now,
+        },
+        sets: [...workoutSectionAggregate.sets, newSet],
+      };
+    },
+  );
+
+  const nextWorkoutAggregate: WorkoutAggregate = {
+    workout: {
+      ...workoutAggregate.workout,
+      activeSetId: input.setId,
+      updatedAt: input.now,
+    },
+    sections: updatedSections,
   };
 
   assertWorkoutAggregateInvariants(nextWorkoutAggregate);

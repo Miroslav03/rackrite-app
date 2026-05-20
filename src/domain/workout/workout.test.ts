@@ -1,4 +1,8 @@
-import { addWorkoutSection, createEmptyWorkout } from "./workout.useCases";
+import {
+  addWorkoutSection,
+  addWorkoutSet,
+  createEmptyWorkout,
+} from "./workout.useCases";
 
 describe("createEmptyWorkout", () => {
   it("creates an active empty workout", () => {
@@ -66,5 +70,65 @@ describe("addWorkoutSection", () => {
 
     expect(nextWorkoutAggregate.workout.activeSetId).toBe("set_1");
     expect(nextWorkoutAggregate.workout.updatedAt).toBe(2000);
+  });
+});
+
+describe("addWorkoutSet", () => {
+  it("adds a new set to an existing section and makes it active", () => {
+    const workoutAggregate = createEmptyWorkout({
+      id: "workout_1",
+      now: 1000,
+    });
+
+    const workoutAggregateWithBench = addWorkoutSection(workoutAggregate, {
+      sectionId: "section_1",
+      setId: "set_1",
+      liftFamily: "bench",
+      variationId: "competition_bench",
+      now: 2000,
+    });
+
+    const nextWorkoutAggregate = addWorkoutSet(workoutAggregateWithBench, {
+      sectionId: "section_1",
+      setId: "set_2",
+      now: 3000,
+    });
+
+    expect(nextWorkoutAggregate.sections).toHaveLength(1);
+
+    const sectionAggregate = nextWorkoutAggregate.sections[0];
+
+    expect(sectionAggregate.section.updatedAt).toBe(3000);
+    expect(sectionAggregate.sets).toHaveLength(2);
+
+    const newSet = sectionAggregate.sets[1];
+
+    expect(newSet.id).toBe("set_2");
+    expect(newSet.workoutSectionId).toBe("section_1");
+    expect(newSet.setIndex).toBe(1);
+    expect(newSet.type).toBe("working");
+    expect(newSet.weight).toBeNull();
+    expect(newSet.reps).toBeNull();
+    expect(newSet.finishedAt).toBeNull();
+    expect(newSet.createdAt).toBe(3000);
+    expect(newSet.updatedAt).toBe(3000);
+
+    expect(nextWorkoutAggregate.workout.activeSetId).toBe("set_2");
+    expect(nextWorkoutAggregate.workout.updatedAt).toBe(3000);
+  });
+
+  it("throws when the section does not exist", () => {
+    const workoutAggregate = createEmptyWorkout({
+      id: "workout_1",
+      now: 1000,
+    });
+
+    expect(() =>
+      addWorkoutSet(workoutAggregate, {
+        sectionId: "missing_section",
+        setId: "set_1",
+        now: 2000,
+      }),
+    ).toThrow("Workout section not found");
   });
 });

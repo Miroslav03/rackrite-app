@@ -1,5 +1,5 @@
-import { SetType } from "../domain.types";
-import { VariationId } from "../variations/variation.types";
+import { SetType } from "@/domain/domain.types";
+import { VariationId } from "@/domain/variations/variation.types";
 
 export type TemplateId = string;
 export type TemplateSectionId = string;

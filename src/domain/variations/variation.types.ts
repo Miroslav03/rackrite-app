@@ -1,4 +1,4 @@
-import { LiftFamily } from "../domain.types";
+import { LiftFamily } from "@/domain/domain.types";
 
 export type VariationId = string;
 

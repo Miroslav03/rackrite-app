@@ -1,14 +1,4 @@
-import { LiftFamily } from "../domain.types";
-import { WorkoutAggregate } from "./workout.types";
-
-// Depending on buisness rules this can change later if we start editing workouts in history
-export function assertWorkoutIsEditable(
-  workoutAggregate: WorkoutAggregate,
-): void {
-  if (workoutAggregate.workout.status === "completed") {
-    throw new Error("Completed workout cannot be edited");
-  }
-}
+import { WorkoutAggregate } from "../workout.types";
 
 export function assertMaxThreeSections(
   workoutAggregate: WorkoutAggregate,
@@ -46,24 +36,6 @@ export function assertFinishedSetsHaveWeightAndReps(
   }
 }
 
-export function assertWorkoutCanAddSection(
-  workoutAggregate: WorkoutAggregate,
-  liftFamily: LiftFamily,
-): void {
-  if (workoutAggregate.sections.length >= 3) {
-    throw new Error("Workout cannot have more than 3 sections");
-  }
-
-  const alreadyHasLiftFamily = workoutAggregate.sections.some(
-    (workoutSectionAggregate) =>
-      workoutSectionAggregate.section.liftFamily === liftFamily,
-  );
-
-  if (alreadyHasLiftFamily) {
-    throw new Error(`Workout already has a ${liftFamily} section`);
-  }
-}
-
 export function assertActiveSetExistsIfWorkoutHasSets(
   workoutAggregate: WorkoutAggregate,
 ): void {
@@ -92,6 +64,24 @@ export function assertActiveSetExistsIfWorkoutHasSets(
   }
 }
 
+export function assertWorkoutAggregateOwnership(
+  workoutAggregate: WorkoutAggregate,
+): void {
+  for (const sectionAggregate of workoutAggregate.sections) {
+    const { section, sets } = sectionAggregate;
+
+    if (section.workoutId !== workoutAggregate.workout.id) {
+      throw new Error("Workout section must belong to the aggregate workout");
+    }
+
+    for (const set of sets) {
+      if (set.workoutSectionId !== section.id) {
+        throw new Error("Workout set must belong to its parent section");
+      }
+    }
+  }
+}
+
 export function assertWorkoutAggregateInvariants(
   workoutAggregate: WorkoutAggregate,
 ): void {
@@ -99,4 +89,5 @@ export function assertWorkoutAggregateInvariants(
   assertUniqueLiftFamilies(workoutAggregate);
   assertActiveSetExistsIfWorkoutHasSets(workoutAggregate);
   assertFinishedSetsHaveWeightAndReps(workoutAggregate);
+  assertWorkoutAggregateOwnership(workoutAggregate);
 }

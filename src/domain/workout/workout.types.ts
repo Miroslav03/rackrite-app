@@ -1,6 +1,6 @@
-import { LiftFamily, SetType } from "../domain.types";
-import { TemplateId } from "../templates/templates.types";
-import { VariationId } from "../variations/variation.types";
+import { LiftFamily, SetType } from "@/domain/domain.types";
+import { TemplateId } from "@/domain/templates/templates.types";
+import { VariationId } from "@/domain/variations/variation.types";
 
 export type WorkoutId = string;
 export type WorkoutSectionId = string;
