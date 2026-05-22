@@ -1,3 +1,4 @@
+import { getAllWorkoutSets } from "../workout.selectors";
 import { WorkoutAggregate } from "../workout.types";
 
 export function assertMaxThreeSections(
@@ -25,9 +26,7 @@ export function assertUniqueLiftFamilies(
 export function assertFinishedSetsHaveWeightAndReps(
   workoutAggregate: WorkoutAggregate,
 ): void {
-  const allSets = workoutAggregate.sections.flatMap(
-    (workoutSectionAggregate) => workoutSectionAggregate.sets,
-  );
+  const allSets = getAllWorkoutSets(workoutAggregate);
 
   for (const set of allSets) {
     if (set.finishedAt !== null && (set.weight === null || set.reps === null)) {
@@ -39,9 +38,7 @@ export function assertFinishedSetsHaveWeightAndReps(
 export function assertActiveSetExistsIfWorkoutHasSets(
   workoutAggregate: WorkoutAggregate,
 ): void {
-  const allSets = workoutAggregate.sections.flatMap(
-    (workoutSectionAggregate) => workoutSectionAggregate.sets,
-  );
+  const allSets = getAllWorkoutSets(workoutAggregate);
 
   if (allSets.length === 0 && workoutAggregate.workout.activeSetId !== null) {
     throw new Error("Empty workout cannot have an active set");
@@ -82,6 +79,18 @@ export function assertWorkoutAggregateOwnership(
   }
 }
 
+export function assertWorkoutSetIndexesAreValid(
+  workoutAggregate: WorkoutAggregate,
+): void {
+  for (const sectionAggregate of workoutAggregate.sections) {
+    sectionAggregate.sets.forEach((set, index) => {
+      if (set.setIndex !== index) {
+        throw new Error("Workout set indexes must match their order");
+      }
+    });
+  }
+}
+
 export function assertWorkoutAggregateInvariants(
   workoutAggregate: WorkoutAggregate,
 ): void {
@@ -90,4 +99,5 @@ export function assertWorkoutAggregateInvariants(
   assertActiveSetExistsIfWorkoutHasSets(workoutAggregate);
   assertFinishedSetsHaveWeightAndReps(workoutAggregate);
   assertWorkoutAggregateOwnership(workoutAggregate);
+  assertWorkoutSetIndexesAreValid(workoutAggregate);
 }

@@ -1,13 +1,17 @@
 import { LiftFamily } from "@/domain/domain.types";
 
-import { WorkoutAggregate, WorkoutSectionId } from "../workout.types";
+import {
+  WorkoutAggregate,
+  WorkoutSectionAggregate,
+  WorkoutSet,
+} from "../workout.types";
 
 // Depending on buisness rules this can change later if we start editing workouts in history
 export function assertWorkoutIsActive(
   workoutAggregate: WorkoutAggregate,
 ): void {
-  if (workoutAggregate.workout.status === "completed") {
-    throw new Error("Completed workout cannot be edited");
+  if (workoutAggregate.workout.status !== "active") {
+    throw new Error("Workout must be active");
   }
 }
 
@@ -30,15 +34,17 @@ export function assertWorkoutCanAddSection(
 }
 
 export function assertWorkoutSectionExists(
-  workoutAggregate: WorkoutAggregate,
-  sectionId: WorkoutSectionId,
-): void {
-  const sectionExists = workoutAggregate.sections.some(
-    (workoutSectionAggregate) =>
-      workoutSectionAggregate.section.id === sectionId,
-  );
-
-  if (!sectionExists) {
+  section: WorkoutSectionAggregate | undefined,
+): asserts section is WorkoutSectionAggregate {
+  if (!section) {
     throw new Error("Workout section not found");
+  }
+}
+
+export function assertWorkoutSetExists(
+  set: WorkoutSet | undefined,
+): asserts set is WorkoutSet {
+  if (!set) {
+    throw new Error("Workout set not found");
   }
 }
