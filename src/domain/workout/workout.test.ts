@@ -3,6 +3,8 @@ import {
   addWorkoutSet,
   completeWorkoutSet,
   createEmptyWorkout,
+  finishWorkout,
+  selectWorkoutSet,
   updateWorkoutSet,
 } from "./workout.useCases";
 
@@ -111,6 +113,7 @@ describe("addWorkoutSet", () => {
     expect(newSet.type).toBe("working");
     expect(newSet.weight).toBeNull();
     expect(newSet.reps).toBeNull();
+    expect(newSet.rpe).toBeNull();
     expect(newSet.finishedAt).toBeNull();
     expect(newSet.createdAt).toBe(3000);
     expect(newSet.updatedAt).toBe(3000);
@@ -200,6 +203,34 @@ describe("updateWorkoutSet", () => {
     expect(nextWorkoutAggregate.workout.updatedAt).toBe(3000);
   });
 
+  it("updates rpe", () => {
+    const workoutAggregate = createEmptyWorkout({
+      id: "workout_1",
+      now: 1000,
+    });
+
+    const workoutAggregateWithBench = addWorkoutSection(workoutAggregate, {
+      sectionId: "section_1",
+      setId: "set_1",
+      liftFamily: "bench",
+      variationId: "competition_bench",
+      now: 2000,
+    });
+
+    const nextWorkoutAggregate = updateWorkoutSet(workoutAggregateWithBench, {
+      setId: "set_1",
+      rpe: 6,
+      now: 3000,
+    });
+
+    const updatedSet = nextWorkoutAggregate.sections[0].sets[0];
+
+    expect(updatedSet.rpe).toBe(6);
+    expect(updatedSet.updatedAt).toBe(3000);
+
+    expect(nextWorkoutAggregate.workout.updatedAt).toBe(3000);
+  });
+
   it("throws when the set does not exist", () => {
     const workoutAggregate = createEmptyWorkout({
       id: "workout_1",
@@ -260,6 +291,74 @@ describe("updateWorkoutSet", () => {
         now: 3000,
       }),
     ).toThrow("Weight cannot be a negative number");
+  });
+
+  it("throws when rpe is outside the valid range", () => {
+    const workoutAggregate = createEmptyWorkout({
+      id: "workout_1",
+      now: 1000,
+    });
+
+    const workoutAggregateWithBench = addWorkoutSection(workoutAggregate, {
+      sectionId: "section_1",
+      setId: "set_1",
+      liftFamily: "bench",
+      variationId: "competition_bench",
+      now: 2000,
+    });
+
+    expect(() =>
+      updateWorkoutSet(workoutAggregateWithBench, {
+        setId: "set_1",
+        rpe: 11,
+        now: 3000,
+      }),
+    ).toThrow("RPE must be between 1 and 10");
+  });
+});
+
+describe("selectWorkoutSet", () => {
+  it("selects an existing workout set as the active set", () => {
+    const workoutAggregate = createEmptyWorkout({
+      id: "workout_1",
+      now: 1000,
+    });
+
+    const withBench = addWorkoutSection(workoutAggregate, {
+      sectionId: "section_1",
+      setId: "set_1",
+      liftFamily: "bench",
+      variationId: "competition_bench",
+      now: 2000,
+    });
+
+    const withSecondSet = addWorkoutSet(withBench, {
+      sectionId: "section_1",
+      setId: "set_2",
+      now: 3000,
+    });
+
+    const nextWorkoutAggregate = selectWorkoutSet(withSecondSet, {
+      setId: "set_1",
+      now: 4000,
+    });
+
+    expect(nextWorkoutAggregate.workout.activeSetId).toBe("set_1");
+    expect(nextWorkoutAggregate.workout.updatedAt).toBe(4000);
+  });
+
+  it("throws when the set does not exist", () => {
+    const workoutAggregate = createEmptyWorkout({
+      id: "workout_1",
+      now: 1000,
+    });
+
+    expect(() =>
+      selectWorkoutSet(workoutAggregate, {
+        setId: "missing_set",
+        now: 2000,
+      }),
+    ).toThrow("Workout set not found");
   });
 });
 
@@ -408,10 +507,143 @@ describe("completeWorkoutSet", () => {
   });
 });
 
+describe("finishWorkout", () => {
+  it("marks an active workout as completed", () => {
+    const workoutAggregate = createEmptyWorkout({
+      id: "workout_1",
+      now: 1000,
+    });
+
+    const withBench = addWorkoutSection(workoutAggregate, {
+      sectionId: "section_1",
+      setId: "set_1",
+      liftFamily: "bench",
+      variationId: "competition_bench",
+      now: 2000,
+    });
+
+    const withUpdatedSet = updateWorkoutSet(withBench, {
+      setId: "set_1",
+      weight: 100,
+      reps: 5,
+      now: 3000,
+    });
+
+    const withCompletedSet = completeWorkoutSet(withUpdatedSet, {
+      setId: "set_1",
+      now: 4000,
+    });
+
+    const finishedWorkout = finishWorkout(withCompletedSet, {
+      now: 5000,
+    });
+
+    expect(finishedWorkout.workout.status).toBe("completed");
+    expect(finishedWorkout.workout.finishedAt).toBe(5000);
+    expect(finishedWorkout.workout.updatedAt).toBe(5000);
+  });
+
+  it("throws when finishing an already completed workout", () => {
+    const workoutAggregate = createEmptyWorkout({
+      id: "workout_1",
+      now: 1000,
+    });
+
+    const withBench = addWorkoutSection(workoutAggregate, {
+      sectionId: "section_1",
+      setId: "set_1",
+      liftFamily: "bench",
+      variationId: "competition_bench",
+      now: 2000,
+    });
+
+    const withUpdatedSet = updateWorkoutSet(withBench, {
+      setId: "set_1",
+      weight: 100,
+      reps: 5,
+      now: 3000,
+    });
+
+    const withCompletedSet = completeWorkoutSet(withUpdatedSet, {
+      setId: "set_1",
+      now: 4000,
+    });
+
+    const finishedWorkout = finishWorkout(withCompletedSet, {
+      now: 5000,
+    });
+
+    expect(() =>
+      finishWorkout(finishedWorkout, {
+        now: 6000,
+      }),
+    ).toThrow("Workout must be active");
+  });
+
+  it("throws when the workout has no completed sets", () => {
+    const workoutAggregate = createEmptyWorkout({
+      id: "workout_1",
+      now: 1000,
+    });
+
+    const withBench = addWorkoutSection(workoutAggregate, {
+      sectionId: "section_1",
+      setId: "set_1",
+      liftFamily: "bench",
+      variationId: "competition_bench",
+      now: 2000,
+    });
+
+    expect(() =>
+      finishWorkout(withBench, {
+        now: 3000,
+      }),
+    ).toThrow("Workout must have at least one completed set");
+  });
+
+  it("allows finishing a workout even when some sets are unfinished", () => {
+    const workoutAggregate = createEmptyWorkout({
+      id: "workout_1",
+      now: 1000,
+    });
+
+    const withBench = addWorkoutSection(workoutAggregate, {
+      sectionId: "section_1",
+      setId: "set_1",
+      liftFamily: "bench",
+      variationId: "competition_bench",
+      now: 2000,
+    });
+
+    const withSecondSet = addWorkoutSet(withBench, {
+      sectionId: "section_1",
+      setId: "set_2",
+      now: 2500,
+    });
+
+    const withUpdatedFirstSet = updateWorkoutSet(withSecondSet, {
+      setId: "set_1",
+      weight: 100,
+      reps: 5,
+      now: 3000,
+    });
+
+    const withCompletedFirstSet = completeWorkoutSet(withUpdatedFirstSet, {
+      setId: "set_1",
+      now: 4000,
+    });
+
+    const finishedWorkout = finishWorkout(withCompletedFirstSet, {
+      now: 5000,
+    });
+
+    expect(finishedWorkout.workout.status).toBe("completed");
+    expect(finishedWorkout.sections[0].sets[0].finishedAt).toBe(4000);
+    expect(finishedWorkout.sections[0].sets[1].finishedAt).toBeNull();
+  });
+});
+
 //First vertical slice
 // Create Workout => Add Section => Add Set => Update Set => Complete Set => Finish Workout
 
-//Complete a Workout set
-//Finish a workout
-//Select a Workout set
 //Delete a Workout set

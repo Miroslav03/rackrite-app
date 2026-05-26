@@ -91,6 +91,38 @@ export function assertWorkoutSetIndexesAreValid(
   }
 }
 
+export function assertWorkoutSetValuesAreValid(
+  workoutAggregate: WorkoutAggregate,
+): void {
+  const allSets = getAllWorkoutSets(workoutAggregate);
+
+  for (const set of allSets) {
+    if (set.weight !== null && set.weight < 0) {
+      throw new Error("Weight cannot be a negative number");
+    }
+
+    if (set.reps !== null) {
+      if (!Number.isInteger(set.reps)) {
+        throw new Error("Reps must be a whole number");
+      }
+
+      if (set.reps <= 0) {
+        throw new Error("Reps must be a positive number");
+      }
+    }
+
+    if (set.rpe !== null) {
+      if (!Number.isInteger(set.rpe)) {
+        throw new Error("RPE must be a whole number");
+      }
+
+      if (set.rpe < 1 || set.rpe > 10) {
+        throw new Error("RPE must be between 1 and 10");
+      }
+    }
+  }
+}
+
 export function assertWorkoutAggregateInvariants(
   workoutAggregate: WorkoutAggregate,
 ): void {
@@ -100,4 +132,5 @@ export function assertWorkoutAggregateInvariants(
   assertFinishedSetsHaveWeightAndReps(workoutAggregate);
   assertWorkoutAggregateOwnership(workoutAggregate);
   assertWorkoutSetIndexesAreValid(workoutAggregate);
+  assertWorkoutSetValuesAreValid(workoutAggregate);
 }

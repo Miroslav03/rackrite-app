@@ -37,6 +37,7 @@ export interface WorkoutSet {
   type: SetType;
   weight: number | null;
   reps: number | null;
+  rpe: number | null;
   finishedAt: number | null;
   createdAt: number;
   updatedAt: number;

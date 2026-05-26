@@ -17,6 +17,7 @@ import {
   WorkoutAggregate,
   WorkoutId,
   WorkoutSectionId,
+  WorkoutSet,
   WorkoutSetId,
 } from "./workout.types";
 
@@ -41,6 +42,7 @@ type AddWorkoutSetInput = {
   type?: SetType;
   weight?: number | null;
   reps?: number | null;
+  rpe?: number | null;
 };
 
 type UpdateWorkoutSetInput = {
@@ -49,9 +51,19 @@ type UpdateWorkoutSetInput = {
   type?: SetType;
   weight?: number | null;
   reps?: number | null;
+  rpe?: number | null;
 };
 
 type CompleteWorkoutSetInput = {
+  setId: WorkoutSetId;
+  now: number;
+};
+
+type FinishWorkoutInput = {
+  now: number;
+};
+
+type SelectWorkoutSetInput = {
   setId: WorkoutSetId;
   now: number;
 };
@@ -79,6 +91,35 @@ export function createEmptyWorkout({
   return aggregate;
 }
 
+export function finishWorkout(
+  workoutAggregate: WorkoutAggregate,
+  input: FinishWorkoutInput,
+): WorkoutAggregate {
+  assertWorkoutIsActive(workoutAggregate);
+
+  const allSets = getAllWorkoutSets(workoutAggregate);
+
+  const hasCompletedSet = allSets.some((set) => set.finishedAt !== null);
+
+  if (!hasCompletedSet) {
+    throw new Error("Workout must have at least one completed set");
+  }
+
+  const nextWorkoutAggregate: WorkoutAggregate = {
+    workout: {
+      ...workoutAggregate.workout,
+      status: "completed",
+      finishedAt: input.now,
+      updatedAt: input.now,
+    },
+    sections: workoutAggregate.sections,
+  };
+
+  assertWorkoutAggregateInvariants(nextWorkoutAggregate);
+
+  return nextWorkoutAggregate;
+}
+
 export function addWorkoutSection(
   workoutAggregate: WorkoutAggregate,
   input: AddWorkoutSectionInput,
@@ -97,13 +138,14 @@ export function addWorkoutSection(
     updatedAt: input.now,
   };
 
-  const firstSet = {
+  const firstSet: WorkoutSet = {
     id: input.setId,
     workoutSectionId: input.sectionId,
     setIndex: 0,
     type: input.initialSetType ?? "working",
     weight: null,
     reps: null,
+    rpe: null,
     finishedAt: null,
     createdAt: input.now,
     updatedAt: input.now,
@@ -149,6 +191,7 @@ export function addWorkoutSet(
         setIndex: workoutSectionAggregate.sets.length,
         type: input.type ?? "working",
         weight: input.weight ?? null,
+        rpe: input.rpe ?? null,
         reps: input.reps ?? null,
         finishedAt: null,
         createdAt: input.now,
@@ -182,7 +225,7 @@ export function addWorkoutSet(
 export function updateWorkoutSet(
   workoutAggregate: WorkoutAggregate,
   input: UpdateWorkoutSetInput,
-) {
+): WorkoutAggregate {
   assertWorkoutIsActive(workoutAggregate);
   assertWorkoutSetExists(getWorkoutSetById(workoutAggregate, input.setId));
 
@@ -200,6 +243,12 @@ export function updateWorkoutSet(
     }
   }
 
+  if (input.rpe !== undefined && input.rpe !== null) {
+    if (input.rpe < 1 || input.rpe > 10) {
+      throw new Error("RPE must be between 1 and 10");
+    }
+  }
+
   const updatedSections = workoutAggregate.sections.map((sectionAggregate) => {
     const updatedSets = sectionAggregate.sets.map((setAggregate) => {
       if (setAggregate.id !== input.setId) return setAggregate;
@@ -209,6 +258,7 @@ export function updateWorkoutSet(
         type: input.type ?? setAggregate.type,
         reps: input.reps !== undefined ? input.reps : setAggregate.reps,
         weight: input.weight !== undefined ? input.weight : setAggregate.weight,
+        rpe: input.rpe !== undefined ? input.rpe : setAggregate.rpe,
         updatedAt: input.now,
       };
     });
@@ -235,7 +285,7 @@ export function updateWorkoutSet(
 export function completeWorkoutSet(
   workoutAggregate: WorkoutAggregate,
   input: CompleteWorkoutSetInput,
-) {
+): WorkoutAggregate {
   assertWorkoutIsActive(workoutAggregate);
 
   const targetSet = getWorkoutSetById(workoutAggregate, input.setId);
@@ -299,6 +349,30 @@ export function completeWorkoutSet(
       ...workoutAggregateAfterSetUpdate.workout,
       activeSetId: nextActiveSetId,
     },
+  };
+
+  assertWorkoutAggregateInvariants(nextWorkoutAggregate);
+
+  return nextWorkoutAggregate;
+}
+
+export function selectWorkoutSet(
+  workoutAggregate: WorkoutAggregate,
+  input: SelectWorkoutSetInput,
+): WorkoutAggregate {
+  assertWorkoutIsActive(workoutAggregate);
+
+  const selectedSet = getWorkoutSetById(workoutAggregate, input.setId);
+
+  assertWorkoutSetExists(selectedSet);
+
+  const nextWorkoutAggregate: WorkoutAggregate = {
+    workout: {
+      ...workoutAggregate.workout,
+      activeSetId: input.setId,
+      updatedAt: input.now,
+    },
+    sections: workoutAggregate.sections,
   };
 
   assertWorkoutAggregateInvariants(nextWorkoutAggregate);
