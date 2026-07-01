@@ -8,6 +8,9 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { WebBadge } from "@/components/web-badge";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import { startQuickWorkout } from "@/features/workout/actions/startQuickWorkout";
+import { Button } from "@react-navigation/elements";
+import { router } from "expo-router";
 
 function getDevMenuHint() {
   if (Platform.OS === "web") {
@@ -38,11 +41,17 @@ export default function HomeScreen() {
             Welcome to&nbsp;Expo
           </ThemedText>
         </ThemedView>
-
         <ThemedText type="code" style={styles.code}>
           get started
         </ThemedText>
-
+        <Button
+          onPress={async () => {
+            await startQuickWorkout();
+            router.push("/workout");
+          }}
+        >
+          Start Quick Workout
+        </Button>
         <ThemedView type="backgroundElement" style={styles.stepContainer}>
           <HintRow
             title="Try editing"

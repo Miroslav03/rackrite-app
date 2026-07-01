@@ -8,6 +8,7 @@ import {
   assertWorkoutSetExists,
 } from "./assertions/workout.contracts";
 import { assertWorkoutAggregateInvariants } from "./assertions/workout.invariants";
+
 import {
   getAllWorkoutSets,
   getWorkoutSectionById,

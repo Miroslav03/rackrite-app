@@ -7,11 +7,11 @@ import React from "react";
 import { Text, useColorScheme, View } from "react-native";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
-import AppTabs from "@/components/app-tabs";
 
 import { db } from "@/data/db/client";
 import migrations from "@/data/db/migrations/migrations";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
+import { Stack } from "expo-router";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -36,7 +36,11 @@ export default function TabLayout() {
           <Text>Preparing database...</Text>
         </View>
       ) : (
-        <AppTabs />
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="explore" options={{ headerShown: false }} />
+          <Stack.Screen name="workout" options={{ title: "Workout" }} />
+        </Stack>
       )}
     </ThemeProvider>
   );
