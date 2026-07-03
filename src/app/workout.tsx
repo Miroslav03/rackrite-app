@@ -44,12 +44,10 @@ export default function WorkoutScreen() {
 
   return (
     <View style={{ padding: 16 }}>
-      <Text style={{ color: "white" }}>Workout Screen</Text>
-      <Text style={{ color: "white" }}>ID: {workout.workout.id}</Text>
-      <Text style={{ color: "white" }}>Status: {workout.workout.status}</Text>
-      <Text style={{ color: "white" }}>
-        Sections: {workout.sections.length}
-      </Text>
+      <Text>Workout Screen</Text>
+      <Text>ID: {workout.workout.id}</Text>
+      <Text>Status: {workout.workout.status}</Text>
+      <Text>Sections: {workout.sections.length}</Text>
     </View>
   );
 }

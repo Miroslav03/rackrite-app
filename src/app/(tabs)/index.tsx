@@ -1,44 +1,15 @@
-import { StyleSheet } from "react-native";
+import { AppText } from "@/shared/components/ui/AppText";
+import { Screen } from "@/shared/components/layout/Screen";
 
-import { ThemedView } from "@/components/themed-view";
-import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
-
-export default function HomeScreen() {
-  return <ThemedView style={styles.container}></ThemedView>;
+export default function StartScreen() {
+  return (
+    <Screen>
+      <AppText variant="title" className="uppercase italic tracking-tight">
+        Start Workout
+      </AppText>
+      <AppText variant="subtitle" className="mt-2">
+        Training Session Launcher
+      </AppText>
+    </Screen>
+  );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    flexDirection: "row",
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: "center",
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: "center",
-  },
-  code: {
-    textTransform: "uppercase",
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: "stretch",
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
-});

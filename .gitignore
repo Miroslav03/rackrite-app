@@ -2,6 +2,7 @@
 
 # dependencies
 node_modules/
+nativewind-env.d.ts
 
 # Expo
 .expo/
