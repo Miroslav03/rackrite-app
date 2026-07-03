@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 
 import { getActiveWorkoutAggregate } from "@/data/repositories/workoutRepository";
+
 import type { WorkoutAggregate } from "@/domain/workout/workout.types";
 
 export default function WorkoutScreen() {
