@@ -19,7 +19,12 @@ export function AppHeader({
   className,
 }: AppHeaderProps) {
   return (
-    <View className={cn("h-16 flex-row items-center px-screenX", className)}>
+    <View
+      className={cn(
+        "h-16 flex-row items-center px-screenX bg-surface",
+        className,
+      )}
+    >
       <AppText variant="logo" className="flex-1" numberOfLines={1}>
         {title}
       </AppText>

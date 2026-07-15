@@ -20,7 +20,9 @@ export function Screen({
   className,
 }: ScreenProps) {
   const content = (
-    <View className={cn("flex-1 px-screenX pb-6", className)}>{children}</View>
+    <View className={cn("flex-1 px-screenX pt-6 pb-6", className)}>
+      {children}
+    </View>
   );
 
   return (

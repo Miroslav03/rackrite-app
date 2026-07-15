@@ -38,11 +38,11 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.muted,
 
         tabBarStyle: {
-          backgroundColor: colors.surfaceLow,
+          backgroundColor: colors.surface,
           borderTopWidth: 0,
           height: 74,
           paddingTop: 8,
-          paddingBottom: 8,
+          paddingBottom: 10,
         },
 
         tabBarLabelStyle: {
