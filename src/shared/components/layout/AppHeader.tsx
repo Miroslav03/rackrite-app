@@ -1,11 +1,11 @@
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+
+import { AppText } from "@/shared/components/ui/AppText";
 import { colors } from "@/shared/theme/tokens";
 import { cn } from "@/shared/utils/cn";
-
-import { AppText } from "../ui/AppText";
 
 type AppHeaderProps = {
   title?: string;
@@ -27,6 +27,7 @@ export function AppHeader({
       {showSettings ? (
         <Pressable
           hitSlop={12}
+          //This here must go to settings
           onPress={() => router.push("/workout")}
           className="h-9 w-9 items-center justify-center rounded-full bg-surfaceHigh"
         >

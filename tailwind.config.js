@@ -6,6 +6,7 @@ module.exports = {
     extend: {
       colors: {
         background: "#101419",
+        outline: "#434655",
 
         surfaceLow: "#151A20",
         surface: "#1C2025",
@@ -36,7 +37,8 @@ module.exports = {
         screenX: 24,
       },
       borderRadius: {
-        xl: 8,
+        button: 8,
+        card: 8,
       },
     },
   },

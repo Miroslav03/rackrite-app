@@ -2,6 +2,7 @@ const errorAccent = "#EF4444";
 
 export const colors = {
   background: "#101419",
+  outline: "#434655",
 
   surfaceLow: "#151A20",
   surface: "#1C2025",

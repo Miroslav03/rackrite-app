@@ -3,6 +3,7 @@ import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { cn } from "@/shared/utils/cn";
+
 import { AppHeader } from "./AppHeader";
 
 type ScreenProps = {
@@ -19,7 +20,7 @@ export function Screen({
   className,
 }: ScreenProps) {
   const content = (
-    <View className={cn("flex-1 px-screenX pb-8", className)}>{children}</View>
+    <View className={cn("flex-1 px-screenX pb-6", className)}>{children}</View>
   );
 
   return (
@@ -32,8 +33,8 @@ export function Screen({
       {scroll ? (
         <ScrollView
           className="flex-1"
+          contentContainerStyle={{ flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
-          contentContainerClassName="pb-8"
         >
           {content}
         </ScrollView>
