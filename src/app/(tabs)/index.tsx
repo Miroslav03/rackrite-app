@@ -1,7 +1,10 @@
+import { Ionicons } from "@expo/vector-icons";
+
 import { Screen } from "@/shared/components/layout/Screen";
 import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 import { ScreenSection } from "@/shared/components/layout/ScreenSection";
 import { Button } from "@/shared/components/ui/Button";
+import { colors } from "@/shared/theme/tokens";
 
 export default function StartScreen() {
   return (
@@ -16,6 +19,13 @@ export default function StartScreen() {
           variant="outline"
           intent="neutral"
           size="lg"
+          leftIcon={
+            <Ionicons
+              name="copy-outline"
+              size={22}
+              color={colors.primarySoft}
+            />
+          }
         />
 
         <Button

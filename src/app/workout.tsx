@@ -5,6 +5,10 @@ import { getActiveWorkoutAggregate } from "@/data/repositories/workoutRepository
 
 import type { WorkoutAggregate } from "@/domain/workout/workout.types";
 
+import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
+import { Screen } from "@/shared/components/layout/Screen";
+import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
+
 export default function WorkoutScreen() {
   const [workout, setWorkout] = useState<WorkoutAggregate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,11 +47,12 @@ export default function WorkoutScreen() {
   }
 
   return (
-    <View style={{ padding: 16 }}>
-      <Text>Workout Screen</Text>
-      <Text>ID: {workout.workout.id}</Text>
-      <Text>Status: {workout.workout.status}</Text>
-      <Text>Sections: {workout.sections.length}</Text>
-    </View>
+    <Screen>
+      <ScreenHeader
+        title="New Workout"
+        subtitle="ACTIVE WORKOUT"
+        rightAccessory={<HeaderMetric value="32:10" label="Duration" />}
+      />
+    </Screen>
   );
 }

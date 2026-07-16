@@ -99,7 +99,7 @@ export function Button({
       )}
       {...props}
     >
-      <View className="flex-row items-center justify-center gap-2">
+      <View className="flex-row items-center justify-center gap-sm">
         {leftIcon}
 
         <AppText
