@@ -1,5 +1,3 @@
-// src/components/layout/ScreenSection.tsx
-
 import type { ReactNode } from "react";
 import { View } from "react-native";
 

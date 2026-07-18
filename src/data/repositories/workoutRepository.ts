@@ -6,7 +6,6 @@ import {
   workoutSetsTable,
   workoutsTable,
 } from "@/data/db/schema";
-
 import {
   rowsToWorkoutAggregate,
   workoutSectionToRow,

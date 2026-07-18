@@ -16,6 +16,7 @@ export const colors = {
 
   success: "#22C55E",
   successBorder: "#79DB8D",
+  successSurface: "#131F1D",
 
   error: "#FFB4AB",
   errorBorder: errorAccent,

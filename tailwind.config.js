@@ -20,6 +20,7 @@ module.exports = {
 
         success: "#22C55E",
         successBorder: "#79DB8D",
+        successSurface: "#131F1D",
 
         error: "#FFB4AB",
         errorBorder: "#EF4444",
@@ -33,7 +34,7 @@ module.exports = {
         lg: 16,
         xl: 24,
         "2xl": 32,
-        screenX: 24,
+        screenX: 16,
       },
       borderRadius: {
         button: 8,
