@@ -2,17 +2,18 @@ import { asc, desc, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/data/db/client";
 import {
-  workoutSectionsTable,
+  exercisesTable,
+  workoutExercisesTable,
   workoutSetsTable,
   workoutsTable,
 } from "@/data/db/schema";
 import {
+  exerciseToRow,
   rowsToWorkoutAggregate,
-  workoutSectionToRow,
+  workoutExerciseToRow,
   workoutSetToRow,
   workoutToRow,
 } from "@/data/mappers/workoutMappers";
-
 import type {
   WorkoutAggregate,
   WorkoutId,
@@ -27,11 +28,24 @@ export type WorkoutRepository = {
   getCompletedWorkoutAggregates: () => Promise<WorkoutAggregate[]>;
 };
 
-// Current implementation delets and reisnerts with the right data
-// Maybe this can be changed later to update what has only changed
 export const saveWorkoutAggregate: WorkoutRepository["saveWorkoutAggregate"] =
   async (workoutAggregate) => {
     await db.transaction(async (tx) => {
+      const exerciseRowsById = new Map(
+        workoutAggregate.exercises.map((exerciseAggregate) => [
+          exerciseAggregate.exercise.id,
+          exerciseToRow(exerciseAggregate.exercise),
+        ]),
+      );
+      const exerciseRows = [...exerciseRowsById.values()];
+
+      if (exerciseRows.length > 0) {
+        await tx
+          .insert(exercisesTable)
+          .values(exerciseRows)
+          .onConflictDoNothing();
+      }
+
       await tx
         .insert(workoutsTable)
         .values(workoutToRow(workoutAggregate.workout))
@@ -40,35 +54,44 @@ export const saveWorkoutAggregate: WorkoutRepository["saveWorkoutAggregate"] =
           set: workoutToRow(workoutAggregate.workout),
         });
 
-      const existingSections = await tx
+      const existingWorkoutExercises = await tx
         .select()
-        .from(workoutSectionsTable)
-        .where(eq(workoutSectionsTable.workoutId, workoutAggregate.workout.id));
+        .from(workoutExercisesTable)
+        .where(
+          eq(workoutExercisesTable.workoutId, workoutAggregate.workout.id),
+        );
+      const existingWorkoutExerciseIds = existingWorkoutExercises.map(
+        (workoutExercise) => workoutExercise.id,
+      );
 
-      const existingSectionIds = existingSections.map((section) => section.id);
-
-      if (existingSectionIds.length > 0) {
+      if (existingWorkoutExerciseIds.length > 0) {
         await tx
           .delete(workoutSetsTable)
           .where(
-            inArray(workoutSetsTable.workoutSectionId, existingSectionIds),
+            inArray(
+              workoutSetsTable.workoutExerciseId,
+              existingWorkoutExerciseIds,
+            ),
           );
       }
 
       await tx
-        .delete(workoutSectionsTable)
-        .where(eq(workoutSectionsTable.workoutId, workoutAggregate.workout.id));
+        .delete(workoutExercisesTable)
+        .where(
+          eq(workoutExercisesTable.workoutId, workoutAggregate.workout.id),
+        );
 
-      const sectionRows = workoutAggregate.sections.map((sectionAggregate) =>
-        workoutSectionToRow(sectionAggregate.section),
+      const workoutExerciseRows = workoutAggregate.exercises.map(
+        (exerciseAggregate) =>
+          workoutExerciseToRow(exerciseAggregate.workoutExercise),
       );
 
-      if (sectionRows.length > 0) {
-        await tx.insert(workoutSectionsTable).values(sectionRows);
+      if (workoutExerciseRows.length > 0) {
+        await tx.insert(workoutExercisesTable).values(workoutExerciseRows);
       }
 
-      const setRows = workoutAggregate.sections.flatMap((sectionAggregate) =>
-        sectionAggregate.sets.map(workoutSetToRow),
+      const setRows = workoutAggregate.exercises.flatMap((exerciseAggregate) =>
+        exerciseAggregate.sets.map(workoutSetToRow),
       );
 
       if (setRows.length > 0) {
@@ -89,26 +112,43 @@ export const getWorkoutAggregateById: WorkoutRepository["getWorkoutAggregateById
       return null;
     }
 
-    const sectionRows = await db
+    const workoutExerciseRows = await db
       .select()
-      .from(workoutSectionsTable)
-      .where(eq(workoutSectionsTable.workoutId, workoutId))
-      .orderBy(asc(workoutSectionsTable.orderIndex));
-
-    const sectionIds = sectionRows.map((section) => section.id);
-
+      .from(workoutExercisesTable)
+      .where(eq(workoutExercisesTable.workoutId, workoutId))
+      .orderBy(asc(workoutExercisesTable.orderIndex));
+    const workoutExerciseIds = workoutExerciseRows.map(
+      (workoutExercise) => workoutExercise.id,
+    );
+    const exerciseIds = [
+      ...new Set(
+        workoutExerciseRows.map(
+          (workoutExercise) => workoutExercise.exerciseId,
+        ),
+      ),
+    ];
+    const exerciseRows =
+      exerciseIds.length > 0
+        ? await db
+            .select()
+            .from(exercisesTable)
+            .where(inArray(exercisesTable.id, exerciseIds))
+        : [];
     const setRows =
-      sectionIds.length > 0
+      workoutExerciseIds.length > 0
         ? await db
             .select()
             .from(workoutSetsTable)
-            .where(inArray(workoutSetsTable.workoutSectionId, sectionIds))
+            .where(
+              inArray(workoutSetsTable.workoutExerciseId, workoutExerciseIds),
+            )
             .orderBy(asc(workoutSetsTable.setIndex))
         : [];
 
     return rowsToWorkoutAggregate({
       workoutRow,
-      sectionRows,
+      workoutExerciseRows,
+      exerciseRows,
       setRows,
     });
   };
@@ -136,7 +176,6 @@ export const getCompletedWorkoutAggregates: WorkoutRepository["getCompletedWorko
       .from(workoutsTable)
       .where(eq(workoutsTable.status, "completed"))
       .orderBy(desc(workoutsTable.finishedAt));
-
     const workoutAggregates = await Promise.all(
       completedWorkoutRows.map((workoutRow) =>
         getWorkoutAggregateById(workoutRow.id),

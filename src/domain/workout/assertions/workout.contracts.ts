@@ -1,8 +1,6 @@
-import { LiftFamily } from "@/domain/domain.types";
-
 import {
   WorkoutAggregate,
-  WorkoutSectionAggregate,
+  WorkoutExerciseAggregate,
   WorkoutSet,
 } from "../workout.types";
 
@@ -15,29 +13,11 @@ export function assertWorkoutIsActive(
   }
 }
 
-export function assertWorkoutCanAddSection(
-  workoutAggregate: WorkoutAggregate,
-  liftFamily: LiftFamily,
-): void {
-  if (workoutAggregate.sections.length >= 3) {
-    throw new Error("Workout cannot have more than 3 sections");
-  }
-
-  const alreadyHasLiftFamily = workoutAggregate.sections.some(
-    (workoutSectionAggregate) =>
-      workoutSectionAggregate.section.liftFamily === liftFamily,
-  );
-
-  if (alreadyHasLiftFamily) {
-    throw new Error(`Workout already has a ${liftFamily} section`);
-  }
-}
-
-export function assertWorkoutSectionExists(
-  section: WorkoutSectionAggregate | undefined,
-): asserts section is WorkoutSectionAggregate {
-  if (!section) {
-    throw new Error("Workout section not found");
+export function assertWorkoutExerciseExists(
+  exercise: WorkoutExerciseAggregate | undefined,
+): asserts exercise is WorkoutExerciseAggregate {
+  if (!exercise) {
+    throw new Error("Workout exercise not found");
   }
 }
 

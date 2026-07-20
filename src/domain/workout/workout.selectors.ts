@@ -1,16 +1,26 @@
-import {
-    WorkoutAggregate,
-    WorkoutSectionAggregate,
-    WorkoutSectionId,
-    WorkoutSet,
-    WorkoutSetId,
+import type {
+  WorkoutAggregate,
+  WorkoutExerciseAggregate,
+  WorkoutExerciseId,
+  WorkoutSet,
+  WorkoutSetId,
 } from "./workout.types";
 
 export function getAllWorkoutSets(
   workoutAggregate: WorkoutAggregate,
 ): WorkoutSet[] {
-  return workoutAggregate.sections.flatMap(
-    (sectionAggregate) => sectionAggregate.sets,
+  return workoutAggregate.exercises.flatMap(
+    (exerciseAggregate) => exerciseAggregate.sets,
+  );
+}
+
+export function getWorkoutExerciseById(
+  workoutAggregate: WorkoutAggregate,
+  workoutExerciseId: WorkoutExerciseId,
+): WorkoutExerciseAggregate | undefined {
+  return workoutAggregate.exercises.find(
+    (exerciseAggregate) =>
+      exerciseAggregate.workoutExercise.id === workoutExerciseId,
   );
 }
 
@@ -19,14 +29,4 @@ export function getWorkoutSetById(
   setId: WorkoutSetId,
 ): WorkoutSet | undefined {
   return getAllWorkoutSets(workoutAggregate).find((set) => set.id === setId);
-}
-
-export function getWorkoutSectionById(
-  workoutAggregate: WorkoutAggregate,
-  sectionId: WorkoutSectionId,
-): WorkoutSectionAggregate | undefined {
-  return workoutAggregate.sections.find(
-    (workoutSectionAggregate) =>
-      workoutSectionAggregate.section.id === sectionId,
-  );
 }

@@ -1,12 +1,12 @@
 import {
-    getWorkoutAggregateById,
-    saveWorkoutAggregate,
+  getWorkoutAggregateById,
+  saveWorkoutAggregate,
 } from "@/data/repositories/workoutRepository";
 
 import {
-    addWorkoutSection,
-    createEmptyWorkout,
-    updateWorkoutSet,
+  addWorkoutExercise,
+  createEmptyWorkout,
+  updateWorkoutSet,
 } from "@/domain/workout/workout.useCases";
 
 export async function smokeTestWorkoutRepository() {
@@ -15,11 +15,16 @@ export async function smokeTestWorkoutRepository() {
     now: 1000,
   });
 
-  const withBench = addWorkoutSection(workout, {
-    sectionId: "section_repo_test_1",
+  const withBench = addWorkoutExercise(workout, {
+    workoutExerciseId: "workout_exercise_repo_test_1",
     setId: "set_repo_test_1",
-    liftFamily: "bench",
-    variationId: "competition_bench",
+    exercise: {
+      id: "competition_bench",
+      name: "Competition Bench",
+      kind: "competition_lift",
+      origin: "built_in",
+      liftFamily: "bench",
+    },
     now: 2000,
   });
 
@@ -27,7 +32,6 @@ export async function smokeTestWorkoutRepository() {
     setId: "set_repo_test_1",
     weight: 100,
     reps: 5,
-    rpe: 8,
     now: 3000,
   });
 

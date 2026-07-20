@@ -1,34 +1,10 @@
 import { getAllWorkoutSets } from "../workout.selectors";
-import { WorkoutAggregate } from "../workout.types";
-
-export function assertMaxThreeSections(
-  workoutAggregate: WorkoutAggregate,
-): void {
-  if (workoutAggregate.sections.length > 3) {
-    throw new Error("Workout cannot have more than 3 sections");
-  }
-}
-
-export function assertUniqueLiftFamilies(
-  workoutAggregate: WorkoutAggregate,
-): void {
-  const families = workoutAggregate.sections.map(
-    (sectionAggregate) => sectionAggregate.section.liftFamily,
-  );
-
-  const uniqueFamilies = new Set(families);
-
-  if (uniqueFamilies.size !== families.length) {
-    throw new Error("Workout cannot have duplicate lift families");
-  }
-}
+import type { WorkoutAggregate } from "../workout.types";
 
 export function assertFinishedSetsHaveWeightAndReps(
   workoutAggregate: WorkoutAggregate,
 ): void {
-  const allSets = getAllWorkoutSets(workoutAggregate);
-
-  for (const set of allSets) {
+  for (const set of getAllWorkoutSets(workoutAggregate)) {
     if (set.finishedAt !== null && (set.weight === null || set.reps === null)) {
       throw new Error("Finished set must have weight and reps");
     }
@@ -48,15 +24,10 @@ export function assertActiveSetExistsIfWorkoutHasSets(
     throw new Error("Non-empty workout must have an active set");
   }
 
-  if (workoutAggregate.workout.activeSetId === null) {
-    return;
-  }
-
-  const activeSetExists = allSets.some(
-    (set) => set.id === workoutAggregate.workout.activeSetId,
-  );
-
-  if (!activeSetExists) {
+  if (
+    workoutAggregate.workout.activeSetId !== null &&
+    !allSets.some((set) => set.id === workoutAggregate.workout.activeSetId)
+  ) {
     throw new Error("Active set must point to an existing set");
   }
 }
@@ -64,16 +35,22 @@ export function assertActiveSetExistsIfWorkoutHasSets(
 export function assertWorkoutAggregateOwnership(
   workoutAggregate: WorkoutAggregate,
 ): void {
-  for (const sectionAggregate of workoutAggregate.sections) {
-    const { section, sets } = sectionAggregate;
+  for (const exerciseAggregate of workoutAggregate.exercises) {
+    const { workoutExercise, exercise, sets } = exerciseAggregate;
 
-    if (section.workoutId !== workoutAggregate.workout.id) {
-      throw new Error("Workout section must belong to the aggregate workout");
+    if (workoutExercise.workoutId !== workoutAggregate.workout.id) {
+      throw new Error("Workout exercise must belong to the aggregate workout");
+    }
+
+    if (workoutExercise.exerciseId !== exercise.id) {
+      throw new Error(
+        "Workout exercise must reference its aggregate exercise definition",
+      );
     }
 
     for (const set of sets) {
-      if (set.workoutSectionId !== section.id) {
-        throw new Error("Workout set must belong to its parent section");
+      if (set.workoutExerciseId !== workoutExercise.id) {
+        throw new Error("Workout set must belong to its parent exercise");
       }
     }
   }
@@ -82,8 +59,8 @@ export function assertWorkoutAggregateOwnership(
 export function assertWorkoutSetIndexesAreValid(
   workoutAggregate: WorkoutAggregate,
 ): void {
-  for (const sectionAggregate of workoutAggregate.sections) {
-    sectionAggregate.sets.forEach((set, index) => {
+  for (const exerciseAggregate of workoutAggregate.exercises) {
+    exerciseAggregate.sets.forEach((set, index) => {
       if (set.setIndex !== index) {
         throw new Error("Workout set indexes must match their order");
       }
@@ -94,9 +71,7 @@ export function assertWorkoutSetIndexesAreValid(
 export function assertWorkoutSetValuesAreValid(
   workoutAggregate: WorkoutAggregate,
 ): void {
-  const allSets = getAllWorkoutSets(workoutAggregate);
-
-  for (const set of allSets) {
+  for (const set of getAllWorkoutSets(workoutAggregate)) {
     if (set.weight !== null && set.weight < 0) {
       throw new Error("Weight cannot be a negative number");
     }
@@ -126,8 +101,6 @@ export function assertWorkoutSetValuesAreValid(
 export function assertWorkoutAggregateInvariants(
   workoutAggregate: WorkoutAggregate,
 ): void {
-  assertMaxThreeSections(workoutAggregate);
-  assertUniqueLiftFamilies(workoutAggregate);
   assertActiveSetExistsIfWorkoutHasSets(workoutAggregate);
   assertFinishedSetsHaveWeightAndReps(workoutAggregate);
   assertWorkoutAggregateOwnership(workoutAggregate);

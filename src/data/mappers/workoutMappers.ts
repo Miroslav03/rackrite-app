@@ -1,20 +1,33 @@
 import type {
+  ExerciseRow,
+  NewExerciseRow,
+  NewWorkoutExerciseRow,
   NewWorkoutRow,
-  NewWorkoutSectionRow,
   NewWorkoutSetRow,
+  WorkoutExerciseRow,
   WorkoutRow,
-  WorkoutSectionRow,
   WorkoutSetRow,
 } from "@/data/db/schema";
 
+import type { Exercise } from "@/domain/exercises/exercise.types";
 import { assertWorkoutAggregateInvariants } from "@/domain/workout/assertions/workout.invariants";
 import type {
   Workout,
   WorkoutAggregate,
-  WorkoutSection,
-  WorkoutSectionAggregate,
+  WorkoutExercise,
+  WorkoutExerciseAggregate,
   WorkoutSet,
 } from "@/domain/workout/workout.types";
+
+export function exerciseToRow(exercise: Exercise): NewExerciseRow {
+  return {
+    id: exercise.id,
+    name: exercise.name,
+    kind: exercise.kind,
+    origin: exercise.origin,
+    liftFamily: exercise.liftFamily,
+  };
+}
 
 export function workoutToRow(workout: Workout): NewWorkoutRow {
   return {
@@ -29,25 +42,24 @@ export function workoutToRow(workout: Workout): NewWorkoutRow {
   };
 }
 
-export function workoutSectionToRow(
-  workoutSection: WorkoutSection,
-): NewWorkoutSectionRow {
+export function workoutExerciseToRow(
+  workoutExercise: WorkoutExercise,
+): NewWorkoutExerciseRow {
   return {
-    id: workoutSection.id,
-    workoutId: workoutSection.workoutId,
-    variationId: workoutSection.variationId,
-    liftFamily: workoutSection.liftFamily,
-    notes: workoutSection.notes,
-    orderIndex: workoutSection.orderIndex,
-    createdAt: workoutSection.createdAt,
-    updatedAt: workoutSection.updatedAt,
+    id: workoutExercise.id,
+    workoutId: workoutExercise.workoutId,
+    exerciseId: workoutExercise.exerciseId,
+    notes: workoutExercise.notes,
+    orderIndex: workoutExercise.orderIndex,
+    createdAt: workoutExercise.createdAt,
+    updatedAt: workoutExercise.updatedAt,
   };
 }
 
 export function workoutSetToRow(set: WorkoutSet): NewWorkoutSetRow {
   return {
     id: set.id,
-    workoutSectionId: set.workoutSectionId,
+    workoutExerciseId: set.workoutExerciseId,
     setIndex: set.setIndex,
     type: set.type,
     weight: set.weight,
@@ -57,6 +69,48 @@ export function workoutSetToRow(set: WorkoutSet): NewWorkoutSetRow {
     createdAt: set.createdAt,
     updatedAt: set.updatedAt,
   };
+}
+
+export function exerciseRowToExercise(exerciseRow: ExerciseRow): Exercise {
+  const { id, name, kind, origin, liftFamily } = exerciseRow;
+
+  switch (kind) {
+    case "competition_lift":
+      if (origin !== "built_in") {
+        throw new Error(
+          `Invalid exercise row "${id}": competition lifts must be built in`,
+        );
+      }
+
+      if (liftFamily === null) {
+        throw new Error(
+          `Invalid exercise row "${id}": competition lifts must have a lift family`,
+        );
+      }
+
+      return { id, name, kind, origin, liftFamily };
+
+    case "lift_variation":
+      if (liftFamily === null) {
+        throw new Error(
+          `Invalid exercise row "${id}": lift variations must have a lift family`,
+        );
+      }
+
+      return { id, name, kind, origin, liftFamily };
+
+    case "accessory":
+      if (liftFamily !== null) {
+        throw new Error(
+          `Invalid exercise row "${id}": accessories cannot have a lift family`,
+        );
+      }
+
+      return { id, name, kind, origin, liftFamily };
+
+    default:
+      throw new Error(`Invalid exercise row "${id}": unknown kind "${kind}"`);
+  }
 }
 
 export function workoutRowToWorkout(workoutRow: WorkoutRow): Workout {
@@ -72,25 +126,24 @@ export function workoutRowToWorkout(workoutRow: WorkoutRow): Workout {
   };
 }
 
-export function workoutSectionRowToWorkoutSection(
-  sectionRow: WorkoutSectionRow,
-): WorkoutSection {
+export function workoutExerciseRowToWorkoutExercise(
+  exerciseRow: WorkoutExerciseRow,
+): WorkoutExercise {
   return {
-    id: sectionRow.id,
-    workoutId: sectionRow.workoutId,
-    variationId: sectionRow.variationId,
-    liftFamily: sectionRow.liftFamily,
-    notes: sectionRow.notes,
-    orderIndex: sectionRow.orderIndex,
-    createdAt: sectionRow.createdAt,
-    updatedAt: sectionRow.updatedAt,
+    id: exerciseRow.id,
+    workoutId: exerciseRow.workoutId,
+    exerciseId: exerciseRow.exerciseId,
+    notes: exerciseRow.notes,
+    orderIndex: exerciseRow.orderIndex,
+    createdAt: exerciseRow.createdAt,
+    updatedAt: exerciseRow.updatedAt,
   };
 }
 
 export function workoutSetRowToWorkoutSet(setRow: WorkoutSetRow): WorkoutSet {
   return {
     id: setRow.id,
-    workoutSectionId: setRow.workoutSectionId,
+    workoutExerciseId: setRow.workoutExerciseId,
     setIndex: setRow.setIndex,
     type: setRow.type,
     weight: setRow.weight,
@@ -104,40 +157,58 @@ export function workoutSetRowToWorkoutSet(setRow: WorkoutSetRow): WorkoutSet {
 
 export function rowsToWorkoutAggregate({
   workoutRow,
-  sectionRows,
+  workoutExerciseRows,
+  exerciseRows,
   setRows,
 }: {
   workoutRow: WorkoutRow;
-  sectionRows: WorkoutSectionRow[];
+  workoutExerciseRows: WorkoutExerciseRow[];
+  exerciseRows: ExerciseRow[];
   setRows: WorkoutSetRow[];
 }): WorkoutAggregate {
-  const setsBySectionId = new Map<string, WorkoutSet[]>();
+  const exercisesById = new Map(
+    exerciseRows.map((exerciseRow) => {
+      const exercise = exerciseRowToExercise(exerciseRow);
+
+      return [exercise.id, exercise];
+    }),
+  );
+  const setsByWorkoutExerciseId = new Map<string, WorkoutSet[]>();
 
   for (const setRow of setRows) {
     const set = workoutSetRowToWorkoutSet(setRow);
-
-    const existingSets = setsBySectionId.get(set.workoutSectionId) ?? [];
+    const existingSets =
+      setsByWorkoutExerciseId.get(set.workoutExerciseId) ?? [];
     existingSets.push(set);
-
-    setsBySectionId.set(set.workoutSectionId, existingSets);
+    setsByWorkoutExerciseId.set(set.workoutExerciseId, existingSets);
   }
 
-  const sections: WorkoutSectionAggregate[] = sectionRows
-    .map((sectionRow) => {
-      const section = workoutSectionRowToWorkoutSection(sectionRow);
+  const exercises: WorkoutExerciseAggregate[] = workoutExerciseRows
+    .map((workoutExerciseRow) => {
+      const workoutExercise =
+        workoutExerciseRowToWorkoutExercise(workoutExerciseRow);
+      const exercise = exercisesById.get(workoutExercise.exerciseId);
 
-      const sets = setsBySectionId.get(section.id) ?? [];
+      if (!exercise) {
+        throw new Error("Workout exercise definition not found");
+      }
+
+      const sets = setsByWorkoutExerciseId.get(workoutExercise.id) ?? [];
 
       return {
-        section,
-        sets: sets.sort((a, b) => a.setIndex - b.setIndex),
+        workoutExercise,
+        exercise,
+        sets: sets.sort((left, right) => left.setIndex - right.setIndex),
       };
     })
-    .sort((a, b) => a.section.orderIndex - b.section.orderIndex);
+    .sort(
+      (left, right) =>
+        left.workoutExercise.orderIndex - right.workoutExercise.orderIndex,
+    );
 
   const workoutAggregate: WorkoutAggregate = {
     workout: workoutRowToWorkout(workoutRow),
-    sections,
+    exercises,
   };
 
   assertWorkoutAggregateInvariants(workoutAggregate);

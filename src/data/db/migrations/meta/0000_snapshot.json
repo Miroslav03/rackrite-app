@@ -1,11 +1,56 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "7f674759-3132-4759-8dd1-020fefeeb7c7",
+  "id": "72cbd1dc-28c4-43f1-ac17-9a72cb3ef2ca",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "workout_sections": {
-      "name": "workout_sections",
+    "exercises": {
+      "name": "exercises",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "origin": {
+          "name": "origin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lift_family": {
+          "name": "lift_family",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "workout_exercises": {
+      "name": "workout_exercises",
       "columns": {
         "id": {
           "name": "id",
@@ -21,15 +66,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "variation_id": {
-          "name": "variation_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "lift_family": {
-          "name": "lift_family",
+        "exercise_id": {
+          "name": "exercise_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -65,26 +103,29 @@
         }
       },
       "indexes": {
-        "idx_workout_sections_workout_id": {
-          "name": "idx_workout_sections_workout_id",
-          "columns": [
-            "workout_id"
-          ],
+        "idx_workout_exercises_workout_id": {
+          "name": "idx_workout_exercises_workout_id",
+          "columns": ["workout_id"],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "workout_sections_workout_id_workouts_id_fk": {
-          "name": "workout_sections_workout_id_workouts_id_fk",
-          "tableFrom": "workout_sections",
+        "workout_exercises_workout_id_workouts_id_fk": {
+          "name": "workout_exercises_workout_id_workouts_id_fk",
+          "tableFrom": "workout_exercises",
           "tableTo": "workouts",
-          "columnsFrom": [
-            "workout_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workout_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "workout_exercises_exercise_id_exercises_id_fk": {
+          "name": "workout_exercises_exercise_id_exercises_id_fk",
+          "tableFrom": "workout_exercises",
+          "tableTo": "exercises",
+          "columnsFrom": ["exercise_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -102,8 +143,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "workout_section_id": {
-          "name": "workout_section_id",
+        "workout_exercise_id": {
+          "name": "workout_exercise_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -167,25 +208,19 @@
         }
       },
       "indexes": {
-        "idx_workout_sets_section_id": {
-          "name": "idx_workout_sets_section_id",
-          "columns": [
-            "workout_section_id"
-          ],
+        "idx_workout_sets_exercise_id": {
+          "name": "idx_workout_sets_exercise_id",
+          "columns": ["workout_exercise_id"],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "workout_sets_workout_section_id_workout_sections_id_fk": {
-          "name": "workout_sets_workout_section_id_workout_sections_id_fk",
+        "workout_sets_workout_exercise_id_workout_exercises_id_fk": {
+          "name": "workout_sets_workout_exercise_id_workout_exercises_id_fk",
           "tableFrom": "workout_sets",
-          "tableTo": "workout_sections",
-          "columnsFrom": [
-            "workout_section_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "tableTo": "workout_exercises",
+          "columnsFrom": ["workout_exercise_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
