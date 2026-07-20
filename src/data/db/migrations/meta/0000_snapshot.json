@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "72cbd1dc-28c4-43f1-ac17-9a72cb3ef2ca",
+  "id": "89ef55d6-0361-4b72-b2a3-7a13b9a30eca",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "exercises": {
@@ -105,7 +105,9 @@
       "indexes": {
         "idx_workout_exercises_workout_id": {
           "name": "idx_workout_exercises_workout_id",
-          "columns": ["workout_id"],
+          "columns": [
+            "workout_id"
+          ],
           "isUnique": false
         }
       },
@@ -114,8 +116,12 @@
           "name": "workout_exercises_workout_id_workouts_id_fk",
           "tableFrom": "workout_exercises",
           "tableTo": "workouts",
-          "columnsFrom": ["workout_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "workout_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -123,8 +129,12 @@
           "name": "workout_exercises_exercise_id_exercises_id_fk",
           "tableFrom": "workout_exercises",
           "tableTo": "exercises",
-          "columnsFrom": ["exercise_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "exercise_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -210,7 +220,9 @@
       "indexes": {
         "idx_workout_sets_exercise_id": {
           "name": "idx_workout_sets_exercise_id",
-          "columns": ["workout_exercise_id"],
+          "columns": [
+            "workout_exercise_id"
+          ],
           "isUnique": false
         }
       },
@@ -219,8 +231,12 @@
           "name": "workout_sets_workout_exercise_id_workout_exercises_id_fk",
           "tableFrom": "workout_sets",
           "tableTo": "workout_exercises",
-          "columnsFrom": ["workout_exercise_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "workout_exercise_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
