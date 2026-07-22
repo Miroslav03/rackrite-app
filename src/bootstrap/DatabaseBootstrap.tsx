@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from "react";
 
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 
+import { db } from "@/data/db/client";
 import { seedDatabase } from "@/data/db/seeds/seedDatabase";
 
-import { db } from "@/data/db/client";
 import { AppLoadingScreen } from "./AppLoadingScreen";
 import { AppStartupError } from "./AppStartupError";
 

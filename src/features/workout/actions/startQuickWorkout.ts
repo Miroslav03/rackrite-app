@@ -1,28 +1,36 @@
-import {
-  getActiveWorkoutAggregate,
-  saveWorkoutAggregate,
-} from "@/data/repositories/workoutRepository";
+import type { WorkoutRepository } from "@/data/repositories/workoutRepository";
 
-import type { WorkoutAggregate } from "@/domain/workout/workout.types";
+import type {
+  WorkoutAggregate,
+  WorkoutId,
+} from "@/domain/workout/workout.types";
 import { createEmptyWorkout } from "@/domain/workout/workout.useCases";
 
-import { createId } from "@/shared/utils/id";
+export type StartQuickWorkoutDependencies = {
+  repository: Pick<
+    WorkoutRepository,
+    "getActiveWorkoutAggregate" | "saveWorkoutAggregate"
+  >;
+  now: () => number;
+  createWorkoutId: () => WorkoutId;
+};
 
-export async function startQuickWorkout(): Promise<WorkoutAggregate> {
-  const existingActiveWorkout = await getActiveWorkoutAggregate();
+export async function startQuickWorkout(
+  dependencies: StartQuickWorkoutDependencies,
+): Promise<WorkoutAggregate> {
+  const existingWorkout =
+    await dependencies.repository.getActiveWorkoutAggregate();
 
-  if (existingActiveWorkout) {
-    return existingActiveWorkout;
+  if (existingWorkout) {
+    return existingWorkout;
   }
 
-  const now = Date.now();
-
   const workout = createEmptyWorkout({
-    id: createId("workout"),
-    now,
+    id: dependencies.createWorkoutId(),
+    now: dependencies.now(),
   });
 
-  await saveWorkoutAggregate(workout);
+  await dependencies.repository.saveWorkoutAggregate(workout);
 
   return workout;
 }

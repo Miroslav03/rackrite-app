@@ -1,40 +1,56 @@
-import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
-import { Screen } from "@/shared/components/layout/Screen";
-import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
-import { ScreenSection } from "@/shared/components/layout/ScreenSection";
-import { Button } from "@/shared/components/ui/Button";
-import { colors } from "@/shared/theme/tokens";
+import { ActiveWorkoutView } from "@/features/start/view/ActiveWorkoutView";
+import { NoActiveWorkoutView } from "@/features/start/view/NoActiveWorkoutView";
+import { StartScreenLoadError } from "@/features/start/view/StartScreenLoadError";
+import { getStartScreenViewState } from "@/features/start/view/startScreen.viewState";
+import { useWorkoutSession } from "@/features/workout/session/WorkoutSessionContext";
+
+import { FullScreenLoader } from "@/shared/components/feedback/FullScreenLoader";
 
 export default function StartScreen() {
-  return (
-    <Screen>
-      <ScreenHeader
-        title="Start Workout"
-        subtitle="Training Session Launcher"
-      />
-      <ScreenSection title="Start Options" className="mt-auto pt-8">
-        <Button
-          title="Start With Template"
-          variant="outline"
-          intent="neutral"
-          size="lg"
-          leftIcon={
-            <Ionicons
-              name="copy-outline"
-              size={22}
-              color={colors.primarySoft}
-            />
-          }
-        />
+  const router = useRouter();
+  const { state, startEmptyWorkout } = useWorkoutSession();
 
-        <Button
-          title="Quick Start (Empty)"
-          variant="ghost"
-          intent="neutral"
-          size="md"
+  const viewState = getStartScreenViewState(state);
+
+  async function handleQuickStart() {
+    const result = await startEmptyWorkout();
+
+    if (!result.success) {
+      return;
+    }
+
+    router.push("/workout");
+  }
+
+  switch (viewState.view) {
+    case "loading":
+      return (
+        <FullScreenLoader
+          accessibilityLabel="Loading active workout"
+          testID="start-screen-loading"
         />
-      </ScreenSection>
-    </Screen>
-  );
+      );
+
+    case "loadError":
+      return <StartScreenLoadError error={viewState.error} />;
+
+    case "noActiveWorkout":
+      return (
+        <NoActiveWorkoutView
+          onStartEmptyWorkout={handleQuickStart}
+          onStartFromTemplate={() => router.push("/templates")}
+          startEmptyWorkout={viewState.startEmptyWorkout}
+        />
+      );
+
+    case "activeWorkout":
+      return (
+        <ActiveWorkoutView
+          onOpenWorkout={() => router.push("/workout")}
+          workout={viewState.workout}
+        />
+      );
+  }
 }

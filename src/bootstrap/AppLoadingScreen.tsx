@@ -1,21 +1,10 @@
-import { ActivityIndicator, View } from "react-native";
-
-import { AppText } from "@/shared/components/ui/AppText";
-import { colors } from "@/shared/theme/tokens";
+import { FullScreenLoader } from "@/shared/components/feedback/FullScreenLoader";
 
 export function AppLoadingScreen() {
   return (
-    <View
-      className="flex-1 items-center justify-center bg-background"
+    <FullScreenLoader
+      accessibilityLabel="Loading application"
       testID="app-loading-screen"
-    >
-      <AppText variant="logo">RackRite</AppText>
-
-      <ActivityIndicator
-        className="mt-5"
-        color={colors.primarySoft}
-        size="small"
-      />
-    </View>
+    />
   );
 }

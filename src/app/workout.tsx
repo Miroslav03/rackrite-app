@@ -1,15 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Text, View } from "react-native";
 
-import { getActiveWorkoutAggregate } from "@/data/repositories/workoutRepository";
-
-import type { WorkoutAggregate } from "@/domain/workout/workout.types";
-
-import { RestTimerCard } from "@/features/workout/components/RestTimerCard";
-import { VariationSelect } from "@/features/workout/components/VariationSelect";
-import { WorkoutSetCard } from "@/features/workout/components/WorkoutSetCard";
+import { useWorkoutSession } from "@/features/workout/session/WorkoutSessionContext";
+import { RestTimerCard } from "@/features/workout/view/components/RestTimerCard";
+import { VariationSelect } from "@/features/workout/view/components/VariationSelect";
+import { WorkoutSetCard } from "@/features/workout/view/components/WorkoutSetCard";
 
 import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
 import { Screen } from "@/shared/components/layout/Screen";
@@ -20,31 +17,13 @@ import { Button } from "@/shared/components/ui/Button";
 import { colors } from "@/shared/theme/tokens";
 
 export default function WorkoutScreen() {
-  const [workout, setWorkout] = useState<WorkoutAggregate | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { state } = useWorkoutSession();
   const [activeSetId, setActiveSetId] = useState<string | null>(null);
 
   function selectSet(setId: string) {
     setActiveSetId(setId);
   }
-  useEffect(() => {
-    async function loadActiveWorkout() {
-      try {
-        const activeWorkout = await getActiveWorkoutAggregate();
-        console.log(activeWorkout);
-
-        setWorkout(activeWorkout);
-      } catch (error) {
-        console.error("Failed to load active workout", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    loadActiveWorkout();
-  }, []);
-
-  if (isLoading) {
+  if (state.status === "loading") {
     return (
       <View style={{ padding: 16 }}>
         <Text>Loading workout...</Text>
@@ -52,7 +31,7 @@ export default function WorkoutScreen() {
     );
   }
 
-  if (!workout) {
+  if (state.status !== "active") {
     return (
       <View style={{ padding: 16 }}>
         <Text>No active workout found.</Text>
