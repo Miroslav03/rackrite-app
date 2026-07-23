@@ -1,24 +1,24 @@
-import { Ionicons } from "@expo/vector-icons";
-import { Pressable, View } from "react-native";
-
 import type { WorkoutAggregate } from "@/domain/workout/workout.types";
+
+import { ActiveWorkoutCard } from "@/features/workout/view/components/ActiveWorkoutCard";
+
 import { Screen } from "@/shared/components/layout/Screen";
 import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 import { ScreenSection } from "@/shared/components/layout/ScreenSection";
-import { AppText } from "@/shared/components/ui/AppText";
-import { SurfaceCard } from "@/shared/components/ui/SurfaceCard";
-import { colors } from "@/shared/theme/tokens";
+import { useElapsedTime } from "@/shared/hooks/useElapsedTime";
 
 type ActiveWorkoutViewProps = {
+  name: string;
   workout: WorkoutAggregate;
   onOpenWorkout: () => void;
 };
 
 export function ActiveWorkoutView({
+  name,
   workout,
   onOpenWorkout,
 }: ActiveWorkoutViewProps) {
-  const exerciseCount = workout.exercises.length;
+  const timeElapsed = useElapsedTime(workout.workout.startedAt);
 
   return (
     <Screen>
@@ -28,35 +28,11 @@ export function ActiveWorkoutView({
       />
 
       <ScreenSection title="Active Workout" className="mt-auto pt-8">
-        <Pressable
-          accessibilityHint="Opens your active workout"
-          accessibilityLabel="Continue active workout"
-          accessibilityRole="button"
+        <ActiveWorkoutCard
+          name={name}
           onPress={onOpenWorkout}
-        >
-          <SurfaceCard accent="primary" variant="high">
-            <View className="flex-row items-center gap-4">
-              <View className="h-12 w-12 items-center justify-center rounded-full bg-primary">
-                <Ionicons name="barbell" size={22} color={colors.foreground} />
-              </View>
-
-              <View className="flex-1">
-                <AppText variant="button">Continue Workout</AppText>
-                <AppText className="mt-1 text-sm">
-                  {exerciseCount === 0
-                    ? "No exercises added yet"
-                    : `${exerciseCount} ${exerciseCount === 1 ? "exercise" : "exercises"}`}
-                </AppText>
-              </View>
-
-              <Ionicons
-                name="chevron-forward"
-                size={22}
-                color={colors.primarySoft}
-              />
-            </View>
-          </SurfaceCard>
-        </Pressable>
+          timeElapsed={timeElapsed}
+        />
       </ScreenSection>
     </Screen>
   );

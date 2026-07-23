@@ -48,6 +48,7 @@ export default function StartScreen() {
     case "activeWorkout":
       return (
         <ActiveWorkoutView
+          name="Quick Workout"
           onOpenWorkout={() => router.push("/workout")}
           workout={viewState.workout}
         />

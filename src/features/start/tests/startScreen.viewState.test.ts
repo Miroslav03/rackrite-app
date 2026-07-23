@@ -19,7 +19,7 @@ describe("getStartScreenViewState", () => {
     });
   });
 
-  it("keeps the empty view visible while quick start is pending", () => {
+  it("keeps the no-active-workout view visible while quick start is pending", () => {
     const state: WorkoutSessionState = {
       status: "noActiveWorkout",
       operation: {
@@ -29,12 +29,12 @@ describe("getStartScreenViewState", () => {
     };
 
     expect(getStartScreenViewState(state)).toEqual({
-      view: "emptyWorkout",
+      view: "noActiveWorkout",
       startEmptyWorkout: { status: "starting" },
     });
   });
 
-  it("keeps the empty view visible and exposes a quick start error", () => {
+  it("keeps the no-active-workout view visible and exposes a quick start error", () => {
     const error = new Error("Could not save workout");
     const state: WorkoutSessionState = {
       status: "noActiveWorkout",
@@ -46,7 +46,7 @@ describe("getStartScreenViewState", () => {
     };
 
     expect(getStartScreenViewState(state)).toEqual({
-      view: "emptyWorkout",
+      view: "noActiveWorkout",
       startEmptyWorkout: { status: "error", error },
     });
   });
