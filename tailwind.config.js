@@ -9,6 +9,7 @@ module.exports = {
         outline: "#434655",
 
         surface: "#101419",
+        surfaceLow: "#181C21",
         surfaceHigh: "#252A31",
         surfaceHighest: "#31353B",
 

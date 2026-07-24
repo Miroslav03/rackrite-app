@@ -3,10 +3,10 @@ import { View, type ViewProps } from "react-native";
 
 import { cn } from "@/shared/utils/cn";
 
-type SurfaceCardAccent = "none" | "primary" | "success" | "error";
-type SurfaceCardVariant = "default" | "success" | "high";
+export type SurfaceCardAccent = "none" | "primary" | "success" | "error";
+export type SurfaceCardVariant = "default" | "success" | "high";
 
-type SurfaceCardProps = ViewProps & {
+export type SurfaceCardProps = ViewProps & {
   children: ReactNode;
   variant?: SurfaceCardVariant;
   accent?: SurfaceCardAccent;

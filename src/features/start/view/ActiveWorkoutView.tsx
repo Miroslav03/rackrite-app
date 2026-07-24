@@ -1,6 +1,7 @@
 import type { WorkoutAggregate } from "@/domain/workout/workout.types";
 
 import { ActiveWorkoutCard } from "@/features/workout/view/components/ActiveWorkoutCard";
+import { ActiveWorkoutTemplateCard } from "@/features/workout/view/components/ActiveWorkoutTemplateCard/ActiveWorkoutTemplateCard";
 
 import { Screen } from "@/shared/components/layout/Screen";
 import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
@@ -27,7 +28,11 @@ export function ActiveWorkoutView({
         subtitle="Your Active Training Session"
       />
 
-      <ScreenSection title="Active Workout" className="mt-auto pt-8">
+      <ScreenSection title="Current Session">
+        <ActiveWorkoutTemplateCard onPress={onOpenWorkout} workout={workout} />
+      </ScreenSection>
+
+      <ScreenSection className="mt-auto pt-8">
         <ActiveWorkoutCard
           name={name}
           onPress={onOpenWorkout}
