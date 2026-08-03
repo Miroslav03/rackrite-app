@@ -1,3 +1,5 @@
+import { ExerciseKind } from "@/domain/exercises/exercise.types";
+
 export type UnitSystem = "kg" | "lbs";
 
 export type UserSettingsId = string;
@@ -16,11 +18,7 @@ export interface UserSettings {
     lb: EquipmentSettings;
   };
   availablePlates: number[];
-  restTimeByLiftFamilySec: {
-    bench: number;
-    squat: number;
-    deadlift: number;
-  };
+  defaultRestSecondsByExerciseKind: Record<ExerciseKind, number>;
   autoRestTimerEnabled: boolean;
   hapticFeedbackEnabled: boolean;
   createdAt: number;

@@ -6,4 +6,5 @@ export const competitionBench: Exercise = {
   kind: "competition_lift",
   origin: "built_in",
   liftFamily: "bench",
+  defaultRestSeconds: 180,
 };

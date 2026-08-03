@@ -13,6 +13,7 @@ export interface Workout {
   sourceTemplateId: TemplateId | null;
   status: WorkoutStatus;
   activeSetId: WorkoutSetId | null;
+  restTimer: WorkoutRestTimer | null;
   startedAt: number;
   finishedAt: number | null;
   createdAt: number;
@@ -24,6 +25,7 @@ export interface WorkoutExercise {
   workoutId: WorkoutId;
   exerciseId: ExerciseId;
   notes: string | null;
+  restSeconds: number;
   orderIndex: number;
   createdAt: number;
   updatedAt: number;
@@ -41,6 +43,11 @@ export interface WorkoutSet {
   createdAt: number;
   updatedAt: number;
 }
+
+export type WorkoutRestTimer = {
+  startedAt: number;
+  endsAt: number;
+};
 
 export interface WorkoutAggregate {
   workout: Workout;

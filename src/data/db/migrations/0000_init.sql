@@ -3,7 +3,8 @@ CREATE TABLE `exercises` (
 	`name` text NOT NULL,
 	`kind` text NOT NULL,
 	`origin` text NOT NULL,
-	`lift_family` text
+	`lift_family` text,
+	`default_rest_seconds` integer
 );
 --> statement-breakpoint
 CREATE TABLE `workout_exercises` (
@@ -11,6 +12,7 @@ CREATE TABLE `workout_exercises` (
 	`workout_id` text NOT NULL,
 	`exercise_id` text NOT NULL,
 	`notes` text,
+	`rest_seconds` integer NOT NULL,
 	`order_index` integer NOT NULL,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
@@ -39,8 +41,23 @@ CREATE TABLE `workouts` (
 	`source_template_id` text,
 	`status` text NOT NULL,
 	`active_set_id` text,
+	`rest_timer_started_at` integer,
+	`rest_timer_ends_at` integer,
 	`started_at` integer NOT NULL,
 	`finished_at` integer,
 	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL
+	`updated_at` integer NOT NULL,
+	CONSTRAINT "workouts_rest_timer_is_valid" CHECK(
+        (
+          "workouts"."rest_timer_started_at" IS NULL
+          AND "workouts"."rest_timer_ends_at" IS NULL
+        )
+        OR
+        (
+          "workouts"."status" = 'active'
+          AND "workouts"."rest_timer_started_at" IS NOT NULL
+          AND "workouts"."rest_timer_ends_at" IS NOT NULL
+          AND "workouts"."rest_timer_ends_at" > "workouts"."rest_timer_started_at"
+        )
+      )
 );

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "89ef55d6-0361-4b72-b2a3-7a13b9a30eca",
+  "id": "e9a40aa6-84da-4cd7-8641-a586fddc53ad",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "exercises": {
@@ -38,6 +38,13 @@
         "lift_family": {
           "name": "lift_family",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "default_rest_seconds": {
+          "name": "default_rest_seconds",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -78,6 +85,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
+          "autoincrement": false
+        },
+        "rest_seconds": {
+          "name": "rest_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
           "autoincrement": false
         },
         "order_index": {
@@ -276,6 +290,20 @@
           "notNull": false,
           "autoincrement": false
         },
+        "rest_timer_started_at": {
+          "name": "rest_timer_started_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "rest_timer_ends_at": {
+          "name": "rest_timer_ends_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "started_at": {
           "name": "started_at",
           "type": "integer",
@@ -309,7 +337,12 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "workouts_rest_timer_is_valid": {
+          "name": "workouts_rest_timer_is_valid",
+          "value": "\n        (\n          \"workouts\".\"rest_timer_started_at\" IS NULL\n          AND \"workouts\".\"rest_timer_ends_at\" IS NULL\n        )\n        OR\n        (\n          \"workouts\".\"status\" = 'active'\n          AND \"workouts\".\"rest_timer_started_at\" IS NOT NULL\n          AND \"workouts\".\"rest_timer_ends_at\" IS NOT NULL\n          AND \"workouts\".\"rest_timer_ends_at\" > \"workouts\".\"rest_timer_started_at\"\n        )\n      "
+        }
+      }
     }
   },
   "views": {},

@@ -11,6 +11,7 @@ import { assertWorkoutAggregateInvariants } from "./assertions/workout.invariant
 import {
   getAllWorkoutSets,
   getWorkoutExerciseById,
+  getWorkoutExerciseBySetId,
   getWorkoutSetById,
 } from "./workout.selectors";
 import type {
@@ -30,6 +31,13 @@ type AddWorkoutExerciseInput = {
   workoutExerciseId: WorkoutExerciseId;
   setId: WorkoutSetId;
   exercise: Exercise;
+  restSeconds: number;
+  now: number;
+};
+
+type UpdateWorkoutExerciseRestSecondsInput = {
+  workoutExerciseId: WorkoutExerciseId;
+  restSeconds: number;
   now: number;
 };
 
@@ -57,6 +65,15 @@ type CompleteWorkoutSetInput = {
   now: number;
 };
 
+type StartWorkoutRestTimerInput = {
+  setId: WorkoutSetId;
+  now: number;
+};
+
+type ClearWorkoutRestTimerInput = {
+  now: number;
+};
+
 type SelectWorkoutSetInput = {
   setId: WorkoutSetId;
   now: number;
@@ -76,6 +93,7 @@ export function createEmptyWorkout({
       sourceTemplateId: null,
       status: "active",
       activeSetId: null,
+      restTimer: null,
       startedAt: now,
       finishedAt: null,
       createdAt: now,
@@ -100,6 +118,7 @@ export function addWorkoutExercise(
     workoutId: workoutAggregate.workout.id,
     exerciseId: input.exercise.id,
     notes: null,
+    restSeconds: input.restSeconds,
     orderIndex: workoutAggregate.exercises.length,
     createdAt: input.now,
     updatedAt: input.now,
@@ -130,6 +149,39 @@ export function addWorkoutExercise(
         sets: [initialSet],
       },
     ],
+  };
+
+  assertWorkoutAggregateInvariants(nextWorkoutAggregate);
+
+  return nextWorkoutAggregate;
+}
+
+export function updateWorkoutExerciseRestSeconds(
+  workoutAggregate: WorkoutAggregate,
+  input: UpdateWorkoutExerciseRestSecondsInput,
+): WorkoutAggregate {
+  assertWorkoutIsActive(workoutAggregate);
+  assertWorkoutExerciseExists(
+    getWorkoutExerciseById(workoutAggregate, input.workoutExerciseId),
+  );
+
+  const nextWorkoutAggregate: WorkoutAggregate = {
+    workout: {
+      ...workoutAggregate.workout,
+      updatedAt: input.now,
+    },
+    exercises: workoutAggregate.exercises.map((exerciseAggregate) =>
+      exerciseAggregate.workoutExercise.id === input.workoutExerciseId
+        ? {
+            ...exerciseAggregate,
+            workoutExercise: {
+              ...exerciseAggregate.workoutExercise,
+              restSeconds: input.restSeconds,
+              updatedAt: input.now,
+            },
+          }
+        : exerciseAggregate,
+    ),
   };
 
   assertWorkoutAggregateInvariants(nextWorkoutAggregate);
@@ -270,6 +322,7 @@ export function completeWorkoutSet(
   const workoutAfterSetUpdate: WorkoutAggregate = {
     workout: {
       ...workoutAggregate.workout,
+      restTimer: null,
       updatedAt: input.now,
     },
     exercises,
@@ -297,6 +350,66 @@ export function completeWorkoutSet(
   return nextWorkoutAggregate;
 }
 
+export function startWorkoutRestTimer(
+  workoutAggregate: WorkoutAggregate,
+  input: StartWorkoutRestTimerInput,
+): WorkoutAggregate {
+  assertWorkoutIsActive(workoutAggregate);
+
+  const sourceSet = getWorkoutSetById(workoutAggregate, input.setId);
+  assertWorkoutSetExists(sourceSet);
+
+  if (sourceSet.finishedAt === null) {
+    throw new Error("Rest timer can only start after a completed set");
+  }
+
+  const sourceExercise = getWorkoutExerciseBySetId(
+    workoutAggregate,
+    input.setId,
+  );
+  assertWorkoutExerciseExists(sourceExercise);
+
+  const nextWorkoutAggregate: WorkoutAggregate = {
+    workout: {
+      ...workoutAggregate.workout,
+      restTimer: {
+        startedAt: input.now,
+        endsAt: input.now + sourceExercise.workoutExercise.restSeconds * 1_000,
+      },
+      updatedAt: input.now,
+    },
+    exercises: workoutAggregate.exercises,
+  };
+
+  assertWorkoutAggregateInvariants(nextWorkoutAggregate);
+
+  return nextWorkoutAggregate;
+}
+
+export function clearWorkoutRestTimer(
+  workoutAggregate: WorkoutAggregate,
+  input: ClearWorkoutRestTimerInput,
+): WorkoutAggregate {
+  assertWorkoutIsActive(workoutAggregate);
+
+  if (workoutAggregate.workout.restTimer === null) {
+    return workoutAggregate;
+  }
+
+  const nextWorkoutAggregate: WorkoutAggregate = {
+    workout: {
+      ...workoutAggregate.workout,
+      restTimer: null,
+      updatedAt: input.now,
+    },
+    exercises: workoutAggregate.exercises,
+  };
+
+  assertWorkoutAggregateInvariants(nextWorkoutAggregate);
+
+  return nextWorkoutAggregate;
+}
+
 export function finishWorkout(
   workoutAggregate: WorkoutAggregate,
   input: FinishWorkoutInput,
@@ -315,6 +428,7 @@ export function finishWorkout(
     workout: {
       ...workoutAggregate.workout,
       status: "completed",
+      restTimer: null,
       finishedAt: input.now,
       updatedAt: input.now,
     },

@@ -26,6 +26,7 @@ export function exerciseToRow(exercise: Exercise): NewExerciseRow {
     kind: exercise.kind,
     origin: exercise.origin,
     liftFamily: exercise.liftFamily,
+    defaultRestSeconds: exercise.defaultRestSeconds,
   };
 }
 
@@ -35,6 +36,8 @@ export function workoutToRow(workout: Workout): NewWorkoutRow {
     sourceTemplateId: workout.sourceTemplateId,
     status: workout.status,
     activeSetId: workout.activeSetId,
+    restTimerStartedAt: workout.restTimer?.startedAt ?? null,
+    restTimerEndsAt: workout.restTimer?.endsAt ?? null,
     startedAt: workout.startedAt,
     finishedAt: workout.finishedAt,
     createdAt: workout.createdAt,
@@ -50,6 +53,7 @@ export function workoutExerciseToRow(
     workoutId: workoutExercise.workoutId,
     exerciseId: workoutExercise.exerciseId,
     notes: workoutExercise.notes,
+    restSeconds: workoutExercise.restSeconds,
     orderIndex: workoutExercise.orderIndex,
     createdAt: workoutExercise.createdAt,
     updatedAt: workoutExercise.updatedAt,
@@ -72,7 +76,8 @@ export function workoutSetToRow(set: WorkoutSet): NewWorkoutSetRow {
 }
 
 export function exerciseRowToExercise(exerciseRow: ExerciseRow): Exercise {
-  const { id, name, kind, origin, liftFamily } = exerciseRow;
+  const { id, name, kind, origin, liftFamily, defaultRestSeconds } =
+    exerciseRow;
 
   switch (kind) {
     case "competition_lift":
@@ -88,7 +93,20 @@ export function exerciseRowToExercise(exerciseRow: ExerciseRow): Exercise {
         );
       }
 
-      return { id, name, kind, origin, liftFamily };
+      if (defaultRestSeconds === null) {
+        throw new Error(
+          `Invalid exercise row "${id}": competition lifts must have a default rest duration`,
+        );
+      }
+
+      return {
+        id,
+        name,
+        kind,
+        origin,
+        liftFamily,
+        defaultRestSeconds,
+      };
 
     case "lift_variation":
       if (liftFamily === null) {
@@ -97,7 +115,14 @@ export function exerciseRowToExercise(exerciseRow: ExerciseRow): Exercise {
         );
       }
 
-      return { id, name, kind, origin, liftFamily };
+      return {
+        id,
+        name,
+        kind,
+        origin,
+        liftFamily,
+        defaultRestSeconds,
+      };
 
     case "accessory":
       if (liftFamily !== null) {
@@ -106,7 +131,14 @@ export function exerciseRowToExercise(exerciseRow: ExerciseRow): Exercise {
         );
       }
 
-      return { id, name, kind, origin, liftFamily };
+      return {
+        id,
+        name,
+        kind,
+        origin,
+        liftFamily,
+        defaultRestSeconds,
+      };
 
     default:
       throw new Error(`Invalid exercise row "${id}": unknown kind "${kind}"`);
@@ -114,11 +146,26 @@ export function exerciseRowToExercise(exerciseRow: ExerciseRow): Exercise {
 }
 
 export function workoutRowToWorkout(workoutRow: WorkoutRow): Workout {
+  const { restTimerStartedAt, restTimerEndsAt } = workoutRow;
+
+  if ((restTimerStartedAt === null) !== (restTimerEndsAt === null)) {
+    throw new Error(
+      `Invalid workout row "${workoutRow.id}": rest timer timestamps must both be defined or both be null`,
+    );
+  }
+
   return {
     id: workoutRow.id,
     sourceTemplateId: workoutRow.sourceTemplateId,
     status: workoutRow.status,
     activeSetId: workoutRow.activeSetId,
+    restTimer:
+      restTimerStartedAt === null || restTimerEndsAt === null
+        ? null
+        : {
+            startedAt: restTimerStartedAt,
+            endsAt: restTimerEndsAt,
+          },
     startedAt: workoutRow.startedAt,
     finishedAt: workoutRow.finishedAt,
     createdAt: workoutRow.createdAt,
@@ -134,6 +181,7 @@ export function workoutExerciseRowToWorkoutExercise(
     workoutId: exerciseRow.workoutId,
     exerciseId: exerciseRow.exerciseId,
     notes: exerciseRow.notes,
+    restSeconds: exerciseRow.restSeconds,
     orderIndex: exerciseRow.orderIndex,
     createdAt: exerciseRow.createdAt,
     updatedAt: exerciseRow.updatedAt,

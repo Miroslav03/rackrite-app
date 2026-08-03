@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   index,
   integer,
   real,
@@ -19,18 +21,42 @@ export const exercisesTable = sqliteTable("exercises", {
   kind: text("kind").$type<ExerciseKind>().notNull(),
   origin: text("origin").$type<ExerciseOrigin>().notNull(),
   liftFamily: text("lift_family").$type<LiftFamily>(),
+  defaultRestSeconds: integer("default_rest_seconds"),
 });
 
-export const workoutsTable = sqliteTable("workouts", {
-  id: text("id").primaryKey(),
-  sourceTemplateId: text("source_template_id"),
-  status: text("status").$type<WorkoutStatus>().notNull(),
-  activeSetId: text("active_set_id"),
-  startedAt: integer("started_at").notNull(),
-  finishedAt: integer("finished_at"),
-  createdAt: integer("created_at").notNull(),
-  updatedAt: integer("updated_at").notNull(),
-});
+export const workoutsTable = sqliteTable(
+  "workouts",
+  {
+    id: text("id").primaryKey(),
+    sourceTemplateId: text("source_template_id"),
+    status: text("status").$type<WorkoutStatus>().notNull(),
+    activeSetId: text("active_set_id"),
+    restTimerStartedAt: integer("rest_timer_started_at"),
+    restTimerEndsAt: integer("rest_timer_ends_at"),
+    startedAt: integer("started_at").notNull(),
+    finishedAt: integer("finished_at"),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    check(
+      "workouts_rest_timer_is_valid",
+      sql`
+        (
+          ${table.restTimerStartedAt} IS NULL
+          AND ${table.restTimerEndsAt} IS NULL
+        )
+        OR
+        (
+          ${table.status} = 'active'
+          AND ${table.restTimerStartedAt} IS NOT NULL
+          AND ${table.restTimerEndsAt} IS NOT NULL
+          AND ${table.restTimerEndsAt} > ${table.restTimerStartedAt}
+        )
+      `,
+    ),
+  ],
+);
 
 export const workoutExercisesTable = sqliteTable(
   "workout_exercises",
@@ -43,6 +69,7 @@ export const workoutExercisesTable = sqliteTable(
       .notNull()
       .references(() => exercisesTable.id),
     notes: text("notes"),
+    restSeconds: integer("rest_seconds").notNull(),
     orderIndex: integer("order_index").notNull(),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),

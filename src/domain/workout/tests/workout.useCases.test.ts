@@ -1,10 +1,13 @@
 import {
   addWorkoutExercise,
   addWorkoutSet,
+  clearWorkoutRestTimer,
   completeWorkoutSet,
   createEmptyWorkout,
   finishWorkout,
   selectWorkoutSet,
+  startWorkoutRestTimer,
+  updateWorkoutExerciseRestSeconds,
   updateWorkoutSet,
 } from "../workout.useCases";
 
@@ -28,6 +31,7 @@ describe("createEmptyWorkout", () => {
       sourceTemplateId: null,
       status: "active",
       activeSetId: null,
+      restTimer: null,
       startedAt: 1000,
       finishedAt: null,
       createdAt: 1000,
@@ -45,6 +49,7 @@ describe("addWorkoutExercise", () => {
         workoutExerciseId: "workout_exercise_1",
         setId: "set_1",
         exercise: competitionBench,
+        restSeconds: 180,
         now: 2000,
       },
     );
@@ -56,6 +61,7 @@ describe("addWorkoutExercise", () => {
           workoutId: "workout_1",
           exerciseId: "competition_bench",
           notes: null,
+          restSeconds: 180,
           orderIndex: 0,
           createdAt: 2000,
           updatedAt: 2000,
@@ -79,6 +85,49 @@ describe("addWorkoutExercise", () => {
     ]);
     expect(nextWorkoutAggregate.workout.activeSetId).toBe("set_1");
     expect(nextWorkoutAggregate.workout.updatedAt).toBe(2000);
+  });
+
+  it("rejects a non-positive rest snapshot", () => {
+    expect(() =>
+      addWorkoutExercise(createEmptyWorkout({ id: "workout_1", now: 1000 }), {
+        workoutExerciseId: "workout_exercise_1",
+        setId: "set_1",
+        exercise: competitionBench,
+        restSeconds: 0,
+        now: 2000,
+      }),
+    ).toThrow("Workout exercise rest duration must be a positive integer");
+  });
+});
+
+describe("updateWorkoutExerciseRestSeconds", () => {
+  it("updates the rest snapshot for future timers", () => {
+    const nextWorkoutAggregate = updateWorkoutExerciseRestSeconds(
+      createWorkoutWithCompetitionBench(),
+      {
+        workoutExerciseId: "workout_exercise_1",
+        restSeconds: 240,
+        now: 3000,
+      },
+    );
+
+    expect(nextWorkoutAggregate.exercises[0].workoutExercise.restSeconds).toBe(
+      240,
+    );
+    expect(nextWorkoutAggregate.exercises[0].workoutExercise.updatedAt).toBe(
+      3000,
+    );
+    expect(nextWorkoutAggregate.workout.updatedAt).toBe(3000);
+  });
+
+  it("rejects a fractional rest duration", () => {
+    expect(() =>
+      updateWorkoutExerciseRestSeconds(createWorkoutWithCompetitionBench(), {
+        workoutExerciseId: "workout_exercise_1",
+        restSeconds: 90.5,
+        now: 3000,
+      }),
+    ).toThrow("Workout exercise rest duration must be a positive integer");
   });
 });
 
@@ -378,5 +427,83 @@ describe("finishWorkout", () => {
     expect(finishedWorkout.workout.status).toBe("completed");
     expect(finishedWorkout.exercises[0].sets[0].finishedAt).toBe(5000);
     expect(finishedWorkout.exercises[0].sets[1].finishedAt).toBeNull();
+  });
+});
+
+describe("workout rest timer", () => {
+  it("starts from the completed set exercise rest snapshot", () => {
+    const nextWorkoutAggregate = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      {
+        setId: "set_1",
+        now: 6000,
+      },
+    );
+
+    expect(nextWorkoutAggregate.workout.restTimer).toEqual({
+      startedAt: 6000,
+      endsAt: 186000,
+    });
+    expect(nextWorkoutAggregate.workout.updatedAt).toBe(6000);
+  });
+
+  it("does not start from an unfinished set", () => {
+    expect(() =>
+      startWorkoutRestTimer(createWorkoutWithCompetitionBench(), {
+        setId: "set_1",
+        now: 3000,
+      }),
+    ).toThrow("Rest timer can only start after a completed set");
+  });
+
+  it("clears a running timer", () => {
+    const withTimer = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      {
+        setId: "set_1",
+        now: 6000,
+      },
+    );
+    const nextWorkoutAggregate = clearWorkoutRestTimer(withTimer, {
+      now: 7000,
+    });
+
+    expect(nextWorkoutAggregate.workout.restTimer).toBeNull();
+    expect(nextWorkoutAggregate.workout.updatedAt).toBe(7000);
+  });
+
+  it("clears the previous timer when another set is completed", () => {
+    const withTimer = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      {
+        setId: "set_1",
+        now: 6000,
+      },
+    );
+    const configuredSecondSet = updateWorkoutSet(withTimer, {
+      setId: "set_2",
+      weight: 100,
+      reps: 5,
+      now: 7000,
+    });
+    const nextWorkoutAggregate = completeWorkoutSet(configuredSecondSet, {
+      setId: "set_2",
+      now: 8000,
+    });
+
+    expect(nextWorkoutAggregate.workout.restTimer).toBeNull();
+  });
+
+  it("clears the timer when finishing the workout", () => {
+    const withTimer = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      {
+        setId: "set_1",
+        now: 6000,
+      },
+    );
+    const finishedWorkout = finishWorkout(withTimer, { now: 7000 });
+
+    expect(finishedWorkout.workout.restTimer).toBeNull();
   });
 });

@@ -98,12 +98,56 @@ export function assertWorkoutSetValuesAreValid(
   }
 }
 
+export function assertWorkoutExerciseRestSecondsAreValid(
+  workoutAggregate: WorkoutAggregate,
+): void {
+  for (const { workoutExercise } of workoutAggregate.exercises) {
+    if (
+      !Number.isInteger(workoutExercise.restSeconds) ||
+      workoutExercise.restSeconds <= 0
+    ) {
+      throw new Error(
+        "Workout exercise rest duration must be a positive integer",
+      );
+    }
+  }
+}
+
+export function assertWorkoutRestTimerIsValid(
+  workoutAggregate: WorkoutAggregate,
+): void {
+  const { workout } = workoutAggregate;
+  const timer = workout.restTimer;
+
+  if (workout.status === "completed" && timer !== null) {
+    throw new Error("Completed workout cannot have an active rest timer");
+  }
+
+  if (timer === null) {
+    return;
+  }
+
+  if (!Number.isInteger(timer.startedAt) || !Number.isInteger(timer.endsAt)) {
+    throw new Error("Rest timer timestamps must be whole numbers");
+  }
+
+  if (timer.startedAt < workout.startedAt) {
+    throw new Error("Rest timer cannot start before the workout");
+  }
+
+  if (timer.endsAt <= timer.startedAt) {
+    throw new Error("Rest timer must end after it starts");
+  }
+}
+
 export function assertWorkoutAggregateInvariants(
   workoutAggregate: WorkoutAggregate,
 ): void {
   assertActiveSetExistsIfWorkoutHasSets(workoutAggregate);
   assertFinishedSetsHaveWeightAndReps(workoutAggregate);
   assertWorkoutAggregateOwnership(workoutAggregate);
+  assertWorkoutExerciseRestSecondsAreValid(workoutAggregate);
+  assertWorkoutRestTimerIsValid(workoutAggregate);
   assertWorkoutSetIndexesAreValid(workoutAggregate);
   assertWorkoutSetValuesAreValid(workoutAggregate);
 }

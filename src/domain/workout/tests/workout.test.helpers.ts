@@ -15,6 +15,7 @@ export function createWorkoutWithCompetitionBench() {
       workoutExerciseId: "workout_exercise_1",
       setId: "set_1",
       exercise: competitionBench,
+      restSeconds: 180,
       now: 2000,
     },
   );
