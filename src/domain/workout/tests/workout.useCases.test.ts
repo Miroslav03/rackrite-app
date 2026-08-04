@@ -11,7 +11,14 @@ import {
   updateWorkoutSet,
 } from "../workout.useCases";
 
-import { competitionBench } from "./workout.test.constants";
+import {
+  barbellRow,
+  closeGripBench,
+  competitionBench,
+  competitionDeadlift,
+  competitionSquat,
+  pausedBench,
+} from "./workout.test.constants";
 import {
   createWorkoutWithCompetitionBench,
   createWorkoutWithCompletedFirstSet,
@@ -97,6 +104,76 @@ describe("addWorkoutExercise", () => {
         now: 2000,
       }),
     ).toThrow("Workout exercise rest duration must be a positive integer");
+  });
+
+  it("allows all three competition lifts when each uses a different family", () => {
+    const workout = [
+      competitionSquat,
+      competitionBench,
+      competitionDeadlift,
+    ].reduce(
+      (currentWorkout, exercise, index) =>
+        addWorkoutExercise(currentWorkout, {
+          workoutExerciseId: `workout_exercise_${index + 1}`,
+          setId: `set_${index + 1}`,
+          exercise,
+          restSeconds: exercise.defaultRestSeconds ?? 90,
+          now: 2000 + index,
+        }),
+      createEmptyWorkout({ id: "workout_1", now: 1000 }),
+    );
+
+    expect(workout.exercises.map(({ exercise }) => exercise.id)).toEqual([
+      "competition_squat",
+      "competition_bench",
+      "competition_deadlift",
+    ]);
+  });
+
+  it("rejects more than one competition lift from the same family", () => {
+    const workout = addWorkoutExercise(
+      createEmptyWorkout({ id: "workout_1", now: 1000 }),
+      {
+        workoutExerciseId: "workout_exercise_1",
+        setId: "set_1",
+        exercise: competitionBench,
+        restSeconds: competitionBench.defaultRestSeconds ?? 90,
+        now: 2000,
+      },
+    );
+
+    expect(() =>
+      addWorkoutExercise(workout, {
+        workoutExerciseId: "workout_exercise_2",
+        setId: "set_2",
+        exercise: competitionBench,
+        restSeconds: competitionBench.defaultRestSeconds ?? 90,
+        now: 2001,
+      }),
+    ).toThrow(
+      "Workout cannot contain more than one competition lift for the bench family",
+    );
+  });
+
+  it("allows more than three exercises including multiple variations from the same family", () => {
+    const workout = [
+      competitionBench,
+      pausedBench,
+      closeGripBench,
+      barbellRow,
+    ].reduce(
+      (currentWorkout, exercise, index) =>
+        addWorkoutExercise(currentWorkout, {
+          workoutExerciseId: `workout_exercise_${index + 1}`,
+          setId: `set_${index + 1}`,
+          exercise,
+          restSeconds: exercise.defaultRestSeconds ?? 90,
+          now: 2000 + index,
+        }),
+      createEmptyWorkout({ id: "workout_1", now: 1000 }),
+    );
+
+    expect(workout.exercises).toHaveLength(4);
   });
 });
 

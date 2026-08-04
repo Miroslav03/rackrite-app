@@ -1,28 +1,41 @@
-## Workout 
- - has maximum of 3 workout sections
- - has at most 1 section per LiftFamily
- - Non-empty workout always has an active set
- - Completed workout is read-only 
- - Workout instance never mutates source template
- - only one set can be active at a time
- - if all sets are completed, the last set remains the active/selected set
- - only one WorkoutSet can be active at a time within a workout
+## Workout
 
-## WorkoutSection
- - belongs to exactly 1 Workout
- - has exactly 1 Variation
- - Variation family must match Section LiftFamily
+- Can contain any number of workout exercises.
+- Can contain at most one competition-lift exercise per `LiftFamily`:
+  - One Competition Squat.
+  - One Competition Bench.
+  - One Competition Deadlift.
+- Can contain any number of lift-variation exercises, including multiple variations from the same `LiftFamily`.
+- Can contain any number of accessory exercises.
+- A non-empty workout always has an active set.
+- Only one `WorkoutSet` can be active/selected at a time within a workout.
+- If all sets are completed, the last set remains active/selected.
+- A completed workout is read-only.
+- A workout instance never mutates its source template.
+
+## WorkoutExercise
+
+- Belongs to exactly one `Workout`.
+- References exactly one `Exercise` definition.
+- Has a positive integer rest-duration snapshot.
+- Owns any number of workout sets.
+
+## Exercise kinds in a workout
+
+- A `competition_lift` has a `LiftFamily`; its family must be unique among the workout's other competition lifts.
+- A `lift_variation` has a `LiftFamily`, but its family does not need to be unique within a workout.
+- An `accessory` has no `LiftFamily` and is not subject to a per-family uniqueness restriction.
 
 ## WorkoutSet
- - belongs to exactly 1 WorkoutSection
- - has a SetType
- - has a valid setIndex (order in section)
- - weight and reps can be null before completion
- - once marked as done, weight and reps should be defined
- - belongs to exactly one Workout through its section   
 
- - has a positive number of reps
- - weight must be non-negative when defined
+- Belongs to exactly one `WorkoutExercise` and therefore exactly one `Workout`.
+- Has a `SetType`.
+- Has a valid `setIndex` matching its order within the workout exercise.
+- Weight and reps can be null before completion.
+- Once marked as completed, weight and reps must be defined.
+- Reps must be a positive whole number when defined.
+- Weight must be non-negative when defined.
+- RPE must be a whole number from 1 through 10 when defined.
 
 ## Template 
  - always has a name

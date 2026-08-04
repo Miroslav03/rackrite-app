@@ -7,6 +7,7 @@ import { cn } from "@/shared/utils/cn";
 export type OptionListOption<TId extends string = string> = {
   id: TId;
   label: string;
+  disabled?: boolean;
 };
 
 type OptionListProps<TId extends string> = {
@@ -26,7 +27,17 @@ export function OptionList<TId extends string>({
         const selected = option.id === selectedId;
 
         return (
-          <Pressable key={option.id} onPress={() => onSelect(option)}>
+          <Pressable
+            key={option.id}
+            accessibilityRole="button"
+            accessibilityState={{
+              disabled: option.disabled,
+              selected,
+            }}
+            className={cn(option.disabled && "opacity-50")}
+            disabled={option.disabled}
+            onPress={() => onSelect(option)}
+          >
             <SurfaceCard
               variant={selected ? "high" : "default"}
               accent={selected ? "primary" : "none"}

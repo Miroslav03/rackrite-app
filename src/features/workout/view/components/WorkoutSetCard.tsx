@@ -72,7 +72,7 @@ export function WorkoutSetCard({
           </View>
         </View>
 
-        <View className="flex-[1.4]">
+        <View className="flex-[1.4] items-center">
           <AppText variant="sectionLabel">Type</AppText>
           <AppText className="text-sm font-black text-foreground">
             {setType}
@@ -82,7 +82,7 @@ export function WorkoutSetCard({
         <View className="flex-1  items-center">
           <AppText variant="sectionLabel">Weight</AppText>
           <AppText className="text-sm font-black text-foreground">
-            {weight ?? "-"} kg
+            {weight ? `${weight} kg` : "-"}
           </AppText>
         </View>
 

@@ -1,5 +1,27 @@
+import type { LiftFamily } from "@/domain/domain.types";
+
 import { getAllWorkoutSets } from "../workout.selectors";
 import type { WorkoutAggregate } from "../workout.types";
+
+export function assertCompetitionLiftFamiliesAreUnique(
+  workoutAggregate: WorkoutAggregate,
+): void {
+  const competitionLiftFamilies = new Set<LiftFamily>();
+
+  for (const { exercise } of workoutAggregate.exercises) {
+    if (exercise.kind !== "competition_lift") {
+      continue;
+    }
+
+    if (competitionLiftFamilies.has(exercise.liftFamily)) {
+      throw new Error(
+        `Workout cannot contain more than one competition lift for the ${exercise.liftFamily} family`,
+      );
+    }
+
+    competitionLiftFamilies.add(exercise.liftFamily);
+  }
+}
 
 export function assertFinishedSetsHaveWeightAndReps(
   workoutAggregate: WorkoutAggregate,
@@ -143,6 +165,7 @@ export function assertWorkoutRestTimerIsValid(
 export function assertWorkoutAggregateInvariants(
   workoutAggregate: WorkoutAggregate,
 ): void {
+  assertCompetitionLiftFamiliesAreUnique(workoutAggregate);
   assertActiveSetExistsIfWorkoutHasSets(workoutAggregate);
   assertFinishedSetsHaveWeightAndReps(workoutAggregate);
   assertWorkoutAggregateOwnership(workoutAggregate);

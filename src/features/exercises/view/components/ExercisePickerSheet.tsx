@@ -56,6 +56,8 @@ type ExercisePickerState =
 
 type ExercisePickerSheetProps = {
   open: boolean;
+  excludedExerciseIds?: readonly ExerciseId[];
+  excludedKinds?: readonly ExerciseKind[];
   onSelect: (exercise: Exercise) => void;
   onClose: () => void;
 };
@@ -66,6 +68,8 @@ const initialExercisePickerState: ExercisePickerState = {
 
 export function ExercisePickerSheet({
   open,
+  excludedExerciseIds = [],
+  excludedKinds,
   onSelect,
   onClose,
 }: ExercisePickerSheetProps) {
@@ -133,7 +137,10 @@ export function ExercisePickerSheet({
     case "selectingKind":
       content = (
         <OptionList
-          options={exerciseKindOptions}
+          options={exerciseKindOptions.map((option) => ({
+            ...option,
+            disabled: excludedKinds?.includes(option.id),
+          }))}
           onSelect={(option) => {
             void handleKindSelected(option.id);
           }}
@@ -179,7 +186,9 @@ export function ExercisePickerSheet({
       break;
 
     case "selectingExercise": {
-      if (state.exercises.length === 0) {
+      const exercises = state.exercises;
+
+      if (exercises.length === 0) {
         content = (
           <View className="gap-md py-md">
             <AppText variant="body">
@@ -196,9 +205,10 @@ export function ExercisePickerSheet({
         break;
       }
 
-      const exerciseOptions = state.exercises.map((exercise) => ({
+      const exerciseOptions = exercises.map((exercise) => ({
         id: exercise.id,
         label: exercise.name,
+        disabled: excludedExerciseIds?.includes(exercise.id),
       })) satisfies OptionListOption<ExerciseId>[];
 
       content = (
@@ -210,7 +220,7 @@ export function ExercisePickerSheet({
             <OptionList
               options={exerciseOptions}
               onSelect={(option) => {
-                const exercise = state.exercises.find(
+                const exercise = exercises.find(
                   (candidate) => candidate.id === option.id,
                 );
 

@@ -5,6 +5,7 @@ import { View } from "react-native";
 
 import type { Exercise } from "@/domain/exercises/exercise.types";
 import type { WorkoutAggregate } from "@/domain/workout/workout.types";
+
 import { ExercisePickerSheet } from "@/features/exercises/view/components/ExercisePickerSheet";
 import type { AddExerciseCommand } from "@/features/workout/actions/addExercise";
 import type { WorkoutSessionResult } from "@/features/workout/session/workoutSession.types";
@@ -47,6 +48,13 @@ export function ActiveWorkoutScreenView({
       setExercisePickerOpen(false);
     }
   }
+
+  const usedCompetitionFamilies = new Set(
+    workout.exercises
+      .map(({ exercise }) => exercise)
+      .filter((exercise) => exercise.kind === "competition_lift")
+      .map((exercise) => exercise.liftFamily),
+  );
 
   return (
     <>
@@ -95,9 +103,15 @@ export function ActiveWorkoutScreenView({
 
       <ExercisePickerSheet
         open={exercisePickerOpen}
+        excludedExerciseIds={workout.exercises.map(
+          ({ exercise }) => exercise.id,
+        )}
         onSelect={(exercise) => {
           void handleExerciseSelected(exercise);
         }}
+        excludedKinds={
+          usedCompetitionFamilies.size === 3 ? ["competition_lift"] : []
+        }
         onClose={() => setExercisePickerOpen(false)}
       />
     </>
