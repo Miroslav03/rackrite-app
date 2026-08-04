@@ -7,8 +7,8 @@ import {
   workoutSetsTable,
   workoutsTable,
 } from "@/data/db/schema";
+import { exerciseToRow } from "@/data/mappers/exerciseMappers";
 import {
-  exerciseToRow,
   rowsToWorkoutAggregate,
   workoutExerciseToRow,
   workoutSetToRow,

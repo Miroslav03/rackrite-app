@@ -1,14 +1,9 @@
 import type { Exercise } from "@/domain/exercises/exercise.types";
+import { DEFAULT_REST_SECONDS_BY_EXERCISE_KIND } from "@/domain/settings/settings.constants";
 
 type CompetitionLiftExercise = Extract<Exercise, { kind: "competition_lift" }>;
 type LiftVariationExercise = Extract<Exercise, { kind: "lift_variation" }>;
 type AccessoryExercise = Extract<Exercise, { kind: "accessory" }>;
-
-const DEFAULT_REST_SECONDS = {
-  competitionLift: 180,
-  liftVariation: 120,
-  accessory: 90,
-} as const;
 
 export const COMPETITION_LIFT_EXERCISES = (
   [
@@ -36,7 +31,7 @@ export const COMPETITION_LIFT_EXERCISES = (
   ] as const
 ).map((exercise) => ({
   ...exercise,
-  defaultRestSeconds: DEFAULT_REST_SECONDS.competitionLift,
+  defaultRestSeconds: DEFAULT_REST_SECONDS_BY_EXERCISE_KIND.competition_lift,
 })) satisfies CompetitionLiftExercise[];
 
 export const LIFT_VARIATION_EXERCISES = (
@@ -210,7 +205,7 @@ export const LIFT_VARIATION_EXERCISES = (
   ] as const
 ).map((exercise) => ({
   ...exercise,
-  defaultRestSeconds: DEFAULT_REST_SECONDS.liftVariation,
+  defaultRestSeconds: DEFAULT_REST_SECONDS_BY_EXERCISE_KIND.lift_variation,
 })) satisfies LiftVariationExercise[];
 
 export const ACCESSORY_EXERCISES = (
@@ -351,5 +346,5 @@ export const ACCESSORY_EXERCISES = (
   ] as const
 ).map((exercise) => ({
   ...exercise,
-  defaultRestSeconds: DEFAULT_REST_SECONDS.accessory,
+  defaultRestSeconds: DEFAULT_REST_SECONDS_BY_EXERCISE_KIND.accessory,
 })) satisfies AccessoryExercise[];

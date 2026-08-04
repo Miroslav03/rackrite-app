@@ -11,10 +11,9 @@ type WorkoutSetStatus = "completed" | "active" | "pending";
 type WorkoutSetCardProps = PressableProps & {
   setIndex: number;
   setType: string;
-  weight: string;
-  reps: string;
-  rpe?: string;
-  showRpe?: boolean;
+  weight: number | null;
+  reps: number | null;
+  rpe: number | null;
   status?: WorkoutSetStatus;
   className?: string;
 };
@@ -25,7 +24,6 @@ export function WorkoutSetCard({
   weight,
   reps,
   rpe,
-  showRpe = false,
   status = "pending",
   className,
   disabled,
@@ -84,14 +82,14 @@ export function WorkoutSetCard({
         <View className="flex-1  items-center">
           <AppText variant="sectionLabel">Weight</AppText>
           <AppText className="text-sm font-black text-foreground">
-            {weight}
+            {weight ?? "-"} kg
           </AppText>
         </View>
 
         <View className="flex-1  items-center">
           <AppText variant="sectionLabel">Reps</AppText>
           <AppText className="text-sm font-black text-foreground">
-            {reps}
+            {reps ?? "-"}
           </AppText>
         </View>
 

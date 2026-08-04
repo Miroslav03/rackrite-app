@@ -2,6 +2,7 @@ import * as Crypto from "expo-crypto";
 
 export type EntityIdPrefix =
   | "workout"
+  | "workout_exercise"
   | "section"
   | "set"
   | "template"

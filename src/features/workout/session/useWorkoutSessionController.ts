@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 
 import type { WorkoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
+import type { AddExerciseCommand } from "@/features/workout/actions/addExercise";
 
 import { toError } from "@/shared/utils/error";
 
@@ -18,6 +19,9 @@ import type {
 export type WorkoutSessionController = {
   state: WorkoutSessionState;
   startEmptyWorkout: () => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  addExercise: (
+    command: AddExerciseCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
 };
 
 const initialWorkoutSessionState: WorkoutSessionState = {
@@ -33,6 +37,7 @@ export function useWorkoutSessionController(
   );
 
   const isStartingRef = useRef(false);
+  const isActiveOperationRunningRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,8 +130,68 @@ export function useWorkoutSessionController(
     }
   }, [actions, state.status]);
 
+  const addExercise = useCallback(
+    async (
+      command: AddExerciseCommand,
+    ): Promise<WorkoutSessionResult<WorkoutAggregate>> => {
+      if (state.status !== "active") {
+        return failure(
+          new WorkoutSessionError({
+            code: "invalidSessionState",
+            message: "An exercise cannot be added without an active workout",
+          }),
+        );
+      }
+
+      if (isActiveOperationRunningRef.current) {
+        return failure(
+          new WorkoutSessionError({
+            code: "operationAlreadyRunning",
+            message: "Another workout operation is already running",
+          }),
+        );
+      }
+
+      isActiveOperationRunningRef.current = true;
+
+      dispatch({
+        type: "activeOperationStarted",
+        operation: "addExercise",
+      });
+
+      try {
+        const workout = await actions.addExercise(state.workout, command);
+
+        dispatch({
+          type: "workoutCommitted",
+          workout,
+        });
+
+        return success(workout);
+      } catch (error) {
+        const sessionError = new WorkoutSessionError({
+          code: "operationFailed",
+          message: "Failed to add the exercise",
+          cause: toError(error),
+        });
+
+        dispatch({
+          type: "activeOperationFailed",
+          operation: "addExercise",
+          error: sessionError,
+        });
+
+        return failure(sessionError);
+      } finally {
+        isActiveOperationRunningRef.current = false;
+      }
+    },
+    [actions, state],
+  );
+
   return {
     state,
     startEmptyWorkout,
+    addExercise,
   };
 }

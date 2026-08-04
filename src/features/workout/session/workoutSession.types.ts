@@ -6,7 +6,12 @@ export type StartWorkoutOperation =
   "startEmptyWorkout" | "startWorkoutFromTemplate";
 
 export type ActiveWorkoutOperation =
-  "updateSet" | "completeSet" | "addSet" | "selectSet" | "finishWorkout";
+  | "addExercise"
+  | "updateSet"
+  | "completeSet"
+  | "addSet"
+  | "selectSet"
+  | "finishWorkout";
 
 export type WorkoutSessionResult<TValue> = Result<TValue, WorkoutSessionError>;
 

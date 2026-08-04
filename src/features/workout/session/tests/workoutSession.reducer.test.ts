@@ -127,6 +127,32 @@ describe("workoutSessionReducer", () => {
       });
     });
 
+    it("tracks adding an exercise as an active operation", () => {
+      const workout = createEmptyWorkout({
+        id: "workout_1",
+        now: 1_000,
+      });
+      const state: WorkoutSessionState = {
+        status: "active",
+        workout,
+        operation: { status: "idle" },
+      };
+
+      const nextState = workoutSessionReducer(state, {
+        type: "activeOperationStarted",
+        operation: "addExercise",
+      });
+
+      expect(nextState).toEqual({
+        status: "active",
+        workout,
+        operation: {
+          status: "pending",
+          operation: "addExercise",
+        },
+      });
+    });
+
     it("ignores an active operation when there is not an active workout", () => {
       const state: WorkoutSessionState = {
         status: "noActiveWorkout",
