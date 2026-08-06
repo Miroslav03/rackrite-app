@@ -7,6 +7,7 @@ export type StartWorkoutOperation =
 
 export type ActiveWorkoutOperation =
   | "addExercise"
+  | "removeExercise"
   | "updateSet"
   | "completeSet"
   | "addSet"

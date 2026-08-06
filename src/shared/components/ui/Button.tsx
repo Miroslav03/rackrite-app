@@ -38,8 +38,8 @@ const variantIntentClasses: Record<
 > = {
   solid: {
     primary: "bg-primary",
-    danger: "bg-error-solid",
-    neutral: "bg-surface-high",
+    danger: "bg-errorSolid",
+    neutral: "bg-surfaceHigh",
   },
 
   outline: {

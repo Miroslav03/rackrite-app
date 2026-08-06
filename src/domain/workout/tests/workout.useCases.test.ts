@@ -5,6 +5,7 @@ import {
   completeWorkoutSet,
   createEmptyWorkout,
   finishWorkout,
+  removeWorkoutExercise,
   selectWorkoutSet,
   startWorkoutRestTimer,
   updateWorkoutExerciseRestSeconds,
@@ -174,6 +175,71 @@ describe("addWorkoutExercise", () => {
     );
 
     expect(workout.exercises).toHaveLength(4);
+  });
+});
+
+describe("removeWorkoutExercise", () => {
+  it("removes the final exercise, its sets, and clears the active set", () => {
+    const workout = createWorkoutWithCompetitionBench();
+
+    const nextWorkout = removeWorkoutExercise(workout, {
+      workoutExerciseId: "workout_exercise_1",
+      now: 3000,
+    });
+
+    expect(nextWorkout.exercises).toEqual([]);
+    expect(nextWorkout.workout.activeSetId).toBeNull();
+    expect(nextWorkout.workout.updatedAt).toBe(3000);
+  });
+
+  it("selects an unfinished remaining set when the active exercise is removed", () => {
+    const workout = addWorkoutExercise(createWorkoutWithCompetitionBench(), {
+      workoutExerciseId: "workout_exercise_2",
+      setId: "set_2",
+      exercise: barbellRow,
+      restSeconds: barbellRow.defaultRestSeconds ?? 90,
+      now: 3000,
+    });
+
+    const nextWorkout = removeWorkoutExercise(workout, {
+      workoutExerciseId: "workout_exercise_2",
+      now: 4000,
+    });
+
+    expect(nextWorkout.exercises).toHaveLength(1);
+    expect(nextWorkout.workout.activeSetId).toBe("set_1");
+  });
+
+  it("preserves the active set and reindexes exercises after a removal", () => {
+    const workout = addWorkoutExercise(createWorkoutWithCompetitionBench(), {
+      workoutExerciseId: "workout_exercise_2",
+      setId: "set_2",
+      exercise: barbellRow,
+      restSeconds: barbellRow.defaultRestSeconds ?? 90,
+      now: 3000,
+    });
+
+    const nextWorkout = removeWorkoutExercise(workout, {
+      workoutExerciseId: "workout_exercise_1",
+      now: 4000,
+    });
+
+    expect(nextWorkout.exercises).toHaveLength(1);
+    expect(nextWorkout.exercises[0].workoutExercise).toMatchObject({
+      id: "workout_exercise_2",
+      orderIndex: 0,
+      updatedAt: 4000,
+    });
+    expect(nextWorkout.workout.activeSetId).toBe("set_2");
+  });
+
+  it("throws when the workout exercise does not exist", () => {
+    expect(() =>
+      removeWorkoutExercise(createWorkoutWithCompetitionBench(), {
+        workoutExerciseId: "missing_exercise",
+        now: 3000,
+      }),
+    ).toThrow("Workout exercise not found");
   });
 });
 

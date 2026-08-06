@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import type {
   WorkoutExerciseAggregate,
@@ -17,29 +17,41 @@ import { WorkoutSetCard } from "./WorkoutSetCard";
 type WorkoutExerciseSectionProps = {
   exerciseAggregate: WorkoutExerciseAggregate;
   activeSetId: WorkoutSetId | null;
+  onOpenOptions: () => void;
   className?: string;
 };
 
 export function WorkoutExerciseSection({
   exerciseAggregate,
   activeSetId,
+  onOpenOptions,
   className,
 }: WorkoutExerciseSectionProps) {
-  const { exercise, workoutExercise, sets } = exerciseAggregate;
+  const { exercise, sets } = exerciseAggregate;
 
   return (
     <ScreenSection className={className}>
-      <View>
-        <AppText variant="title" className="text-[24px]">
-          {exercise.name}
-        </AppText>
+      <View className="flex-row items-start justify-between gap-md">
+        <View className="flex-1">
+          <AppText variant="title" className="text-[22px]">
+            {exercise.name}
+          </AppText>
 
-        <AppText variant="subtitle">
-          {formatExerciseKind(exercise.kind)}
-        </AppText>
+          <AppText variant="subtitle">
+            {formatExerciseKind(exercise.kind)}
+          </AppText>
+        </View>
 
-        <AppText variant="sectionLabel">{workoutExercise.notes}</AppText>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Options for ${exercise.name}`}
+          hitSlop={12}
+          onPress={onOpenOptions}
+        >
+          <Ionicons name="ellipsis-horizontal" size={22} color={colors.muted} />
+        </Pressable>
       </View>
+      {/* TODO: Should add notes with desgin later here */}
 
       {sets.map((set) => {
         const status =

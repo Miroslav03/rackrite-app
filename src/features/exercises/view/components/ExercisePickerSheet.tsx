@@ -54,10 +54,16 @@ type ExercisePickerState =
       exercises: Exercise[];
     };
 
+export type ExercisePickerSelectionOperation =
+  | { status: "idle" }
+  | { status: "pending"; label: string }
+  | { status: "error"; message: string };
+
 type ExercisePickerSheetProps = {
   open: boolean;
   excludedExerciseIds?: readonly ExerciseId[];
   excludedKinds?: readonly ExerciseKind[];
+  selectionOperation?: ExercisePickerSelectionOperation;
   onSelect: (exercise: Exercise) => void;
   onClose: () => void;
 };
@@ -66,10 +72,15 @@ const initialExercisePickerState: ExercisePickerState = {
   status: "selectingKind",
 };
 
+const idleSelectionOperation: ExercisePickerSelectionOperation = {
+  status: "idle",
+};
+
 export function ExercisePickerSheet({
   open,
   excludedExerciseIds = [],
   excludedKinds,
+  selectionOperation = idleSelectionOperation,
   onSelect,
   onClose,
 }: ExercisePickerSheetProps) {
@@ -208,7 +219,9 @@ export function ExercisePickerSheet({
       const exerciseOptions = exercises.map((exercise) => ({
         id: exercise.id,
         label: exercise.name,
-        disabled: excludedExerciseIds?.includes(exercise.id),
+        disabled:
+          selectionOperation.status === "pending" ||
+          excludedExerciseIds.includes(exercise.id),
       })) satisfies OptionListOption<ExerciseId>[];
 
       content = (
@@ -230,6 +243,28 @@ export function ExercisePickerSheet({
               }}
             />
           </ScrollView>
+
+          {selectionOperation.status === "pending" && (
+            <View
+              accessibilityLiveRegion="polite"
+              accessibilityRole="progressbar"
+              className="flex-row items-center justify-center gap-sm py-sm"
+            >
+              <ActivityIndicator color={colors.primarySoft} size="small" />
+              <AppText variant="body">{selectionOperation.label}</AppText>
+            </View>
+          )}
+
+          {selectionOperation.status === "error" && (
+            <AppText
+              accessibilityLiveRegion="polite"
+              accessibilityRole="alert"
+              variant="body"
+              className="text-error"
+            >
+              {selectionOperation.message}
+            </AppText>
+          )}
         </View>
       );
       break;

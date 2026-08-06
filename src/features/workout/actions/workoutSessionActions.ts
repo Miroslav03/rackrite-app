@@ -15,6 +15,7 @@ import type {
 import { createId } from "@/shared/utils/id";
 
 import { addExercise, type AddExerciseCommand } from "./addExercise";
+import { removeExercise, type RemoveExerciseCommand } from "./removeExercise";
 import { startQuickWorkout } from "./startQuickWorkout";
 
 export type WorkoutSessionActions = {
@@ -23,6 +24,10 @@ export type WorkoutSessionActions = {
   addExercise: (
     workout: WorkoutAggregate,
     command: AddExerciseCommand,
+  ) => Promise<WorkoutAggregate>;
+  removeExercise: (
+    workout: WorkoutAggregate,
+    command: RemoveExerciseCommand,
   ) => Promise<WorkoutAggregate>;
 };
 
@@ -57,6 +62,16 @@ export function createWorkoutSessionActions(
           createWorkoutExerciseId: dependencies.createWorkoutExerciseId,
           createWorkoutSetId: dependencies.createWorkoutSetId,
           getDefaultRestSeconds: dependencies.getDefaultRestSeconds,
+        },
+        workout,
+        command,
+      ),
+
+    removeExercise: (workout, command) =>
+      removeExercise(
+        {
+          repository: dependencies.repository,
+          now: dependencies.now,
         },
         workout,
         command,

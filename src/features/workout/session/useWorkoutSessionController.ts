@@ -2,6 +2,7 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 
 import type { WorkoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
 import type { AddExerciseCommand } from "@/features/workout/actions/addExercise";
+import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
 
 import { toError } from "@/shared/utils/error";
 
@@ -21,6 +22,9 @@ export type WorkoutSessionController = {
   startEmptyWorkout: () => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   addExercise: (
     command: AddExerciseCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  removeExercise: (
+    command: RemoveExerciseCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
 };
 
@@ -189,9 +193,69 @@ export function useWorkoutSessionController(
     [actions, state],
   );
 
+  const removeExercise = useCallback(
+    async (
+      command: RemoveExerciseCommand,
+    ): Promise<WorkoutSessionResult<WorkoutAggregate>> => {
+      if (state.status !== "active") {
+        return failure(
+          new WorkoutSessionError({
+            code: "invalidSessionState",
+            message: "An exercise cannot be removed without an active workout",
+          }),
+        );
+      }
+
+      if (isActiveOperationRunningRef.current) {
+        return failure(
+          new WorkoutSessionError({
+            code: "operationAlreadyRunning",
+            message: "Another workout operation is already running",
+          }),
+        );
+      }
+
+      isActiveOperationRunningRef.current = true;
+
+      dispatch({
+        type: "activeOperationStarted",
+        operation: "removeExercise",
+      });
+
+      try {
+        const workout = await actions.removeExercise(state.workout, command);
+
+        dispatch({
+          type: "workoutCommitted",
+          workout,
+        });
+
+        return success(workout);
+      } catch (error) {
+        const sessionError = new WorkoutSessionError({
+          code: "operationFailed",
+          message: "Failed to remove the exercise",
+          cause: toError(error),
+        });
+
+        dispatch({
+          type: "activeOperationFailed",
+          operation: "removeExercise",
+          error: sessionError,
+        });
+
+        return failure(sessionError);
+      } finally {
+        isActiveOperationRunningRef.current = false;
+      }
+    },
+    [actions, state],
+  );
+
   return {
     state,
     startEmptyWorkout,
     addExercise,
+    removeExercise,
   };
 }
