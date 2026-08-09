@@ -114,7 +114,7 @@ describe("workoutSessionReducer", () => {
 
       const nextState = workoutSessionReducer(state, {
         type: "activeOperationStarted",
-        operation: "updateSet",
+        operation: { type: "updateSet", workoutSetId: "set_1" },
       });
 
       expect(nextState).toEqual({
@@ -122,7 +122,7 @@ describe("workoutSessionReducer", () => {
         workout,
         operation: {
           status: "pending",
-          operation: "updateSet",
+          operation: { type: "updateSet", workoutSetId: "set_1" },
         },
       });
     });
@@ -140,7 +140,7 @@ describe("workoutSessionReducer", () => {
 
       const nextState = workoutSessionReducer(state, {
         type: "activeOperationStarted",
-        operation: "addExercise",
+        operation: { type: "addExercise", exerciseId: "exercise_1" },
       });
 
       expect(nextState).toEqual({
@@ -148,7 +148,39 @@ describe("workoutSessionReducer", () => {
         workout,
         operation: {
           status: "pending",
-          operation: "addExercise",
+          operation: { type: "addExercise", exerciseId: "exercise_1" },
+        },
+      });
+    });
+
+    it("tracks adding a set as an active operation", () => {
+      const workout = createEmptyWorkout({
+        id: "workout_1",
+        now: 1_000,
+      });
+      const state: WorkoutSessionState = {
+        status: "active",
+        workout,
+        operation: { status: "idle" },
+      };
+
+      const nextState = workoutSessionReducer(state, {
+        type: "activeOperationStarted",
+        operation: {
+          type: "addSet",
+          workoutExerciseId: "workout_exercise_1",
+        },
+      });
+
+      expect(nextState).toEqual({
+        status: "active",
+        workout,
+        operation: {
+          status: "pending",
+          operation: {
+            type: "addSet",
+            workoutExerciseId: "workout_exercise_1",
+          },
         },
       });
     });
@@ -163,7 +195,7 @@ describe("workoutSessionReducer", () => {
 
       const nextState = workoutSessionReducer(state, {
         type: "activeOperationStarted",
-        operation: "updateSet",
+        operation: { type: "updateSet", workoutSetId: "set_1" },
       });
 
       expect(nextState).toBe(state);
@@ -181,13 +213,13 @@ describe("workoutSessionReducer", () => {
         workout,
         operation: {
           status: "pending",
-          operation: "updateSet",
+          operation: { type: "updateSet", workoutSetId: "set_1" },
         },
       };
 
       const nextState = workoutSessionReducer(state, {
         type: "activeOperationFailed",
-        operation: "updateSet",
+        operation: { type: "updateSet", workoutSetId: "set_1" },
         error,
       });
 
@@ -196,10 +228,111 @@ describe("workoutSessionReducer", () => {
         workout,
         operation: {
           status: "error",
-          operation: "updateSet",
+          operation: { type: "updateSet", workoutSetId: "set_1" },
           error,
         },
       });
+    });
+
+    it("clears the active operation after its current error is dismissed", () => {
+      const workout = createEmptyWorkout({
+        id: "workout_1",
+        now: 1_000,
+      });
+      const error = new Error("Failed to remove exercise");
+      const state: WorkoutSessionState = {
+        status: "active",
+        workout,
+        operation: {
+          status: "error",
+          operation: {
+            type: "removeExercise",
+            workoutExerciseId: "workout_exercise_1",
+          },
+          error,
+        },
+      };
+
+      const nextState = workoutSessionReducer(state, {
+        type: "operationErrorDismissed",
+        error,
+      });
+
+      expect(nextState).toEqual({
+        status: "active",
+        workout,
+        operation: { status: "idle" },
+      });
+    });
+
+    it("does not let a stale dismissal clear a newer operation error", () => {
+      const workout = createEmptyWorkout({
+        id: "workout_1",
+        now: 1_000,
+      });
+      const currentError = new Error("Current failure");
+      const state: WorkoutSessionState = {
+        status: "active",
+        workout,
+        operation: {
+          status: "error",
+          operation: {
+            type: "removeExercise",
+            workoutExerciseId: "workout_exercise_1",
+          },
+          error: currentError,
+        },
+      };
+
+      const nextState = workoutSessionReducer(state, {
+        type: "operationErrorDismissed",
+        error: new Error("Earlier failure"),
+      });
+
+      expect(nextState).toBe(state);
+    });
+  });
+
+  describe("dismissing operation errors", () => {
+    it("clears a matching start operation error", () => {
+      const error = new Error("Failed to start workout");
+      const state: WorkoutSessionState = {
+        status: "noActiveWorkout",
+        operation: {
+          status: "error",
+          operation: "startEmptyWorkout",
+          error,
+        },
+      };
+
+      const nextState = workoutSessionReducer(state, {
+        type: "operationErrorDismissed",
+        error,
+      });
+
+      expect(nextState).toEqual({
+        status: "noActiveWorkout",
+        operation: { status: "idle" },
+      });
+    });
+
+    it("does not clear a newer start operation error", () => {
+      const currentError = new Error("Current failure");
+      const state: WorkoutSessionState = {
+        status: "noActiveWorkout",
+        operation: {
+          status: "error",
+          operation: "startEmptyWorkout",
+          error: currentError,
+        },
+      };
+
+      const nextState = workoutSessionReducer(state, {
+        type: "operationErrorDismissed",
+        error: new Error("Earlier failure"),
+      });
+
+      expect(nextState).toBe(state);
     });
   });
 

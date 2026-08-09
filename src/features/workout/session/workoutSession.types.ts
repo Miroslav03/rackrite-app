@@ -1,22 +1,27 @@
-import type { WorkoutAggregate } from "@/domain/workout/workout.types";
-import { Result } from "@/shared/types/result";
-import { WorkoutSessionError } from "./workoutSession.errors";
+import type { ExerciseId } from "@/domain/exercises/exercise.types";
+import type {
+  WorkoutAggregate,
+  WorkoutExerciseId,
+  WorkoutSetId,
+} from "@/domain/workout/workout.types";
+import type { Result } from "@/shared/types/result";
+import type { WorkoutSessionError } from "./workoutSession.errors";
 
 export type StartWorkoutOperation =
   "startEmptyWorkout" | "startWorkoutFromTemplate";
 
 export type ActiveWorkoutOperation =
-  | "addExercise"
-  | "removeExercise"
-  | "updateSet"
-  | "completeSet"
-  | "addSet"
-  | "selectSet"
-  | "finishWorkout";
+  | { type: "addExercise"; exerciseId: ExerciseId }
+  | { type: "removeExercise"; workoutExerciseId: WorkoutExerciseId }
+  | { type: "addSet"; workoutExerciseId: WorkoutExerciseId }
+  | { type: "updateSet"; workoutSetId: WorkoutSetId }
+  | { type: "completeSet"; workoutSetId: WorkoutSetId }
+  | { type: "selectSet"; workoutSetId: WorkoutSetId }
+  | { type: "finishWorkout" };
 
 export type WorkoutSessionResult<TValue> = Result<TValue, WorkoutSessionError>;
 
-export type OperationState<TOperation extends string> =
+export type OperationState<TOperation> =
   | { status: "idle" }
   | {
       status: "pending";
@@ -70,6 +75,10 @@ export type WorkoutSessionEvent =
   | {
       type: "activeOperationFailed";
       operation: ActiveWorkoutOperation;
+      error: Error;
+    }
+  | {
+      type: "operationErrorDismissed";
       error: Error;
     }
   | {

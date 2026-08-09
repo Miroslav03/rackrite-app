@@ -1,30 +1,36 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 
-import type { WorkoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
 import type { AddExerciseCommand } from "@/features/workout/actions/addExercise";
+import type { AddSetCommand } from "@/features/workout/actions/addSet";
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
+import type { WorkoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
 
 import { toError } from "@/shared/utils/error";
 
-import { WorkoutAggregate } from "@/domain/workout/workout.types";
+import type { WorkoutAggregate } from "@/domain/workout/workout.types";
 
 import { failure, success } from "@/shared/types/result";
 
 import { WorkoutSessionError } from "./workoutSession.errors";
 import { workoutSessionReducer } from "./workoutSession.reducer";
 import type {
+  ActiveWorkoutOperation,
   WorkoutSessionResult,
   WorkoutSessionState,
 } from "./workoutSession.types";
 
 export type WorkoutSessionController = {
   state: WorkoutSessionState;
+  dismissOperationError: (error: Error) => void;
   startEmptyWorkout: () => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   addExercise: (
     command: AddExerciseCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   removeExercise: (
     command: RemoveExerciseCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  addSet: (
+    command: AddSetCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
 };
 
@@ -75,6 +81,13 @@ export function useWorkoutSessionController(
       cancelled = true;
     };
   }, [actions]);
+
+  const dismissOperationError = useCallback((error: Error) => {
+    dispatch({
+      type: "operationErrorDismissed",
+      error,
+    });
+  }, []);
 
   const startEmptyWorkout = useCallback(async (): Promise<
     WorkoutSessionResult<WorkoutAggregate>
@@ -157,10 +170,14 @@ export function useWorkoutSessionController(
       }
 
       isActiveOperationRunningRef.current = true;
+      const activeOperation: ActiveWorkoutOperation = {
+        type: "addExercise",
+        exerciseId: command.exercise.id,
+      };
 
       dispatch({
         type: "activeOperationStarted",
-        operation: "addExercise",
+        operation: activeOperation,
       });
 
       try {
@@ -181,7 +198,7 @@ export function useWorkoutSessionController(
 
         dispatch({
           type: "activeOperationFailed",
-          operation: "addExercise",
+          operation: activeOperation,
           error: sessionError,
         });
 
@@ -216,10 +233,14 @@ export function useWorkoutSessionController(
       }
 
       isActiveOperationRunningRef.current = true;
+      const activeOperation: ActiveWorkoutOperation = {
+        type: "removeExercise",
+        workoutExerciseId: command.workoutExerciseId,
+      };
 
       dispatch({
         type: "activeOperationStarted",
-        operation: "removeExercise",
+        operation: activeOperation,
       });
 
       try {
@@ -240,7 +261,70 @@ export function useWorkoutSessionController(
 
         dispatch({
           type: "activeOperationFailed",
-          operation: "removeExercise",
+          operation: activeOperation,
+          error: sessionError,
+        });
+
+        return failure(sessionError);
+      } finally {
+        isActiveOperationRunningRef.current = false;
+      }
+    },
+    [actions, state],
+  );
+
+  const addSet = useCallback(
+    async (
+      command: AddSetCommand,
+    ): Promise<WorkoutSessionResult<WorkoutAggregate>> => {
+      if (state.status !== "active") {
+        return failure(
+          new WorkoutSessionError({
+            code: "invalidSessionState",
+            message: "A set cannot be added without an active workout",
+          }),
+        );
+      }
+
+      if (isActiveOperationRunningRef.current) {
+        return failure(
+          new WorkoutSessionError({
+            code: "operationAlreadyRunning",
+            message: "Another workout operation is already running",
+          }),
+        );
+      }
+
+      isActiveOperationRunningRef.current = true;
+      const activeOperation: ActiveWorkoutOperation = {
+        type: "addSet",
+        workoutExerciseId: command.workoutExerciseId,
+      };
+
+      dispatch({
+        type: "activeOperationStarted",
+        operation: activeOperation,
+      });
+
+      try {
+        const workout = await actions.addSet(state.workout, command);
+
+        dispatch({
+          type: "workoutCommitted",
+          workout,
+        });
+
+        return success(workout);
+      } catch (error) {
+        const sessionError = new WorkoutSessionError({
+          code: "operationFailed",
+          message: "Failed to add the set",
+          cause: toError(error),
+        });
+
+        dispatch({
+          type: "activeOperationFailed",
+          operation: activeOperation,
           error: sessionError,
         });
 
@@ -257,5 +341,7 @@ export function useWorkoutSessionController(
     startEmptyWorkout,
     addExercise,
     removeExercise,
+    addSet,
+    dismissOperationError,
   };
 }

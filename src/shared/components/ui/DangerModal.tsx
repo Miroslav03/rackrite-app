@@ -11,10 +11,6 @@ export type DangerModalOperation =
   | {
       status: "pending";
       label: string;
-    }
-  | {
-      status: "error";
-      message: string;
     };
 
 export type DangerModalProps = {
@@ -61,12 +57,6 @@ export function DangerModal({
         </View>
 
         <AppText variant="body">{description}</AppText>
-
-        {operation.status === "error" && (
-          <AppText variant="body" className="text-error">
-            {operation.message}
-          </AppText>
-        )}
       </View>
 
       <View className="flex-row gap-sm">

@@ -1,24 +1,26 @@
 import {
-    getWorkoutExerciseById,
-    getWorkoutSetById,
+  getWorkoutExerciseById,
+  getWorkoutSetById,
 } from "@/domain/workout/workout.selectors";
-import {
-    WorkoutAggregate,
-    WorkoutExerciseId,
+import type {
+  WorkoutAggregate,
+  WorkoutExerciseAggregate,
+  WorkoutExerciseId,
 } from "@/domain/workout/workout.types";
 
-import { ExercisePickerSelectionOperation } from "@/features/exercises/view/components/ExercisePickerSheet";
+import type { ExercisePickerSelectionOperation } from "@/features/exercises/view/components/ExercisePickerSheet";
 
-import { DangerModalOperation } from "@/shared/components/ui/DangerModal";
+import type { DangerModalOperation } from "@/shared/components/ui/DangerModal";
 
-import {
-    ActiveWorkoutOperation,
-    OperationState,
+import { isOperationPending } from "../session/workoutSession.selectors";
+import type {
+  ActiveWorkoutOperation,
+  OperationState,
 } from "../session/workoutSession.types";
 
-import {
-    ActiveWorkoutOverlay,
-    DangerConfirmationModal,
+import type {
+  ActiveWorkoutOverlay,
+  DangerConfirmationModal,
 } from "./ActiveWorkoutScreenView";
 
 export function getDangerConfirmationContent(
@@ -77,13 +79,14 @@ export function getAddExerciseOperation(
     return { status: "idle" };
   }
 
-  if (operation.status === "pending" && operation.operation === "addExercise") {
+  if (
+    isOperationPending(operation) &&
+    operation.operation.type === "addExercise"
+  ) {
     return { status: "pending", label: "Adding exercise..." };
   }
 
-  return overlay.error
-    ? { status: "error", message: overlay.error.message }
-    : { status: "idle" };
+  return { status: "idle" };
 }
 
 export function getDangerOperation(
@@ -96,13 +99,31 @@ export function getDangerOperation(
 
   if (
     overlay.confirmation.action === "removeExercise" &&
-    operation.status === "pending" &&
-    operation.operation === "removeExercise"
+    isOperationPending(operation) &&
+    operation.operation.type === "removeExercise" &&
+    operation.operation.workoutExerciseId ===
+      overlay.confirmation.workoutExerciseId
   ) {
     return { status: "pending", label: "REMOVING..." };
   }
 
-  return overlay.error
-    ? { status: "error", message: overlay.error.message }
-    : { status: "idle" };
+  return { status: "idle" };
+}
+
+export function formatSetType(
+  type: WorkoutExerciseAggregate["sets"][number]["type"],
+): string {
+  switch (type) {
+    case "warmup":
+      return "Warm-up";
+
+    case "working":
+      return "Working";
+
+    case "top":
+      return "Top Set";
+
+    case "backoff":
+      return "Backoff";
+  }
 }

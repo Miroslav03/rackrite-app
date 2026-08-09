@@ -10,7 +10,8 @@ import { FullScreenLoader } from "@/shared/components/feedback/FullScreenLoader"
 
 export default function StartScreen() {
   const router = useRouter();
-  const { state, startEmptyWorkout } = useWorkoutSession();
+  const { state, startEmptyWorkout, dismissOperationError } =
+    useWorkoutSession();
 
   const viewState = getStartScreenViewState(state);
 
@@ -41,6 +42,7 @@ export default function StartScreen() {
         <NoActiveWorkoutView
           onStartEmptyWorkout={handleQuickStart}
           onStartFromTemplate={() => router.push("/templates")}
+          onOperationErrorDismissed={dismissOperationError}
           startEmptyWorkout={viewState.startEmptyWorkout}
         />
       );

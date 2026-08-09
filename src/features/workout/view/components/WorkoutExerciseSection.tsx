@@ -1,10 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, View } from "react-native";
+
+import { ActivityIndicator, Pressable, View } from "react-native";
 
 import type {
   WorkoutExerciseAggregate,
+  WorkoutExerciseId,
   WorkoutSetId,
 } from "@/domain/workout/workout.types";
+
+import {
+  isAddSetOperationPending,
+  isOperationPending,
+} from "@/features/workout/session/workoutSession.selectors";
+import type {
+  ActiveWorkoutOperation,
+  OperationState,
+} from "@/features/workout/session/workoutSession.types";
 
 import { ScreenSection } from "@/shared/components/layout/ScreenSection";
 import { AppText } from "@/shared/components/ui/AppText";
@@ -12,22 +23,36 @@ import { Button } from "@/shared/components/ui/Button";
 import { colors } from "@/shared/theme/tokens";
 
 import { formatExerciseKind } from "@/features/exercises/view/utils/formatExerciseKind";
+
+import { formatSetType } from "../activeWorkout.viewState.utils";
+
 import { WorkoutSetCard } from "./WorkoutSetCard";
+
+export type WorkoutExerciseSectionActions = {
+  openOptions: (workoutExerciseId: WorkoutExerciseId) => void;
+  addSet: (workoutExerciseId: WorkoutExerciseId) => void;
+};
 
 type WorkoutExerciseSectionProps = {
   exerciseAggregate: WorkoutExerciseAggregate;
   activeSetId: WorkoutSetId | null;
-  onOpenOptions: () => void;
+  operation: OperationState<ActiveWorkoutOperation>;
+  exerciseActions: WorkoutExerciseSectionActions;
   className?: string;
 };
 
 export function WorkoutExerciseSection({
   exerciseAggregate,
   activeSetId,
-  onOpenOptions,
+  operation,
+  exerciseActions,
   className,
 }: WorkoutExerciseSectionProps) {
   const { exercise, sets } = exerciseAggregate;
+  const workoutExerciseId = exerciseAggregate.workoutExercise.id;
+
+  const addSetPending = isAddSetOperationPending(operation, workoutExerciseId);
+  const addSetButtonDisabled = isOperationPending(operation);
 
   return (
     <ScreenSection className={className}>
@@ -46,7 +71,7 @@ export function WorkoutExerciseSection({
           accessibilityRole="button"
           accessibilityLabel={`Options for ${exercise.name}`}
           hitSlop={12}
-          onPress={onOpenOptions}
+          onPress={() => exerciseActions.openOptions(workoutExerciseId)}
         >
           <Ionicons name="ellipsis-horizontal" size={22} color={colors.muted} />
         </Pressable>
@@ -75,30 +100,25 @@ export function WorkoutExerciseSection({
       })}
 
       <Button
-        title="Add Set"
+        title={addSetPending ? "Adding..." : "Add Set"}
         variant="ghost"
         intent="neutral"
         size="md"
-        leftIcon={<Ionicons name="add" size={18} color={colors.muted} />}
+        disabled={addSetButtonDisabled}
+        accessibilityLabel={`Add set to ${exercise.name}`}
+        accessibilityState={{
+          disabled: addSetButtonDisabled,
+          busy: addSetPending,
+        }}
+        leftIcon={
+          addSetPending ? (
+            <ActivityIndicator color={colors.muted} size="small" />
+          ) : (
+            <Ionicons name="add" size={18} color={colors.muted} />
+          )
+        }
+        onPress={() => exerciseActions.addSet(workoutExerciseId)}
       />
     </ScreenSection>
   );
-}
-
-function formatSetType(
-  type: WorkoutExerciseAggregate["sets"][number]["type"],
-): string {
-  switch (type) {
-    case "warmup":
-      return "Warm-up";
-
-    case "working":
-      return "Working";
-
-    case "top":
-      return "Top Set";
-
-    case "backoff":
-      return "Backoff";
-  }
 }

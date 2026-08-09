@@ -1,4 +1,3 @@
-import type { SetType } from "@/domain/domain.types";
 import type { Exercise } from "@/domain/exercises/exercise.types";
 
 import {
@@ -20,6 +19,7 @@ import type {
   WorkoutId,
   WorkoutSet,
   WorkoutSetId,
+  WorkoutSetValues,
 } from "./workout.types";
 
 type CreateEmptyWorkoutInput = {
@@ -50,20 +50,12 @@ type AddWorkoutSetInput = {
   workoutExerciseId: WorkoutExerciseId;
   setId: WorkoutSetId;
   now: number;
-  type?: SetType;
-  weight?: number | null;
-  reps?: number | null;
-  rpe?: number | null;
-};
+} & Partial<WorkoutSetValues>;
 
 type UpdateWorkoutSetInput = {
   setId: WorkoutSetId;
   now: number;
-  type?: SetType;
-  weight?: number | null;
-  reps?: number | null;
-  rpe?: number | null;
-};
+} & Partial<WorkoutSetValues>;
 
 type CompleteWorkoutSetInput = {
   setId: WorkoutSetId;

@@ -9,18 +9,20 @@ import { Button } from "@/shared/components/ui/Button";
 import { colors } from "@/shared/theme/tokens";
 
 import type { StartEmptyWorkoutViewState } from "./startScreen.viewState";
-import { StartWorkoutErrorSnackbar } from "./StartWorkoutErrorSnackbar";
+import { StartWorkoutErrorNotifier } from "./StartWorkoutErrorNotifier";
 
 type NoActiveWorkoutViewProps = {
   startEmptyWorkout: StartEmptyWorkoutViewState;
   onStartFromTemplate: () => void;
   onStartEmptyWorkout: () => Promise<void>;
+  onOperationErrorDismissed: (error: Error) => void;
 };
 
 export function NoActiveWorkoutView({
   startEmptyWorkout,
   onStartFromTemplate,
   onStartEmptyWorkout,
+  onOperationErrorDismissed,
 }: NoActiveWorkoutViewProps) {
   const isStarting = startEmptyWorkout.status === "starting";
 
@@ -65,9 +67,10 @@ export function NoActiveWorkoutView({
         />
       </ScreenSection>
 
-      {startEmptyWorkout.status === "error" ? (
-        <StartWorkoutErrorSnackbar error={startEmptyWorkout.error} />
-      ) : null}
+      <StartWorkoutErrorNotifier
+        operation={startEmptyWorkout}
+        onErrorDismissed={onOperationErrorDismissed}
+      />
     </Screen>
   );
 }

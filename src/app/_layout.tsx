@@ -8,6 +8,7 @@ import { DatabaseBootstrap } from "@/bootstrap/DatabaseBootstrap";
 import { workoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
 import { WorkoutSessionProvider } from "@/features/workout/session/WorkoutSessionProvider";
 
+import { ToastProvider } from "@/shared/components/feedback/ToastProvider";
 import { colors } from "@/shared/theme/tokens";
 
 import "../global.css";
@@ -17,26 +18,28 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <DatabaseBootstrap
-        key={startupAttempt}
-        onRetry={() => {
-          setStartupAttempt((current) => current + 1);
-        }}
-      >
-        <WorkoutSessionProvider actions={workoutSessionActions}>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: {
-                backgroundColor: colors.background,
-              },
-            }}
-          >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="workout" options={{ title: "Workout" }} />
-          </Stack>
-        </WorkoutSessionProvider>
-      </DatabaseBootstrap>
+      <ToastProvider>
+        <DatabaseBootstrap
+          key={startupAttempt}
+          onRetry={() => {
+            setStartupAttempt((current) => current + 1);
+          }}
+        >
+          <WorkoutSessionProvider actions={workoutSessionActions}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: {
+                  backgroundColor: colors.background,
+                },
+              }}
+            >
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="workout" options={{ title: "Workout" }} />
+            </Stack>
+          </WorkoutSessionProvider>
+        </DatabaseBootstrap>
+      </ToastProvider>
     </SafeAreaProvider>
   );
 }

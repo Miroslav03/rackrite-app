@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Modal, Pressable, View } from "react-native";
 
+import { ToastViewport } from "@/shared/components/feedback/ToastViewport";
 import { cn } from "@/shared/utils/cn";
 
 export type AppModalProps = {
@@ -58,6 +59,8 @@ export function AppModal({
         >
           <View className={cn("p-xl", contentClassName)}>{children}</View>
         </View>
+
+        {open ? <ToastViewport layer="modal" /> : null}
       </View>
     </Modal>
   );

@@ -1,6 +1,6 @@
 import type {
-    WorkoutSessionEvent,
-    WorkoutSessionState,
+  WorkoutSessionEvent,
+  WorkoutSessionState,
 } from "./workoutSession.types";
 
 export function workoutSessionReducer(
@@ -81,6 +81,20 @@ export function workoutSessionReducer(
           operation: event.operation,
           error: event.error,
         },
+      };
+
+    case "operationErrorDismissed":
+      if (
+        (state.status !== "active" && state.status !== "noActiveWorkout") ||
+        state.operation.status !== "error" ||
+        state.operation.error !== event.error
+      ) {
+        return state;
+      }
+
+      return {
+        ...state,
+        operation: { status: "idle" },
       };
 
     case "workoutCommitted":

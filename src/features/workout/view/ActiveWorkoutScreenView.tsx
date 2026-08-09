@@ -13,6 +13,7 @@ import type {
 
 import { ExercisePickerSheet } from "@/features/exercises/view/components/ExercisePickerSheet";
 import type { AddExerciseCommand } from "@/features/workout/actions/addExercise";
+import type { AddSetCommand } from "@/features/workout/actions/addSet";
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
 import type {
   ActiveWorkoutOperation,
@@ -36,6 +37,7 @@ import {
   getDangerOperation,
   isRemoveExerciseConfirmation,
 } from "./activeWorkout.viewState.utils";
+import { ActiveWorkoutOperationErrorNotifier } from "./components/ActiveWorkoutOperationErrorNotifier";
 import { RestTimerCard } from "./components/RestTimerCard";
 import {
   WorkoutExerciseOptionsSheet,
@@ -44,11 +46,15 @@ import {
 import { WorkoutExerciseSection } from "./components/WorkoutExerciseSection";
 
 export type ActiveWorkoutScreenActions = {
+  dismissOperationError: (error: Error) => void;
   addExercise: (
     command: AddExerciseCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   removeExercise: (
     command: RemoveExerciseCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  addSet: (
+    command: AddSetCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
 };
 
@@ -70,7 +76,7 @@ export type DangerConfirmationModal =
 
 export type ActiveWorkoutOverlay =
   | { type: "none" }
-  | { type: "exercisePicker"; error: Error | null }
+  | { type: "exercisePicker" }
   | {
       type: "exerciseOptions";
       workoutExerciseId: WorkoutExerciseId;
@@ -78,7 +84,6 @@ export type ActiveWorkoutOverlay =
   | {
       type: "dangerConfirmationModal";
       confirmation: DangerConfirmationModal;
-      error: Error | null;
     };
 
 const NO_ACTIVE_OVERLAY: ActiveWorkoutOverlay = { type: "none" };
@@ -132,7 +137,7 @@ export function ActiveWorkoutScreenView({
   }
 
   function openExercisePicker() {
-    setActiveOverlay({ type: "exercisePicker", error: null });
+    setActiveOverlay({ type: "exercisePicker" });
   }
 
   function openExerciseOptions(workoutExerciseId: WorkoutExerciseId) {
@@ -140,43 +145,35 @@ export function ActiveWorkoutScreenView({
   }
 
   async function handleExerciseSelected(exercise: Exercise) {
-    setActiveOverlay((currentOverlay) => {
-      return currentOverlay.type === "exercisePicker"
-        ? { ...currentOverlay, error: null }
-        : currentOverlay;
-    });
-
     const result = await actions.addExercise({ exercise });
 
-    setActiveOverlay((currentOverlay) => {
-      if (currentOverlay.type !== "exercisePicker") {
-        return currentOverlay;
-      }
+    if (!result.success) {
+      return;
+    }
 
-      return result.success
+    setActiveOverlay((currentOverlay) => {
+      return currentOverlay.type === "exercisePicker"
         ? NO_ACTIVE_OVERLAY
-        : { ...currentOverlay, error: result.error };
+        : currentOverlay;
     });
   }
 
   async function handleRemoveExercise(workoutExerciseId: WorkoutExerciseId) {
-    setActiveOverlay((currentOverlay) => {
-      return isRemoveExerciseConfirmation(currentOverlay, workoutExerciseId)
-        ? { ...currentOverlay, error: null }
-        : currentOverlay;
-    });
-
     const result = await actions.removeExercise({ workoutExerciseId });
 
-    setActiveOverlay((currentOverlay) => {
-      if (!isRemoveExerciseConfirmation(currentOverlay, workoutExerciseId)) {
-        return currentOverlay;
-      }
+    if (!result.success) {
+      return;
+    }
 
-      return result.success
+    setActiveOverlay((currentOverlay) => {
+      return isRemoveExerciseConfirmation(currentOverlay, workoutExerciseId)
         ? NO_ACTIVE_OVERLAY
-        : { ...currentOverlay, error: result.error };
+        : currentOverlay;
     });
+  }
+
+  function handleAddSet(workoutExerciseId: WorkoutExerciseId) {
+    void actions.addSet({ workoutExerciseId });
   }
 
   function handleExerciseOptionSelected(option: WorkoutExerciseOption) {
@@ -192,7 +189,6 @@ export function ActiveWorkoutScreenView({
             action: "removeExercise",
             workoutExerciseId: activeOverlay.workoutExerciseId,
           },
-          error: null,
         });
         return;
     }
@@ -239,9 +235,11 @@ export function ActiveWorkoutScreenView({
                 key={exerciseAggregate.workoutExercise.id}
                 exerciseAggregate={exerciseAggregate}
                 activeSetId={workout.workout.activeSetId}
-                onOpenOptions={() =>
-                  openExerciseOptions(exerciseAggregate.workoutExercise.id)
-                }
+                operation={operation}
+                exerciseActions={{
+                  openOptions: openExerciseOptions,
+                  addSet: handleAddSet,
+                }}
               />
             ))}
           </View>
@@ -264,6 +262,11 @@ export function ActiveWorkoutScreenView({
           />
         </ScreenSection>
       </Screen>
+
+      <ActiveWorkoutOperationErrorNotifier
+        operation={operation}
+        onErrorDismissed={actions.dismissOperationError}
+      />
 
       <ExercisePickerSheet
         open={activeOverlay.type === "exercisePicker"}

@@ -55,9 +55,7 @@ type ExercisePickerState =
     };
 
 export type ExercisePickerSelectionOperation =
-  | { status: "idle" }
-  | { status: "pending"; label: string }
-  | { status: "error"; message: string };
+  { status: "idle" } | { status: "pending"; label: string };
 
 type ExercisePickerSheetProps = {
   open: boolean;
@@ -254,17 +252,6 @@ export function ExercisePickerSheet({
               <AppText variant="body">{selectionOperation.label}</AppText>
             </View>
           )}
-
-          {selectionOperation.status === "error" && (
-            <AppText
-              accessibilityLiveRegion="polite"
-              accessibilityRole="alert"
-              variant="body"
-              className="text-error"
-            >
-              {selectionOperation.message}
-            </AppText>
-          )}
         </View>
       );
       break;
@@ -274,6 +261,7 @@ export function ExercisePickerSheet({
   return (
     <BottomSheet
       open={open}
+      dismissible={selectionOperation.status !== "pending"}
       title={
         state.status === "selectingKind"
           ? "Select Exercise Type"

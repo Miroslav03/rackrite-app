@@ -44,6 +44,11 @@ export interface WorkoutSet {
   updatedAt: number;
 }
 
+export type WorkoutSetValues = Pick<
+  WorkoutSet,
+  "type" | "weight" | "reps" | "rpe"
+>;
+
 export type WorkoutRestTimer = {
   startedAt: number;
   endsAt: number;

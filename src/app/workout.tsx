@@ -7,7 +7,8 @@ import { WorkoutScreenLoadError } from "@/features/workout/view/WorkoutScreenLoa
 import { FullScreenLoader } from "@/shared/components/feedback/FullScreenLoader";
 
 export default function WorkoutScreen() {
-  const { state, addExercise, removeExercise } = useWorkoutSession();
+  const { state, addExercise, removeExercise, addSet, dismissOperationError } =
+    useWorkoutSession();
 
   switch (state.status) {
     case "loading":
@@ -32,6 +33,8 @@ export default function WorkoutScreen() {
           actions={{
             addExercise,
             removeExercise,
+            addSet,
+            dismissOperationError,
           }}
         />
       );
