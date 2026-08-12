@@ -1,6 +1,6 @@
 import { createWorkoutWithCompetitionBench } from "@/domain/workout/tests/workout.test.helpers";
 
-import { updateSet, type UpdateSetDependencies } from "./updateSet";
+import { updateSet, type UpdateSetDependencies } from "../updateSet";
 
 function createDependencies(): UpdateSetDependencies {
   return {

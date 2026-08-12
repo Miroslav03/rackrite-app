@@ -3,7 +3,7 @@ import { createWorkoutWithCompetitionBench } from "@/domain/workout/tests/workou
 import {
   removeExercise,
   type RemoveExerciseDependencies,
-} from "./removeExercise";
+} from "../removeExercise";
 
 function createDependencies(): RemoveExerciseDependencies {
   return {
@@ -26,8 +26,8 @@ describe("removeExercise", () => {
     expect(nextWorkout.exercises).toEqual([]);
     expect(nextWorkout.workout.activeSetId).toBeNull();
     expect(nextWorkout.workout.updatedAt).toBe(3_000);
-    expect(
-      dependencies.repository.saveWorkoutAggregate,
-    ).toHaveBeenCalledWith(nextWorkout);
+    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledWith(
+      nextWorkout,
+    );
   });
 });

@@ -1,7 +1,7 @@
 import type { Exercise } from "@/domain/exercises/exercise.types";
 import { createEmptyWorkout } from "@/domain/workout/workout.useCases";
 
-import { addExercise, type AddExerciseDependencies } from "./addExercise";
+import { addExercise, type AddExerciseDependencies } from "../addExercise";
 
 const customAccessory: Exercise = {
   id: "custom_triceps_extension",
@@ -51,9 +51,9 @@ describe("addExercise", () => {
       ],
     });
     expect(nextWorkout.workout.activeSetId).toBe("set_1");
-    expect(
-      dependencies.repository.saveWorkoutAggregate,
-    ).toHaveBeenCalledWith(nextWorkout);
+    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledWith(
+      nextWorkout,
+    );
   });
 
   it("keeps an exercise-specific rest time instead of using the settings fallback", async () => {
@@ -72,9 +72,7 @@ describe("addExercise", () => {
       exercise,
     });
 
-    expect(
-      nextWorkout.exercises[0].workoutExercise.restSeconds,
-    ).toBe(120);
+    expect(nextWorkout.exercises[0].workoutExercise.restSeconds).toBe(120);
     expect(getDefaultRestSeconds).not.toHaveBeenCalled();
   });
 });

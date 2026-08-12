@@ -1,6 +1,6 @@
 import { createWorkoutWithUpdatedFirstSet } from "@/domain/workout/tests/workout.test.helpers";
 
-import { completeSet, type CompleteSetDependencies } from "./completeSet";
+import { completeSet, type CompleteSetDependencies } from "../completeSet";
 
 function createDependencies(): CompleteSetDependencies {
   return {

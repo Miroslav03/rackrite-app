@@ -1,6 +1,6 @@
 import { createWorkoutWithTwoSets } from "@/domain/workout/tests/workout.test.helpers";
 
-import { selectSet, type SelectSetDependencies } from "./selectSet";
+import { selectSet, type SelectSetDependencies } from "../selectSet";
 
 function createDependencies(): SelectSetDependencies {
   return {
