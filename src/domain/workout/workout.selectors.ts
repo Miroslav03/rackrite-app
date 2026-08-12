@@ -50,6 +50,14 @@ export function getActiveWorkoutSet(
     : getWorkoutSetById(workoutAggregate, activeSetId);
 }
 
+export function getActiveUnfinishedWorkoutSet(
+  workout: WorkoutAggregate,
+): WorkoutSet | undefined {
+  const activeSet = getActiveWorkoutSet(workout);
+
+  return activeSet?.finishedAt === null ? activeSet : undefined;
+}
+
 export function getActiveWorkoutExercise(
   workoutAggregate: WorkoutAggregate,
 ): WorkoutExerciseAggregate | undefined {

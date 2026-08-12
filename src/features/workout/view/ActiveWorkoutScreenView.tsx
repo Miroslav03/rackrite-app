@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 
 import { useState } from "react";
-import { View } from "react-native";
+import { ScrollView, View } from "react-native";
 
 import type { Exercise, ExerciseKind } from "@/domain/exercises/exercise.types";
 import { getWorkoutExerciseById } from "@/domain/workout/workout.selectors";
@@ -14,21 +14,22 @@ import type {
 import { ExercisePickerSheet } from "@/features/exercises/view/components/ExercisePickerSheet";
 import type { AddExerciseCommand } from "@/features/workout/actions/addExercise";
 import type { AddSetCommand } from "@/features/workout/actions/addSet";
+import type { CompleteSetCommand } from "@/features/workout/actions/completeSet";
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
+import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
+import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
 import type {
   ActiveWorkoutOperation,
   OperationState,
   WorkoutSessionResult,
 } from "@/features/workout/session/workoutSession.types";
 
-import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
 import { Screen } from "@/shared/components/layout/Screen";
 import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 import { ScreenSection } from "@/shared/components/layout/ScreenSection";
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
 import { DangerModal } from "@/shared/components/ui/DangerModal";
-import { useElapsedTime } from "@/shared/hooks/useElapsedTime";
 import { colors } from "@/shared/theme/tokens";
 
 import {
@@ -37,7 +38,10 @@ import {
   getDangerOperation,
   isRemoveExerciseConfirmation,
 } from "./activeWorkout.viewState.utils";
+import { ActiveSetEditorDock } from "./components/ActiveSetEditor/ActiveSetEditorDock";
+import { useActiveSetEditor } from "./components/ActiveSetEditor/useActiveSetEditor";
 import { ActiveWorkoutOperationErrorNotifier } from "./components/ActiveWorkoutOperationErrorNotifier";
+import { ElapsedTimeHeaderMetric } from "./components/ElapsedTimeHeaderMetric";
 import { RestTimerCard } from "./components/RestTimerCard";
 import {
   WorkoutExerciseOptionsSheet,
@@ -55,6 +59,15 @@ export type ActiveWorkoutScreenActions = {
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   addSet: (
     command: AddSetCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  updateSet: (
+    command: UpdateSetCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  selectSet: (
+    command: SelectSetCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  completeSet: (
+    command: CompleteSetCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
 };
 
@@ -95,8 +108,9 @@ export function ActiveWorkoutScreenView({
 }: ActiveWorkoutScreenViewProps) {
   const [activeOverlay, setActiveOverlay] =
     useState<ActiveWorkoutOverlay>(NO_ACTIVE_OVERLAY);
+  const [activeSetEditorHeight, setActiveSetEditorHeight] = useState(0);
 
-  const timeElapsed = useElapsedTime(workout.workout.startedAt);
+  const activeSetEditor = useActiveSetEditor(workout, actions);
 
   const excludedExerciseIds = workout.exercises.map(
     ({ exercise }) => exercise.id,
@@ -212,56 +226,92 @@ export function ActiveWorkoutScreenView({
   return (
     <>
       <Screen>
-        <ScreenHeader
-          title="New Workout"
-          subtitle={`${workout.workout.status} workout`.toUpperCase()}
-          rightAccessory={<HeaderMetric value={timeElapsed} label="Duration" />}
-        />
-
-        <ScreenSection>
-          <RestTimerCard time="12:22" />
-        </ScreenSection>
-
-        {workout.exercises.length === 0 ? (
-          <ScreenSection>
-            <AppText variant="subtitle">
-              Add an exercise to begin your workout.
-            </AppText>
-          </ScreenSection>
-        ) : (
-          <View>
-            {workout.exercises.map((exerciseAggregate) => (
-              <WorkoutExerciseSection
-                key={exerciseAggregate.workoutExercise.id}
-                exerciseAggregate={exerciseAggregate}
-                activeSetId={workout.workout.activeSetId}
-                operation={operation}
-                exerciseActions={{
-                  openOptions: openExerciseOptions,
-                  addSet: handleAddSet,
-                }}
-              />
-            ))}
-          </View>
-        )}
-
-        <ScreenSection className="mt-auto pt-8 pb-4">
-          <Button
-            title="Add Exercise"
-            variant="solid"
-            intent="primary"
-            size="lg"
-            leftIcon={
-              <Ionicons
-                name="barbell-outline"
-                size={18}
-                color={colors.foreground}
-              />
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingBottom: !activeSetEditor.activeSet
+              ? 0
+              : activeSetEditorHeight,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <ScreenHeader
+            title="New Workout"
+            subtitle={`${workout.workout.status} workout`.toUpperCase()}
+            rightAccessory={
+              <ElapsedTimeHeaderMetric startedAt={workout.workout.startedAt} />
             }
-            onPress={openExercisePicker}
           />
-        </ScreenSection>
+
+          <ScreenSection>
+            <RestTimerCard time="12:22" />
+          </ScreenSection>
+
+          {workout.exercises.length === 0 ? (
+            <ScreenSection>
+              <AppText variant="subtitle">
+                Add an exercise to begin your workout.
+              </AppText>
+            </ScreenSection>
+          ) : (
+            <View>
+              {workout.exercises.map((exerciseAggregate) => (
+                <WorkoutExerciseSection
+                  key={exerciseAggregate.workoutExercise.id}
+                  exerciseAggregate={exerciseAggregate}
+                  activeSetId={
+                    activeSetEditor.activeSet?.id ?? workout.workout.activeSetId
+                  }
+                  weightDraft={activeSetEditor.weightDraft}
+                  operation={operation}
+                  exerciseActions={{
+                    openOptions: openExerciseOptions,
+                    addSet: handleAddSet,
+                    openSetEditor: activeSetEditor.openSetEditor,
+                  }}
+                />
+              ))}
+            </View>
+          )}
+
+          <ScreenSection className="relative z-30 mt-auto pt-8 pb-4">
+            <Button
+              title="Add Exercise"
+              variant="solid"
+              intent="primary"
+              size="lg"
+              accessibilityRole="button"
+              leftIcon={
+                <Ionicons
+                  name="barbell-outline"
+                  size={18}
+                  color={colors.foreground}
+                />
+              }
+              onPress={openExercisePicker}
+            />
+          </ScreenSection>
+        </ScrollView>
       </Screen>
+
+      {activeSetEditor.activeSet && activeSetEditor.activeExercise ? (
+        <ActiveSetEditorDock
+          exerciseName={activeSetEditor.activeExercise.exercise.name}
+          activeSet={activeSetEditor.activeSet}
+          setCount={activeSetEditor.activeExercise.sets.length}
+          panel={activeSetEditor.panel}
+          operation={operation}
+          onAdjustWeight={activeSetEditor.adjustWeight}
+          onToggleWeightKeypad={activeSetEditor.toggleWeightKeypad}
+          onPressWeightKey={activeSetEditor.pressWeightKey}
+          onSelectRpe={activeSetEditor.selectRpe}
+          onSelectSetType={activeSetEditor.selectSetType}
+          onComplete={activeSetEditor.completeSet}
+          onHeightChange={setActiveSetEditorHeight}
+        />
+      ) : null}
 
       <ActiveWorkoutOperationErrorNotifier
         operation={operation}

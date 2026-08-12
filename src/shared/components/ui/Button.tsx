@@ -16,6 +16,7 @@ type ButtonProps = PressableProps & {
   size?: ButtonSize;
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
+  dimWhenDisabled?: boolean;
   className?: string;
   textClassName?: string;
 };
@@ -83,6 +84,7 @@ export function Button({
   leftIcon,
   rightIcon,
   disabled,
+  dimWhenDisabled = true,
   className,
   textClassName,
   ...props
@@ -94,7 +96,7 @@ export function Button({
         base,
         sizeClasses[size],
         variantIntentClasses[variant][intent],
-        disabled && "opacity-50",
+        disabled && dimWhenDisabled && "opacity-50",
         className,
       )}
       {...props}

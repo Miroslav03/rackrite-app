@@ -1,5 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, View, type PressableProps } from "react-native";
+
+import { Pressable, View } from "react-native";
+
+import type { ActiveSetEditorPanelType } from "@/features/workout/view/components/ActiveSetEditor/activeSetEditor.types";
 
 import { AppText } from "@/shared/components/ui/AppText";
 import { SurfaceCard } from "@/shared/components/ui/SurfaceCard";
@@ -8,33 +11,46 @@ import { cn } from "@/shared/utils/cn";
 
 type WorkoutSetStatus = "completed" | "active" | "pending";
 
-type WorkoutSetCardProps = PressableProps & {
+type WorkoutSetCardProps = {
   setIndex: number;
   setType: string;
   weight: number | null;
+  weightDraft?: string;
   reps: number | null;
   rpe: number | null;
   status?: WorkoutSetStatus;
+  disabled?: boolean;
   className?: string;
+  onSelect: () => void;
+  onEditField: (field: ActiveSetEditorPanelType) => void;
 };
 
 export function WorkoutSetCard({
   setIndex,
   setType,
   weight,
+  weightDraft,
   reps,
   rpe,
   status = "pending",
   className,
   disabled,
-  ...props
+  onSelect,
+  onEditField,
 }: WorkoutSetCardProps) {
   const isCompleted = status === "completed";
   const isActive = status === "active";
   const isPending = status === "pending";
 
   return (
-    <Pressable disabled={disabled} className={className} {...props}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Select set ${setIndex}`}
+      accessibilityState={{ disabled, selected: isActive }}
+      disabled={disabled}
+      className={className}
+      onPress={onSelect}
+    >
       <SurfaceCard
         variant={isCompleted ? "success" : isActive ? "high" : "default"}
         accent={isCompleted ? "success" : isActive ? "primary" : "none"}
@@ -42,7 +58,7 @@ export function WorkoutSetCard({
         contentClassName="min-h-[58px] flex-row items-center gap-md px-md py-sm"
         className={cn(isPending && "opacity-60")}
       >
-        <View className="w-10 items-center">
+        <View className="min-h-11 w-10 items-center justify-center">
           <AppText
             variant="sectionLabel"
             className={cn(
@@ -55,51 +71,89 @@ export function WorkoutSetCard({
 
           <View
             className={cn(
-              "h-4 w-4 items-center justify-center rounded-full",
+              "h-4 w-4 items-center justify-center overflow-hidden rounded-full",
               isCompleted ? "bg-successBorder" : "bg-surfaceHighest",
             )}
           >
             {isCompleted ? (
               <Ionicons name="checkmark" size={10} color={colors.background} />
-            ) : (
-              <View
-                className={cn(
-                  "h-1.5 w-1.5 rounded-full",
-                  isActive ? "bg-primarySoft" : "bg-transparent",
-                )}
-              />
-            )}
+            ) : isActive ? (
+              <View className="h-1.5 w-1.5 rounded-full bg-primarySoft" />
+            ) : null}
           </View>
         </View>
 
-        <View className="flex-[1.4] items-center">
-          <AppText variant="sectionLabel">Type</AppText>
-          <AppText className="text-sm font-black text-foreground">
-            {setType}
-          </AppText>
-        </View>
+        <SetFieldButton
+          label="Type"
+          value={setType}
+          disabled={disabled}
+          className="flex-[1.4]"
+          onPress={() => onEditField("setType")}
+        />
 
-        <View className="flex-1  items-center">
-          <AppText variant="sectionLabel">Weight</AppText>
-          <AppText className="text-sm font-black text-foreground">
-            {weight ? `${weight} kg` : "-"}
-          </AppText>
-        </View>
+        <SetFieldButton
+          label="Weight (KG)"
+          value={
+            weightDraft !== undefined
+              ? weightDraft === ""
+                ? "—"
+                : `${weightDraft}`
+              : weight !== null
+                ? `${weight}`
+                : "—"
+          }
+          disabled={disabled}
+          onPress={() => onEditField("weightKeypad")}
+        />
 
-        <View className="flex-1  items-center">
+        <View className="min-h-11 flex-1 items-center justify-center px-xs">
           <AppText variant="sectionLabel">Reps</AppText>
           <AppText className="text-sm font-black text-foreground">
-            {reps ?? "-"}
+            {reps ?? "—"}
           </AppText>
         </View>
 
-        <View className="flex-1  items-center">
-          <AppText variant="sectionLabel">RPE</AppText>
-          <AppText className="text-sm font-black text-foreground">
-            {rpe ?? "—"}
-          </AppText>
-        </View>
+        <SetFieldButton
+          label="RPE"
+          value={rpe !== null ? String(rpe) : "—"}
+          disabled={disabled}
+          onPress={() => onEditField("rpe")}
+        />
       </SurfaceCard>
+    </Pressable>
+  );
+}
+
+type SetFieldButtonProps = {
+  label: string;
+  value: string;
+  disabled?: boolean;
+  className?: string;
+  onPress: () => void;
+};
+
+function SetFieldButton({
+  label,
+  value,
+  disabled,
+  className,
+  onPress,
+}: SetFieldButtonProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Edit ${label.toLowerCase()}`}
+      accessibilityValue={{ text: value }}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      className={cn("min-h-11 flex-1 items-center justify-center", className)}
+      onPress={(event) => {
+        event.stopPropagation();
+        onPress();
+      }}
+    >
+      <AppText variant="sectionLabel">{label}</AppText>
+      <AppText className="text-sm font-black text-foreground">{value}</AppText>
     </Pressable>
   );
 }

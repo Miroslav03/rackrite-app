@@ -2,7 +2,10 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 
 import type { AddExerciseCommand } from "@/features/workout/actions/addExercise";
 import type { AddSetCommand } from "@/features/workout/actions/addSet";
+import type { CompleteSetCommand } from "@/features/workout/actions/completeSet";
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
+import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
+import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
 import type { WorkoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
 
 import { toError } from "@/shared/utils/error";
@@ -32,6 +35,22 @@ export type WorkoutSessionController = {
   addSet: (
     command: AddSetCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  updateSet: (
+    command: UpdateSetCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  selectSet: (
+    command: SelectSetCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  completeSet: (
+    command: CompleteSetCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+};
+
+type RunActiveWorkoutOperationInput = {
+  operation: ActiveWorkoutOperation;
+  invalidStateMessage: string;
+  failureMessage: string;
+  run: (workout: WorkoutAggregate) => Promise<WorkoutAggregate>;
 };
 
 const initialWorkoutSessionState: WorkoutSessionState = {
@@ -48,6 +67,15 @@ export function useWorkoutSessionController(
 
   const isStartingRef = useRef(false);
   const isActiveOperationRunningRef = useRef(false);
+  const activeWorkoutRef = useRef<WorkoutAggregate | null>(null);
+
+  useEffect(() => {
+    if (isActiveOperationRunningRef.current) {
+      return;
+    }
+
+    activeWorkoutRef.current = state.status === "active" ? state.workout : null;
+  }, [state]);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +109,66 @@ export function useWorkoutSessionController(
       cancelled = true;
     };
   }, [actions]);
+
+  const runActiveWorkoutOperation = useCallback(
+    async ({
+      operation,
+      invalidStateMessage,
+      failureMessage,
+      run,
+    }: RunActiveWorkoutOperationInput): Promise<
+      WorkoutSessionResult<WorkoutAggregate>
+    > => {
+      const activeWorkout = activeWorkoutRef.current;
+
+      if (state.status !== "active" || activeWorkout === null) {
+        return failure(
+          new WorkoutSessionError({
+            code: "invalidSessionState",
+            message: invalidStateMessage,
+          }),
+        );
+      }
+
+      if (isActiveOperationRunningRef.current) {
+        return failure(
+          new WorkoutSessionError({
+            code: "operationAlreadyRunning",
+            message: "Another workout operation is already running",
+          }),
+        );
+      }
+
+      isActiveOperationRunningRef.current = true;
+      dispatch({ type: "activeOperationStarted", operation });
+
+      try {
+        const workout = await run(activeWorkout);
+
+        activeWorkoutRef.current = workout;
+        dispatch({ type: "workoutCommitted", workout });
+
+        return success(workout);
+      } catch (error) {
+        const sessionError = new WorkoutSessionError({
+          code: "operationFailed",
+          message: failureMessage,
+          cause: toError(error),
+        });
+
+        dispatch({
+          type: "activeOperationFailed",
+          operation,
+          error: sessionError,
+        });
+
+        return failure(sessionError);
+      } finally {
+        isActiveOperationRunningRef.current = false;
+      }
+    },
+    [state.status],
+  );
 
   const dismissOperationError = useCallback((error: Error) => {
     dispatch({
@@ -148,192 +236,92 @@ export function useWorkoutSessionController(
   }, [actions, state.status]);
 
   const addExercise = useCallback(
-    async (
-      command: AddExerciseCommand,
-    ): Promise<WorkoutSessionResult<WorkoutAggregate>> => {
-      if (state.status !== "active") {
-        return failure(
-          new WorkoutSessionError({
-            code: "invalidSessionState",
-            message: "An exercise cannot be added without an active workout",
-          }),
-        );
-      }
-
-      if (isActiveOperationRunningRef.current) {
-        return failure(
-          new WorkoutSessionError({
-            code: "operationAlreadyRunning",
-            message: "Another workout operation is already running",
-          }),
-        );
-      }
-
-      isActiveOperationRunningRef.current = true;
-      const activeOperation: ActiveWorkoutOperation = {
-        type: "addExercise",
-        exerciseId: command.exercise.id,
-      };
-
-      dispatch({
-        type: "activeOperationStarted",
-        operation: activeOperation,
-      });
-
-      try {
-        const workout = await actions.addExercise(state.workout, command);
-
-        dispatch({
-          type: "workoutCommitted",
-          workout,
-        });
-
-        return success(workout);
-      } catch (error) {
-        const sessionError = new WorkoutSessionError({
-          code: "operationFailed",
-          message: "Failed to add the exercise",
-          cause: toError(error),
-        });
-
-        dispatch({
-          type: "activeOperationFailed",
-          operation: activeOperation,
-          error: sessionError,
-        });
-
-        return failure(sessionError);
-      } finally {
-        isActiveOperationRunningRef.current = false;
-      }
-    },
-    [actions, state],
+    (command: AddExerciseCommand) =>
+      runActiveWorkoutOperation({
+        operation: {
+          type: "addExercise",
+          exerciseId: command.exercise.id,
+        },
+        invalidStateMessage:
+          "An exercise cannot be added without an active workout",
+        failureMessage: "Failed to add the exercise",
+        run: (workout) => actions.addExercise(workout, command),
+      }),
+    [actions, runActiveWorkoutOperation],
   );
 
   const removeExercise = useCallback(
-    async (
-      command: RemoveExerciseCommand,
-    ): Promise<WorkoutSessionResult<WorkoutAggregate>> => {
-      if (state.status !== "active") {
-        return failure(
-          new WorkoutSessionError({
-            code: "invalidSessionState",
-            message: "An exercise cannot be removed without an active workout",
-          }),
-        );
-      }
-
-      if (isActiveOperationRunningRef.current) {
-        return failure(
-          new WorkoutSessionError({
-            code: "operationAlreadyRunning",
-            message: "Another workout operation is already running",
-          }),
-        );
-      }
-
-      isActiveOperationRunningRef.current = true;
-      const activeOperation: ActiveWorkoutOperation = {
-        type: "removeExercise",
-        workoutExerciseId: command.workoutExerciseId,
-      };
-
-      dispatch({
-        type: "activeOperationStarted",
-        operation: activeOperation,
-      });
-
-      try {
-        const workout = await actions.removeExercise(state.workout, command);
-
-        dispatch({
-          type: "workoutCommitted",
-          workout,
-        });
-
-        return success(workout);
-      } catch (error) {
-        const sessionError = new WorkoutSessionError({
-          code: "operationFailed",
-          message: "Failed to remove the exercise",
-          cause: toError(error),
-        });
-
-        dispatch({
-          type: "activeOperationFailed",
-          operation: activeOperation,
-          error: sessionError,
-        });
-
-        return failure(sessionError);
-      } finally {
-        isActiveOperationRunningRef.current = false;
-      }
-    },
-    [actions, state],
+    (command: RemoveExerciseCommand) =>
+      runActiveWorkoutOperation({
+        operation: {
+          type: "removeExercise",
+          workoutExerciseId: command.workoutExerciseId,
+        },
+        invalidStateMessage:
+          "An exercise cannot be removed without an active workout",
+        failureMessage: "Failed to remove the exercise",
+        run: (workout) => actions.removeExercise(workout, command),
+      }),
+    [actions, runActiveWorkoutOperation],
   );
 
   const addSet = useCallback(
-    async (
-      command: AddSetCommand,
-    ): Promise<WorkoutSessionResult<WorkoutAggregate>> => {
-      if (state.status !== "active") {
-        return failure(
-          new WorkoutSessionError({
-            code: "invalidSessionState",
-            message: "A set cannot be added without an active workout",
-          }),
-        );
-      }
+    (command: AddSetCommand) =>
+      runActiveWorkoutOperation({
+        operation: {
+          type: "addSet",
+          workoutExerciseId: command.workoutExerciseId,
+        },
+        invalidStateMessage: "A set cannot be added without an active workout",
+        failureMessage: "Failed to add the set",
+        run: (workout) => actions.addSet(workout, command),
+      }),
+    [actions, runActiveWorkoutOperation],
+  );
 
-      if (isActiveOperationRunningRef.current) {
-        return failure(
-          new WorkoutSessionError({
-            code: "operationAlreadyRunning",
-            message: "Another workout operation is already running",
-          }),
-        );
-      }
+  const updateSet = useCallback(
+    (command: UpdateSetCommand) =>
+      runActiveWorkoutOperation({
+        operation: {
+          type: "updateSet",
+          workoutSetId: command.workoutSetId,
+        },
+        invalidStateMessage:
+          "A set cannot be updated without an active workout",
+        failureMessage: "Failed to update the set",
+        run: (workout) => actions.updateSet(workout, command),
+      }),
+    [actions, runActiveWorkoutOperation],
+  );
 
-      isActiveOperationRunningRef.current = true;
-      const activeOperation: ActiveWorkoutOperation = {
-        type: "addSet",
-        workoutExerciseId: command.workoutExerciseId,
-      };
+  const selectSet = useCallback(
+    (command: SelectSetCommand) =>
+      runActiveWorkoutOperation({
+        operation: {
+          type: "selectSet",
+          workoutSetId: command.workoutSetId,
+        },
+        invalidStateMessage:
+          "A set cannot be selected without an active workout",
+        failureMessage: "Failed to select the set",
+        run: (workout) => actions.selectSet(workout, command),
+      }),
+    [actions, runActiveWorkoutOperation],
+  );
 
-      dispatch({
-        type: "activeOperationStarted",
-        operation: activeOperation,
-      });
-
-      try {
-        const workout = await actions.addSet(state.workout, command);
-
-        dispatch({
-          type: "workoutCommitted",
-          workout,
-        });
-
-        return success(workout);
-      } catch (error) {
-        const sessionError = new WorkoutSessionError({
-          code: "operationFailed",
-          message: "Failed to add the set",
-          cause: toError(error),
-        });
-
-        dispatch({
-          type: "activeOperationFailed",
-          operation: activeOperation,
-          error: sessionError,
-        });
-
-        return failure(sessionError);
-      } finally {
-        isActiveOperationRunningRef.current = false;
-      }
-    },
-    [actions, state],
+  const completeSet = useCallback(
+    (command: CompleteSetCommand) =>
+      runActiveWorkoutOperation({
+        operation: {
+          type: "completeSet",
+          workoutSetId: command.workoutSetId,
+        },
+        invalidStateMessage:
+          "A set cannot be completed without an active workout",
+        failureMessage: "Failed to complete the set",
+        run: (workout) => actions.completeSet(workout, command),
+      }),
+    [actions, runActiveWorkoutOperation],
   );
 
   return {
@@ -342,6 +330,9 @@ export function useWorkoutSessionController(
     addExercise,
     removeExercise,
     addSet,
+    updateSet,
+    selectSet,
+    completeSet,
     dismissOperationError,
   };
 }

@@ -22,6 +22,7 @@ import type {
   ActiveWorkoutOverlay,
   DangerConfirmationModal,
 } from "./ActiveWorkoutScreenView";
+import type { ActiveSetEditorPanel } from "./components/ActiveSetEditor/activeSetEditor.types";
 
 export function getDangerConfirmationContent(
   workout: WorkoutAggregate,
@@ -125,5 +126,19 @@ export function formatSetType(
 
     case "backoff":
       return "Backoff";
+  }
+}
+
+export function getPanelLabel(panel: ActiveSetEditorPanel): string {
+  switch (panel.type) {
+    case "weight":
+    case "weightKeypad":
+      return "Weight";
+
+    case "rpe":
+      return "RPE";
+
+    case "setType":
+      return "Set Type";
   }
 }

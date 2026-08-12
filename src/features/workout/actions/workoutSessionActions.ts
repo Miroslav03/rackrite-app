@@ -16,8 +16,11 @@ import { createId } from "@/shared/utils/id";
 
 import { addExercise, type AddExerciseCommand } from "./addExercise";
 import { addSet, type AddSetCommand } from "./addSet";
+import { completeSet, type CompleteSetCommand } from "./completeSet";
 import { removeExercise, type RemoveExerciseCommand } from "./removeExercise";
+import { selectSet, type SelectSetCommand } from "./selectSet";
 import { startQuickWorkout } from "./startQuickWorkout";
+import { updateSet, type UpdateSetCommand } from "./updateSet";
 
 export type WorkoutSessionActions = {
   loadActiveWorkout: () => Promise<WorkoutAggregate | null>;
@@ -33,6 +36,18 @@ export type WorkoutSessionActions = {
   addSet: (
     workout: WorkoutAggregate,
     command: AddSetCommand,
+  ) => Promise<WorkoutAggregate>;
+  updateSet: (
+    workout: WorkoutAggregate,
+    command: UpdateSetCommand,
+  ) => Promise<WorkoutAggregate>;
+  selectSet: (
+    workout: WorkoutAggregate,
+    command: SelectSetCommand,
+  ) => Promise<WorkoutAggregate>;
+  completeSet: (
+    workout: WorkoutAggregate,
+    command: CompleteSetCommand,
   ) => Promise<WorkoutAggregate>;
 };
 
@@ -87,6 +102,36 @@ export function createWorkoutSessionActions(
           repository: dependencies.repository,
           now: dependencies.now,
           createWorkoutSetId: dependencies.createWorkoutSetId,
+        },
+        workout,
+        command,
+      ),
+
+    updateSet: (workout, command) =>
+      updateSet(
+        {
+          repository: dependencies.repository,
+          now: dependencies.now,
+        },
+        workout,
+        command,
+      ),
+
+    selectSet: (workout, command) =>
+      selectSet(
+        {
+          repository: dependencies.repository,
+          now: dependencies.now,
+        },
+        workout,
+        command,
+      ),
+
+    completeSet: (workout, command) =>
+      completeSet(
+        {
+          repository: dependencies.repository,
+          now: dependencies.now,
         },
         workout,
         command,

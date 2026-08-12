@@ -16,6 +16,7 @@ import type {
   ActiveWorkoutOperation,
   OperationState,
 } from "@/features/workout/session/workoutSession.types";
+import type { ActiveSetEditorPanelType } from "@/features/workout/view/components/ActiveSetEditor/activeSetEditor.types";
 
 import { ScreenSection } from "@/shared/components/layout/ScreenSection";
 import { AppText } from "@/shared/components/ui/AppText";
@@ -31,11 +32,16 @@ import { WorkoutSetCard } from "./WorkoutSetCard";
 export type WorkoutExerciseSectionActions = {
   openOptions: (workoutExerciseId: WorkoutExerciseId) => void;
   addSet: (workoutExerciseId: WorkoutExerciseId) => void;
+  openSetEditor: (
+    workoutSetId: WorkoutSetId,
+    panel: ActiveSetEditorPanelType,
+  ) => void;
 };
 
 type WorkoutExerciseSectionProps = {
   exerciseAggregate: WorkoutExerciseAggregate;
   activeSetId: WorkoutSetId | null;
+  weightDraft?: string;
   operation: OperationState<ActiveWorkoutOperation>;
   exerciseActions: WorkoutExerciseSectionActions;
   className?: string;
@@ -44,6 +50,7 @@ type WorkoutExerciseSectionProps = {
 export function WorkoutExerciseSection({
   exerciseAggregate,
   activeSetId,
+  weightDraft,
   operation,
   exerciseActions,
   className,
@@ -92,9 +99,15 @@ export function WorkoutExerciseSection({
             setIndex={set.setIndex + 1}
             setType={formatSetType(set.type)}
             weight={set.weight}
+            weightDraft={activeSetId === set.id ? weightDraft : undefined}
             reps={set.reps}
             rpe={set.rpe}
             status={status}
+            disabled={isOperationPending(operation) || status === "completed"}
+            onSelect={() => exerciseActions.openSetEditor(set.id, "weight")}
+            onEditField={(field) =>
+              exerciseActions.openSetEditor(set.id, field)
+            }
           />
         );
       })}
@@ -105,6 +118,7 @@ export function WorkoutExerciseSection({
         intent="neutral"
         size="md"
         disabled={addSetButtonDisabled}
+        dimWhenDisabled={addSetPending}
         accessibilityLabel={`Add set to ${exercise.name}`}
         accessibilityState={{
           disabled: addSetButtonDisabled,
