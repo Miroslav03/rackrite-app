@@ -1,6 +1,7 @@
 import { View } from "react-native";
 
-import { EditorOptionButton } from "./EditorOptionButton";
+import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
+
 import {
   RPE_PICKER_VALUES,
   type RpePickerValue,

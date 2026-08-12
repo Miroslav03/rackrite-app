@@ -265,6 +265,7 @@ export function ActiveWorkoutScreenView({
                     activeSetEditor.activeSet?.id ?? workout.workout.activeSetId
                   }
                   weightDraft={activeSetEditor.weightDraft}
+                  repsDraft={activeSetEditor.repsDraft}
                   operation={operation}
                   exerciseActions={{
                     openOptions: openExerciseOptions,
@@ -304,8 +305,9 @@ export function ActiveWorkoutScreenView({
           panel={activeSetEditor.panel}
           operation={operation}
           onAdjustWeight={activeSetEditor.adjustWeight}
-          onToggleWeightKeypad={activeSetEditor.toggleWeightKeypad}
+          onToggleKeypad={activeSetEditor.toggleKeypad}
           onPressWeightKey={activeSetEditor.pressWeightKey}
+          onPressRepsKey={activeSetEditor.pressRepsKey}
           onSelectRpe={activeSetEditor.selectRpe}
           onSelectSetType={activeSetEditor.selectSetType}
           onComplete={activeSetEditor.completeSet}

@@ -3,8 +3,8 @@ import { useCallback, useState } from "react";
 import type { WorkoutSetId } from "@/domain/workout/workout.types";
 
 import type {
+  ActiveSetEditorBasePanelType,
   ActiveSetEditorPanel,
-  ActiveSetEditorPanelType
 } from "./activeSetEditor.types";
 
 type RequestedPanel = {
@@ -27,10 +27,7 @@ export function useActiveSetEditorController(
       : DEFAULT_PANEL;
 
   const openPanel = useCallback(
-    (
-      workoutSetId: WorkoutSetId,
-      panelType: Exclude<ActiveSetEditorPanelType, "weightKeypad">,
-    ) => {
+    (workoutSetId: WorkoutSetId, panelType: ActiveSetEditorBasePanelType) => {
       setRequestedPanel({ workoutSetId, panel: { type: panelType } });
     },
     [],
@@ -56,5 +53,32 @@ export function useActiveSetEditorController(
     [],
   );
 
-  return { panel, openPanel, openWeightKeypad, setWeightDraft };
+  const openRepsKeypad = useCallback(
+    (workoutSetId: WorkoutSetId, draft: string) => {
+      setRequestedPanel({
+        workoutSetId,
+        panel: { type: "repsKeypad", draft },
+      });
+    },
+    [],
+  );
+
+  const setRepsDraft = useCallback(
+    (workoutSetId: WorkoutSetId, draft: string) => {
+      setRequestedPanel({
+        workoutSetId,
+        panel: { type: "repsKeypad", draft },
+      });
+    },
+    [],
+  );
+
+  return {
+    panel,
+    openPanel,
+    openWeightKeypad,
+    setWeightDraft,
+    openRepsKeypad,
+    setRepsDraft,
+  };
 }

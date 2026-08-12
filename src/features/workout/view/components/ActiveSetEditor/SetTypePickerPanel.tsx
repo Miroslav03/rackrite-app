@@ -2,7 +2,7 @@ import { View } from "react-native";
 
 import type { SetType } from "@/domain/domain.types";
 
-import { EditorOptionButton } from "./EditorOptionButton";
+import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
 
 const SET_TYPE_OPTIONS: ReadonlyArray<{ label: string; value: SetType }> = [
   { label: "Warm-up", value: "warmup" },

@@ -135,6 +135,9 @@ export function getPanelLabel(panel: ActiveSetEditorPanel): string {
     case "weightKeypad":
       return "Weight";
 
+    case "repsKeypad":
+      return "Reps";
+
     case "rpe":
       return "RPE";
 

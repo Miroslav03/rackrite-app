@@ -14,6 +14,10 @@ import type {
 
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
+import {
+  InteractiveKeypad,
+  type InteractiveKeypadKey,
+} from "@/shared/components/ui/InteractiveKeypad";
 import { colors, spacing } from "@/shared/theme/tokens";
 
 import { getPanelLabel } from "../../activeWorkout.viewState.utils";
@@ -21,12 +25,14 @@ import { getPanelLabel } from "../../activeWorkout.viewState.utils";
 import type {
   ActiveSetEditorPanel,
   RpePickerValue,
-  WeightKeypadKey,
 } from "./activeSetEditor.types";
-import { isWeightKeypadPanel } from "./activeSetEditor.utils";
+import {
+  isActiveSetEditorKeypadPanel,
+  isRepsKeypadPanel,
+  isWeightKeypadPanel,
+} from "./activeSetEditor.utils";
 import { RpePickerPanel } from "./RpePickerPanel";
 import { SetTypePickerPanel } from "./SetTypePickerPanel";
-import { WeightNumericKeypad } from "./WeightNumericKeypad";
 import { WeightQuickAdjustPanel } from "./WeightQuickAdjustPanel";
 
 type ActiveSetEditorDockProps = {
@@ -36,8 +42,9 @@ type ActiveSetEditorDockProps = {
   panel: ActiveSetEditorPanel;
   operation: OperationState<ActiveWorkoutOperation>;
   onAdjustWeight: (increment: number) => void;
-  onToggleWeightKeypad: () => void;
-  onPressWeightKey: (key: WeightKeypadKey) => void;
+  onToggleKeypad: () => void;
+  onPressWeightKey: (key: InteractiveKeypadKey) => void;
+  onPressRepsKey: (key: InteractiveKeypadKey) => void;
   onSelectRpe: (rpe: RpePickerValue | null) => void;
   onSelectSetType: (setType: SetType) => void;
   onComplete: () => void;
@@ -51,8 +58,9 @@ export function ActiveSetEditorDock({
   panel,
   operation,
   onAdjustWeight,
-  onToggleWeightKeypad,
+  onToggleKeypad,
   onPressWeightKey,
+  onPressRepsKey,
   onSelectRpe,
   onSelectSetType,
   onComplete,
@@ -62,11 +70,14 @@ export function ActiveSetEditorDock({
 
   const operationPending = isOperationPending(operation);
   const weightKeypadOpen = isWeightKeypadPanel(panel);
+  const repsKeypadOpen = isRepsKeypadPanel(panel);
+  const keypadOpen = isActiveSetEditorKeypadPanel(panel);
 
+  const keypadInputLabel = repsKeypadOpen ? "reps" : "weight";
   const canComplete = activeSet.weight !== null && activeSet.reps !== null;
   const completePending =
     operationPending && operation.operation.type === "completeSet";
-  const weightPanelActive = panel.type === "weight" || weightKeypadOpen;
+  const showKeypadControl = panel.type === "weight" || keypadOpen;
 
   function handleLayout(event: LayoutChangeEvent) {
     onHeightChange(event.nativeEvent.layout.height);
@@ -100,30 +111,30 @@ export function ActiveSetEditorDock({
             </AppText>
           </View>
 
-          {weightPanelActive ? (
+          {showKeypadControl ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={
-                weightKeypadOpen
-                  ? "Save weight and close numeric keypad"
+                keypadOpen
+                  ? `Save ${keypadInputLabel} and close numeric keypad`
                   : "Open numeric weight keypad"
               }
               accessibilityHint={
-                weightKeypadOpen
-                  ? "Saves the entered weight"
+                keypadOpen
+                  ? `Saves the entered ${keypadInputLabel}`
                   : "Allows direct weight entry without the device keyboard"
               }
               accessibilityState={{
                 disabled: operationPending,
-                expanded: weightKeypadOpen,
+                expanded: keypadOpen,
               }}
               disabled={operationPending}
               hitSlop={4}
               className="h-11 w-11 items-center justify-center rounded-full bg-surfaceHigh"
-              onPress={onToggleWeightKeypad}
+              onPress={onToggleKeypad}
             >
               <Ionicons
-                name={weightKeypadOpen ? "chevron-down" : "keypad-outline"}
+                name={keypadOpen ? "chevron-down" : "keypad-outline"}
                 size={20}
                 color={colors.primarySoft}
               />
@@ -139,9 +150,18 @@ export function ActiveSetEditorDock({
             onAdjust={onAdjustWeight}
           />
         ) : weightKeypadOpen ? (
-          <WeightNumericKeypad
+          <InteractiveKeypad
             disabled={operationPending}
+            allowDecimal
+            inputLabel="weight"
             onPress={onPressWeightKey}
+          />
+        ) : repsKeypadOpen ? (
+          <InteractiveKeypad
+            disabled={operationPending}
+            allowDecimal={false}
+            inputLabel="reps"
+            onPress={onPressRepsKey}
           />
         ) : panel.type === "rpe" ? (
           <RpePickerPanel
@@ -161,19 +181,19 @@ export function ActiveSetEditorDock({
       <Button
         title={completePending ? "Completing..." : "Done"}
         size="md"
-        disabled={!canComplete || operationPending || weightKeypadOpen}
-        dimWhenDisabled={!canComplete || completePending || weightKeypadOpen}
+        disabled={!canComplete || operationPending || keypadOpen}
+        dimWhenDisabled={!canComplete || completePending || keypadOpen}
         accessibilityRole="button"
         accessibilityLabel={`Complete set ${activeSet.setIndex + 1}`}
         accessibilityHint={
           canComplete
-            ? weightKeypadOpen
-              ? "Save the entered weight before completing this set"
+            ? keypadOpen
+              ? `Save the entered ${keypadInputLabel} before completing this set`
               : "Marks this set as complete"
             : "Weight and reps are required before completing this set"
         }
         accessibilityState={{
-          disabled: !canComplete || operationPending || weightKeypadOpen,
+          disabled: !canComplete || operationPending || keypadOpen,
           busy: completePending,
         }}
         leftIcon={

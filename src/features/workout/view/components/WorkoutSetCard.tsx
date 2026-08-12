@@ -17,6 +17,7 @@ type WorkoutSetCardProps = {
   weight: number | null;
   weightDraft?: string;
   reps: number | null;
+  repsDraft?: string;
   rpe: number | null;
   status?: WorkoutSetStatus;
   disabled?: boolean;
@@ -31,6 +32,7 @@ export function WorkoutSetCard({
   weight,
   weightDraft,
   reps,
+  repsDraft,
   rpe,
   status = "pending",
   className,
@@ -93,25 +95,17 @@ export function WorkoutSetCard({
 
         <SetFieldButton
           label="Weight (KG)"
-          value={
-            weightDraft !== undefined
-              ? weightDraft === ""
-                ? "—"
-                : `${weightDraft}`
-              : weight !== null
-                ? `${weight}`
-                : "—"
-          }
+          value={formatNumericSetValue(weight, weightDraft)}
           disabled={disabled}
           onPress={() => onEditField("weightKeypad")}
         />
 
-        <View className="min-h-11 flex-1 items-center justify-center px-xs">
-          <AppText variant="sectionLabel">Reps</AppText>
-          <AppText className="text-sm font-black text-foreground">
-            {reps ?? "—"}
-          </AppText>
-        </View>
+        <SetFieldButton
+          label="Reps"
+          value={formatNumericSetValue(reps, repsDraft)}
+          disabled={disabled}
+          onPress={() => onEditField("repsKeypad")}
+        />
 
         <SetFieldButton
           label="RPE"
@@ -122,6 +116,17 @@ export function WorkoutSetCard({
       </SurfaceCard>
     </Pressable>
   );
+}
+
+function formatNumericSetValue(
+  value: number | null,
+  draft: string | undefined,
+): string {
+  if (draft !== undefined) {
+    return draft === "" ? "—" : draft;
+  }
+
+  return value === null ? "—" : String(value);
 }
 
 type SetFieldButtonProps = {

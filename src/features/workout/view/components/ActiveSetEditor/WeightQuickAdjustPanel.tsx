@@ -1,6 +1,6 @@
 import { View } from "react-native";
 
-import { EditorOptionButton } from "./EditorOptionButton";
+import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
 
 const WEIGHT_INCREMENTS = [2.5, 5, 10] as const;
 

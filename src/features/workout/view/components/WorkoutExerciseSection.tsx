@@ -42,6 +42,7 @@ type WorkoutExerciseSectionProps = {
   exerciseAggregate: WorkoutExerciseAggregate;
   activeSetId: WorkoutSetId | null;
   weightDraft?: string;
+  repsDraft?: string;
   operation: OperationState<ActiveWorkoutOperation>;
   exerciseActions: WorkoutExerciseSectionActions;
   className?: string;
@@ -51,6 +52,7 @@ export function WorkoutExerciseSection({
   exerciseAggregate,
   activeSetId,
   weightDraft,
+  repsDraft,
   operation,
   exerciseActions,
   className,
@@ -101,6 +103,7 @@ export function WorkoutExerciseSection({
             weight={set.weight}
             weightDraft={activeSetId === set.id ? weightDraft : undefined}
             reps={set.reps}
+            repsDraft={activeSetId === set.id ? repsDraft : undefined}
             rpe={set.rpe}
             status={status}
             disabled={isOperationPending(operation) || status === "completed"}

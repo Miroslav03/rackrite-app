@@ -8,8 +8,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { AppText } from "@/shared/components/ui/AppText";
 import { cn } from "@/shared/utils/cn";
+
+import { AppText } from "./AppText";
 
 type EditorOptionButtonProps = {
   label: string;

@@ -11,27 +11,36 @@ import type {
 
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
 
+import type { InteractiveKeypadKey } from "@/shared/components/ui/InteractiveKeypad";
 import { useDebouncedCallback } from "@/shared/hooks/useDebouncedCallback";
 
 import type {
   ActiveSetEditorPanelType,
   RpePickerValue,
-  WeightKeypadKey,
 } from "./activeSetEditor.types";
-import { isWeightKeypadPanel } from "./activeSetEditor.utils";
-import { useActiveSetEditorController } from "./useActiveSetEditorController";
 import {
-  formatWeightDraft,
-  parseWeightDraft,
-  updateWeightDraft,
-} from "./weightKeypad.utils";
+  isActiveSetEditorKeypadPanel,
+  isRepsKeypadPanel,
+  isWeightKeypadPanel,
+} from "./activeSetEditor.utils";
+import {
+  formatKeypadDraft,
+  parseKeypadDraft,
+  updateKeypadDraft,
+} from "./activeSetEditorKeypad.utils";
+import { useActiveSetEditorController } from "./useActiveSetEditorController";
 
 type ActiveSetActions = Pick<
   WorkoutSessionController,
   "updateSet" | "selectSet" | "completeSet"
 >;
 
-const WEIGHT_UPDATE_DEBOUNCE_MS = 1000;
+type SetValueDraftUpdate = {
+  workoutSetId: WorkoutSetId;
+  draft: string;
+};
+
+const SET_VALUE_UPDATE_DEBOUNCE_MS = 1000;
 
 export function useActiveSetEditor(
   workout: WorkoutAggregate,
@@ -41,24 +50,37 @@ export function useActiveSetEditor(
   const activeSet = getActiveUnfinishedWorkoutSet(workout);
 
   const panelController = useActiveSetEditorController(activeSet?.id);
+
   const { schedule: scheduleWeightUpdate, flush: flushWeightUpdate } =
     useDebouncedCallback(
-      ({
-        workoutSetId,
-        draft,
-      }: {
-        workoutSetId: WorkoutSetId;
-        draft: string;
-      }) =>
+      ({ workoutSetId, draft }: SetValueDraftUpdate) =>
         actions.updateSet({
           workoutSetId,
-          values: { weight: parseWeightDraft(draft) },
+          values: { weight: parseKeypadDraft(draft, "weight") },
         }),
-      WEIGHT_UPDATE_DEBOUNCE_MS,
+      SET_VALUE_UPDATE_DEBOUNCE_MS,
     );
 
-  async function savePendingWeightUpdate() {
-    return (await flushWeightUpdate())?.success ?? true;
+  const { schedule: scheduleRepsUpdate, flush: flushRepsUpdate } =
+    useDebouncedCallback(
+      ({ workoutSetId, draft }: SetValueDraftUpdate) =>
+        actions.updateSet({
+          workoutSetId,
+          values: { reps: parseKeypadDraft(draft, "reps") },
+        }),
+      SET_VALUE_UPDATE_DEBOUNCE_MS,
+    );
+
+  async function savePendingKeypadUpdate() {
+    if (isWeightKeypadPanel(panelController.panel)) {
+      return (await flushWeightUpdate())?.success ?? true;
+    }
+
+    if (isRepsKeypadPanel(panelController.panel)) {
+      return (await flushRepsUpdate())?.success ?? true;
+    }
+
+    return true;
   }
 
   async function openSetEditor(
@@ -68,11 +90,13 @@ export function useActiveSetEditor(
     const isChangingSet = workout.workout.activeSetId !== nextWorkoutSetId;
     const isChangingPanel = panelController.panel.type !== nextPanelType;
 
-    const shouldFlushWeightUpdate =
-      isWeightKeypadPanel(panelController.panel) &&
-      (isChangingSet || isChangingPanel);
+    if (!isChangingSet && !isChangingPanel) {
+      return;
+    }
 
-    if (shouldFlushWeightUpdate && !(await savePendingWeightUpdate())) {
+    const isLeavingKeypad = isActiveSetEditorKeypadPanel(panelController.panel);
+
+    if (isLeavingKeypad && !(await savePendingKeypadUpdate())) {
       return;
     }
 
@@ -95,7 +119,22 @@ export function useActiveSetEditor(
 
       panelController.openWeightKeypad(
         nextWorkoutSetId,
-        formatWeightDraft(workoutSet.weight),
+        formatKeypadDraft(workoutSet.weight),
+      );
+
+      return;
+    }
+
+    if (nextPanelType === "repsKeypad") {
+      const workoutSet = getWorkoutSetById(workout, nextWorkoutSetId);
+
+      if (!workoutSet) {
+        return;
+      }
+
+      panelController.openRepsKeypad(
+        nextWorkoutSetId,
+        formatKeypadDraft(workoutSet.reps),
       );
 
       return;
@@ -115,11 +154,11 @@ export function useActiveSetEditor(
     });
   }
 
-  async function toggleWeightKeypad() {
+  async function toggleKeypad() {
     if (!activeSet) return;
 
-    if (isWeightKeypadPanel(panelController.panel)) {
-      if (!(await savePendingWeightUpdate())) {
+    if (isActiveSetEditorKeypadPanel(panelController.panel)) {
+      if (!(await savePendingKeypadUpdate())) {
         return;
       }
 
@@ -130,16 +169,16 @@ export function useActiveSetEditor(
 
     panelController.openWeightKeypad(
       activeSet.id,
-      formatWeightDraft(activeSet.weight),
+      formatKeypadDraft(activeSet.weight),
     );
   }
 
-  function pressWeightKey(key: WeightKeypadKey) {
+  function pressWeightKey(key: InteractiveKeypadKey) {
     if (!activeSet || !isWeightKeypadPanel(panelController.panel)) {
       return;
     }
 
-    const draft = updateWeightDraft(panelController.panel.draft, key);
+    const draft = updateKeypadDraft(panelController.panel.draft, key, "weight");
 
     if (draft === panelController.panel.draft) {
       return;
@@ -147,6 +186,21 @@ export function useActiveSetEditor(
 
     panelController.setWeightDraft(activeSet.id, draft);
     scheduleWeightUpdate({ workoutSetId: activeSet.id, draft });
+  }
+
+  function pressRepsKey(key: InteractiveKeypadKey) {
+    if (!activeSet || !isRepsKeypadPanel(panelController.panel)) {
+      return;
+    }
+
+    const draft = updateKeypadDraft(panelController.panel.draft, key, "reps");
+
+    if (draft === panelController.panel.draft) {
+      return;
+    }
+
+    panelController.setRepsDraft(activeSet.id, draft);
+    scheduleRepsUpdate({ workoutSetId: activeSet.id, draft });
   }
 
   function selectRpe(rpe: RpePickerValue | null) {
@@ -180,10 +234,14 @@ export function useActiveSetEditor(
     weightDraft: isWeightKeypadPanel(panelController.panel)
       ? panelController.panel.draft
       : undefined,
+    repsDraft: isRepsKeypadPanel(panelController.panel)
+      ? panelController.panel.draft
+      : undefined,
     openSetEditor,
     adjustWeight,
-    toggleWeightKeypad,
+    toggleKeypad,
     pressWeightKey,
+    pressRepsKey,
     selectRpe,
     selectSetType,
     completeSet,
