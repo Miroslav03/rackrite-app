@@ -264,6 +264,7 @@ export function ActiveWorkoutScreenView({
                   activeSetId={
                     activeSetEditor.activeSet?.id ?? workout.workout.activeSetId
                   }
+                  activeSetField={activeSetEditor.panel.type}
                   weightDraft={activeSetEditor.weightDraft}
                   repsDraft={activeSetEditor.repsDraft}
                   operation={operation}

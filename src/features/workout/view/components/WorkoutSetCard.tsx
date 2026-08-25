@@ -20,6 +20,7 @@ type WorkoutSetCardProps = {
   repsDraft?: string;
   rpe: number | null;
   status?: WorkoutSetStatus;
+  activeField?: ActiveSetEditorPanelType;
   disabled?: boolean;
   className?: string;
   onSelect: () => void;
@@ -35,6 +36,7 @@ export function WorkoutSetCard({
   repsDraft,
   rpe,
   status = "pending",
+  activeField,
   className,
   disabled,
   onSelect,
@@ -96,6 +98,10 @@ export function WorkoutSetCard({
         <SetFieldButton
           label="Weight (KG)"
           value={formatNumericSetValue(weight, weightDraft)}
+          highlighted={
+            isActive &&
+            (activeField === "weight" || activeField === "weightKeypad")
+          }
           disabled={disabled}
           onPress={() => onEditField("weightKeypad")}
         />
@@ -103,6 +109,7 @@ export function WorkoutSetCard({
         <SetFieldButton
           label="Reps"
           value={formatNumericSetValue(reps, repsDraft)}
+          highlighted={isActive && activeField === "repsKeypad"}
           disabled={disabled}
           onPress={() => onEditField("repsKeypad")}
         />
@@ -110,6 +117,7 @@ export function WorkoutSetCard({
         <SetFieldButton
           label="RPE"
           value={rpe !== null ? String(rpe) : "—"}
+          highlighted={isActive && activeField === "rpe"}
           disabled={disabled}
           onPress={() => onEditField("rpe")}
         />
@@ -132,6 +140,7 @@ function formatNumericSetValue(
 type SetFieldButtonProps = {
   label: string;
   value: string;
+  highlighted?: boolean;
   disabled?: boolean;
   className?: string;
   onPress: () => void;
@@ -140,6 +149,7 @@ type SetFieldButtonProps = {
 function SetFieldButton({
   label,
   value,
+  highlighted = false,
   disabled,
   className,
   onPress,
@@ -149,7 +159,7 @@ function SetFieldButton({
       accessibilityRole="button"
       accessibilityLabel={`Edit ${label.toLowerCase()}`}
       accessibilityValue={{ text: value }}
-      accessibilityState={{ disabled }}
+      accessibilityState={{ disabled, selected: highlighted }}
       disabled={disabled}
       className={cn("min-h-11 flex-1 items-center justify-center", className)}
       onPress={(event) => {
@@ -157,8 +167,20 @@ function SetFieldButton({
         onPress();
       }}
     >
-      <AppText variant="sectionLabel">{label}</AppText>
-      <AppText className="text-sm font-black text-foreground">{value}</AppText>
+      <AppText
+        variant="sectionLabel"
+        className={cn(highlighted && "text-primarySoft")}
+      >
+        {label}
+      </AppText>
+      <AppText
+        className={cn(
+          "text-sm font-black text-foreground",
+          highlighted && "text-primarySoft",
+        )}
+      >
+        {value}
+      </AppText>
     </Pressable>
   );
 }

@@ -41,6 +41,7 @@ export type WorkoutExerciseSectionActions = {
 type WorkoutExerciseSectionProps = {
   exerciseAggregate: WorkoutExerciseAggregate;
   activeSetId: WorkoutSetId | null;
+  activeSetField: ActiveSetEditorPanelType;
   weightDraft?: string;
   repsDraft?: string;
   operation: OperationState<ActiveWorkoutOperation>;
@@ -51,6 +52,7 @@ type WorkoutExerciseSectionProps = {
 export function WorkoutExerciseSection({
   exerciseAggregate,
   activeSetId,
+  activeSetField,
   weightDraft,
   repsDraft,
   operation,
@@ -106,6 +108,7 @@ export function WorkoutExerciseSection({
             repsDraft={activeSetId === set.id ? repsDraft : undefined}
             rpe={set.rpe}
             status={status}
+            activeField={activeSetField}
             disabled={isOperationPending(operation) || status === "completed"}
             onSelect={() => exerciseActions.openSetEditor(set.id, "weight")}
             onEditField={(field) =>

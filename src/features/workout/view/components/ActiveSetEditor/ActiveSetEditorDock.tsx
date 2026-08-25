@@ -1,6 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 
-import { Pressable, View, type LayoutChangeEvent } from "react-native";
+import { useEffect } from "react";
+import {
+  BackHandler,
+  Platform,
+  Pressable,
+  View,
+  type LayoutChangeEvent,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { SetType } from "@/domain/domain.types";
@@ -82,6 +89,22 @@ export function ActiveSetEditorDock({
   function handleLayout(event: LayoutChangeEvent) {
     onHeightChange(event.nativeEvent.layout.height);
   }
+
+  useEffect(() => {
+    if (!keypadOpen || Platform.OS !== "android") {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        void onToggleKeypad();
+        return true;
+      },
+    );
+
+    return () => subscription.remove();
+  }, [keypadOpen, onToggleKeypad]);
 
   return (
     <View
@@ -178,33 +201,33 @@ export function ActiveSetEditorDock({
         )}
       </View>
 
-      <Button
-        title={completePending ? "Completing..." : "Done"}
-        size="md"
-        disabled={!canComplete || operationPending || keypadOpen}
-        dimWhenDisabled={!canComplete || completePending || keypadOpen}
-        accessibilityRole="button"
-        accessibilityLabel={`Complete set ${activeSet.setIndex + 1}`}
-        accessibilityHint={
-          canComplete
-            ? keypadOpen
-              ? `Save the entered ${keypadInputLabel} before completing this set`
-              : "Marks this set as complete"
-            : "Weight and reps are required before completing this set"
-        }
-        accessibilityState={{
-          disabled: !canComplete || operationPending || keypadOpen,
-          busy: completePending,
-        }}
-        leftIcon={
-          <Ionicons
-            name="checkmark-circle"
-            size={16}
-            color={colors.foreground}
-          />
-        }
-        onPress={onComplete}
-      />
+      {!keypadOpen ? (
+        <Button
+          title={completePending ? "Completing..." : "Done"}
+          size="md"
+          disabled={!canComplete || operationPending}
+          dimWhenDisabled={!canComplete || completePending}
+          accessibilityRole="button"
+          accessibilityLabel={`Complete set ${activeSet.setIndex + 1}`}
+          accessibilityHint={
+            canComplete
+              ? "Marks this set as complete"
+              : "Weight and reps are required before completing this set"
+          }
+          accessibilityState={{
+            disabled: !canComplete || operationPending,
+            busy: completePending,
+          }}
+          leftIcon={
+            <Ionicons
+              name="checkmark-circle"
+              size={16}
+              color={colors.foreground}
+            />
+          }
+          onPress={onComplete}
+        />
+      ) : null}
     </View>
   );
 }
