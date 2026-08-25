@@ -24,6 +24,7 @@ import {
   isWeightKeypadPanel,
 } from "./activeSetEditor.utils";
 import {
+  addWeightIncrement,
   formatKeypadDraft,
   parseKeypadDraft,
   updateKeypadDraft,
@@ -149,7 +150,7 @@ export function useActiveSetEditor(
     void actions.updateSet({
       workoutSetId: activeSet.id,
       values: {
-        weight: (activeSet.weight ?? 0) + increment,
+        weight: addWeightIncrement(activeSet.weight, increment),
       },
     });
   }

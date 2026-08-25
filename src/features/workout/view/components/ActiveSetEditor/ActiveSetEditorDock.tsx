@@ -18,6 +18,7 @@ import type {
   ActiveWorkoutOperation,
   OperationState,
 } from "@/features/workout/session/workoutSession.types";
+import { SET_TYPE_LABEL_COLORS } from "@/features/workout/view/workoutSetType.config";
 
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
@@ -129,7 +130,10 @@ export function ActiveSetEditorDock({
         <View className="flex-row items-center gap-md">
           <View className="items-end">
             <AppText variant="sectionLabel">Editing</AppText>
-            <AppText className="text-sm font-black text-primarySoft">
+            <AppText
+              className="text-sm font-black"
+              style={{ color: SET_TYPE_LABEL_COLORS[activeSet.type] }}
+            >
               {getPanelLabel(panel)}
             </AppText>
           </View>

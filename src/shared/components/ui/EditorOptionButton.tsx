@@ -17,6 +17,9 @@ type EditorOptionButtonProps = {
   accessibilityLabel: string;
   icon?: ReactNode;
   selected?: boolean;
+  selectedBackgroundColor?: string;
+  selectedForegroundColor?: string;
+  hoverBackgroundColor?: string;
   disabled?: boolean;
   className?: string;
   onPress: () => void;
@@ -27,11 +30,15 @@ export function EditorOptionButton({
   accessibilityLabel,
   icon,
   selected = false,
+  selectedBackgroundColor,
+  selectedForegroundColor,
+  hoverBackgroundColor,
   disabled = false,
   className,
   onPress,
 }: EditorOptionButtonProps) {
   const pressProgress = useSharedValue(0);
+  const hoverProgress = useSharedValue(0);
   const buttonStyle = useAnimatedStyle(() => ({
     transform: [
       {
@@ -39,8 +46,8 @@ export function EditorOptionButton({
       },
     ],
   }));
-  const primaryOverlayStyle = useAnimatedStyle(() => ({
-    opacity: pressProgress.value,
+  const interactionOverlayStyle = useAnimatedStyle(() => ({
+    opacity: Math.max(pressProgress.value, hoverProgress.value),
   }));
 
   function handlePressIn() {
@@ -49,6 +56,14 @@ export function EditorOptionButton({
 
   function handlePressOut() {
     pressProgress.value = withTiming(0, { duration: 100 });
+  }
+
+  function handleHoverIn() {
+    hoverProgress.value = withTiming(1, { duration: 120 });
+  }
+
+  function handleHoverOut() {
+    hoverProgress.value = withTiming(0, { duration: 100 });
   }
 
   return (
@@ -63,8 +78,15 @@ export function EditorOptionButton({
         disabled={disabled}
         className={cn(
           "min-h-12 items-center justify-center rounded-button border border-transparent bg-surfaceHigh px-sm",
-          selected && "bg-primary",
+          selected && !selectedBackgroundColor && "bg-primary",
         )}
+        style={
+          selected && selectedBackgroundColor
+            ? { backgroundColor: selectedBackgroundColor }
+            : undefined
+        }
+        onHoverIn={handleHoverIn}
+        onHoverOut={handleHoverOut}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={onPress}
@@ -72,15 +94,31 @@ export function EditorOptionButton({
         {!selected ? (
           <Animated.View
             pointerEvents="none"
-            className="absolute inset-0 rounded-button bg-primary"
-            style={primaryOverlayStyle}
+            className={cn(
+              "absolute inset-0 rounded-button",
+              !hoverBackgroundColor && "bg-primary",
+            )}
+            style={[
+              interactionOverlayStyle,
+              hoverBackgroundColor
+                ? { backgroundColor: hoverBackgroundColor }
+                : undefined,
+            ]}
           />
         ) : null}
 
         {icon ?? (
           <AppText
             variant="button"
-            className={cn("relative z-10 text-sm", selected && "text-white")}
+            className={cn(
+              "relative z-10 text-sm",
+              selected && !selectedForegroundColor && "text-white",
+            )}
+            style={
+              selected && selectedForegroundColor
+                ? { color: selectedForegroundColor }
+                : undefined
+            }
           >
             {label}
           </AppText>

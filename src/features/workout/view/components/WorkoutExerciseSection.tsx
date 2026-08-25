@@ -25,8 +25,6 @@ import { colors } from "@/shared/theme/tokens";
 
 import { formatExerciseKind } from "@/features/exercises/view/utils/formatExerciseKind";
 
-import { formatSetType } from "../activeWorkout.viewState.utils";
-
 import { WorkoutSetCard } from "./WorkoutSetCard";
 
 export type WorkoutExerciseSectionActions = {
@@ -101,7 +99,7 @@ export function WorkoutExerciseSection({
           <WorkoutSetCard
             key={set.id}
             setIndex={set.setIndex + 1}
-            setType={formatSetType(set.type)}
+            setType={set.type}
             weight={set.weight}
             weightDraft={activeSetId === set.id ? weightDraft : undefined}
             reps={set.reps}

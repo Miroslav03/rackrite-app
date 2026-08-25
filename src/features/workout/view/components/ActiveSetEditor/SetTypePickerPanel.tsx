@@ -2,7 +2,10 @@ import { View } from "react-native";
 
 import type { SetType } from "@/domain/domain.types";
 
+import { SET_TYPE_LABEL_COLORS } from "@/features/workout/view/workoutSetType.config";
+
 import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
+import { colors } from "@/shared/theme/tokens";
 
 const SET_TYPE_OPTIONS: ReadonlyArray<{ label: string; value: SetType }> = [
   { label: "Warm-up", value: "warmup" },
@@ -30,6 +33,9 @@ export function SetTypePickerPanel({
           label={option.label}
           accessibilityLabel={`Set type to ${option.label}`}
           selected={setType === option.value}
+          selectedBackgroundColor={SET_TYPE_LABEL_COLORS[option.value]}
+          hoverBackgroundColor={SET_TYPE_LABEL_COLORS[option.value]}
+          selectedForegroundColor={colors.background}
           disabled={disabled}
           className="w-[40%] flex-grow"
           onPress={() => onSelect(option.value)}

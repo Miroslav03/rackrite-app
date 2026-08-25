@@ -27,6 +27,15 @@ export function formatKeypadDraft(value: number | null): string {
   return value === null ? "" : String(value);
 }
 
+export function addWeightIncrement(
+  currentWeight: number | null,
+  increment: number,
+): number {
+  const nextWeight = (currentWeight ?? 0) + increment;
+
+  return Number(nextWeight.toFixed(KEYPAD_RULES.weight.maxDecimalPlaces));
+}
+
 export function updateKeypadDraft(
   currentDraft: string,
   key: InteractiveKeypadKey,

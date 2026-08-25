@@ -1,4 +1,5 @@
 import {
+  addWeightIncrement,
   formatKeypadDraft,
   parseKeypadDraft,
   updateKeypadDraft,
@@ -36,6 +37,11 @@ describe("active set editor keypad utilities", () => {
   });
 
   describe("weight behavior", () => {
+    it("keeps quick-adjusted weights at two-decimal precision", () => {
+      expect(addWeightIncrement(12.44, 5)).toBe(17.44);
+      expect(addWeightIncrement(null, 2.5)).toBe(2.5);
+    });
+
     it("builds a decimal draft", () => {
       let draft = "";
 
