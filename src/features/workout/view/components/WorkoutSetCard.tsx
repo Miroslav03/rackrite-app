@@ -57,8 +57,7 @@ export function WorkoutSetCard({
     >
       <SurfaceCard
         variant={isCompleted ? "success" : isActive ? "high" : "default"}
-        accent={isCompleted ? "success" : isActive ? "primary" : "none"}
-        selected={isActive}
+        accent={isCompleted ? "success" : "none"}
         contentClassName="min-h-[58px] flex-row items-center gap-md px-md py-sm"
         className={cn(isPending && "opacity-60")}
       >
@@ -122,6 +121,12 @@ export function WorkoutSetCard({
           onPress={() => onEditField("rpe")}
         />
       </SurfaceCard>
+      {isActive ? (
+        <View
+          pointerEvents="none"
+          className="absolute inset-0 rounded-card border border-primarySoft"
+        />
+      ) : null}
     </Pressable>
   );
 }

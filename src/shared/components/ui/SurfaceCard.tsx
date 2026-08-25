@@ -10,7 +10,6 @@ export type SurfaceCardProps = ViewProps & {
   children: ReactNode;
   variant?: SurfaceCardVariant;
   accent?: SurfaceCardAccent;
-  selected?: boolean;
   className?: string;
   contentClassName?: string;
 };
@@ -32,7 +31,6 @@ export function SurfaceCard({
   children,
   variant = "default",
   accent = "none",
-  selected = false,
   className,
   contentClassName,
   ...props
@@ -43,7 +41,6 @@ export function SurfaceCard({
         "rounded-card",
         variantClasses[variant],
         accentClasses[accent],
-        selected && "border border-primarySoft",
         className,
       )}
       {...props}
