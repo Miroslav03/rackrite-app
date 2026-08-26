@@ -1,8 +1,8 @@
 import { View } from "react-native";
 
-import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
+import { WEIGHT_INCREMENTS } from "@/features/workout/view/activeWorkout.config";
 
-const WEIGHT_INCREMENTS = [2.5, 5, 10] as const;
+import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
 
 type WeightQuickAdjustPanelProps = {
   disabled: boolean;

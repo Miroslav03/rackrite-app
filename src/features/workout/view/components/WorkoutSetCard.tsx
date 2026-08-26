@@ -4,18 +4,13 @@ import { Pressable, View } from "react-native";
 
 import type { SetType } from "@/domain/domain.types";
 
+import { SET_TYPE_CONFIG } from "@/features/workout/view/activeWorkout.config";
 import type { ActiveSetEditorPanelType } from "@/features/workout/view/components/ActiveSetEditor/activeSetEditor.types";
 
 import { AppText } from "@/shared/components/ui/AppText";
 import { SurfaceCard } from "@/shared/components/ui/SurfaceCard";
 import { colors } from "@/shared/theme/tokens";
 import { cn } from "@/shared/utils/cn";
-
-import { formatSetType } from "../activeWorkout.viewState.utils";
-import {
-  SET_TYPE_LABEL_COLORS,
-  SET_TYPE_TINT_COLORS,
-} from "../workoutSetType.config";
 
 type WorkoutSetStatus = "completed" | "active" | "pending";
 
@@ -53,6 +48,7 @@ export function WorkoutSetCard({
   const isCompleted = status === "completed";
   const isActive = status === "active";
   const isPending = status === "pending";
+  const setTypeConfig = SET_TYPE_CONFIG[setType];
 
   return (
     <Pressable
@@ -70,8 +66,8 @@ export function WorkoutSetCard({
         style={
           isCompleted
             ? {
-                backgroundColor: SET_TYPE_TINT_COLORS[setType],
-                borderLeftColor: SET_TYPE_LABEL_COLORS[setType],
+                backgroundColor: setTypeConfig.tintColor,
+                borderLeftColor: setTypeConfig.accentColor,
                 borderLeftWidth: 4,
               }
             : undefined
@@ -82,9 +78,7 @@ export function WorkoutSetCard({
             variant="sectionLabel"
             className="mb-xs text-center"
             style={
-              isCompleted
-                ? { color: SET_TYPE_LABEL_COLORS[setType] }
-                : undefined
+              isCompleted ? { color: setTypeConfig.accentColor } : undefined
             }
           >
             Set {setIndex}
@@ -94,7 +88,7 @@ export function WorkoutSetCard({
             className="h-4 w-4 items-center justify-center overflow-hidden rounded-full bg-surfaceHighest"
             style={
               isCompleted
-                ? { backgroundColor: SET_TYPE_LABEL_COLORS[setType] }
+                ? { backgroundColor: setTypeConfig.accentColor }
                 : undefined
             }
           >
@@ -103,7 +97,7 @@ export function WorkoutSetCard({
             ) : isActive ? (
               <View
                 className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: SET_TYPE_LABEL_COLORS[setType] }}
+                style={{ backgroundColor: setTypeConfig.accentColor }}
               />
             ) : null}
           </View>
@@ -111,8 +105,8 @@ export function WorkoutSetCard({
 
         <SetFieldButton
           label="Type"
-          value={formatSetType(setType)}
-          valueColor={SET_TYPE_LABEL_COLORS[setType]}
+          value={setTypeConfig.label}
+          valueColor={setTypeConfig.accentColor}
           disabled={disabled}
           className="flex-[1.4]"
           onPress={() => onEditField("setType")}
@@ -121,7 +115,7 @@ export function WorkoutSetCard({
         <SetFieldButton
           label="Weight (KG)"
           value={formatNumericSetValue(weight, weightDraft)}
-          highlightColor={SET_TYPE_LABEL_COLORS[setType]}
+          highlightColor={setTypeConfig.accentColor}
           highlighted={
             isActive &&
             (activeField === "weight" || activeField === "weightKeypad")
@@ -133,7 +127,7 @@ export function WorkoutSetCard({
         <SetFieldButton
           label="Reps"
           value={formatNumericSetValue(reps, repsDraft)}
-          highlightColor={SET_TYPE_LABEL_COLORS[setType]}
+          highlightColor={setTypeConfig.accentColor}
           highlighted={isActive && activeField === "repsKeypad"}
           disabled={disabled}
           onPress={() => onEditField("repsKeypad")}
@@ -142,7 +136,7 @@ export function WorkoutSetCard({
         <SetFieldButton
           label="RPE"
           value={rpe !== null ? String(rpe) : "—"}
-          highlightColor={SET_TYPE_LABEL_COLORS[setType]}
+          highlightColor={setTypeConfig.accentColor}
           highlighted={isActive && activeField === "rpe"}
           disabled={disabled}
           onPress={() => onEditField("rpe")}
@@ -152,7 +146,7 @@ export function WorkoutSetCard({
         <View
           pointerEvents="none"
           className="absolute inset-0 rounded-card border"
-          style={{ borderColor: SET_TYPE_LABEL_COLORS[setType] }}
+          style={{ borderColor: setTypeConfig.accentColor }}
         />
       ) : null}
     </Pressable>

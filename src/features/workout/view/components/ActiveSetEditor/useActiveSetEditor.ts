@@ -10,14 +10,15 @@ import type {
 } from "@/domain/workout/workout.types";
 
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
+import {
+  SET_VALUE_UPDATE_DEBOUNCE_MS,
+  type RpePickerValue,
+} from "@/features/workout/view/activeWorkout.config";
 
 import type { InteractiveKeypadKey } from "@/shared/components/ui/InteractiveKeypad";
 import { useDebouncedCallback } from "@/shared/hooks/useDebouncedCallback";
 
-import type {
-  ActiveSetEditorPanelType,
-  RpePickerValue,
-} from "./activeSetEditor.types";
+import type { ActiveSetEditorPanelType } from "./activeSetEditor.types";
 import {
   isActiveSetEditorKeypadPanel,
   isRepsKeypadPanel,
@@ -40,8 +41,6 @@ type SetValueDraftUpdate = {
   workoutSetId: WorkoutSetId;
   draft: string;
 };
-
-const SET_VALUE_UPDATE_DEBOUNCE_MS = 1000;
 
 export function useActiveSetEditor(
   workout: WorkoutAggregate,

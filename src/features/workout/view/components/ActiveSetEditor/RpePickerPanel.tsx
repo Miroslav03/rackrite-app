@@ -1,11 +1,11 @@
 import { View } from "react-native";
 
-import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
-
 import {
   RPE_PICKER_VALUES,
   type RpePickerValue,
-} from "./activeSetEditor.types";
+} from "@/features/workout/view/activeWorkout.config";
+
+import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
 
 type RpePickerPanelProps = {
   rpe: number | null;

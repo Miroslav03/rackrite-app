@@ -18,7 +18,10 @@ import type {
   ActiveWorkoutOperation,
   OperationState,
 } from "@/features/workout/session/workoutSession.types";
-import { SET_TYPE_LABEL_COLORS } from "@/features/workout/view/workoutSetType.config";
+import {
+  SET_TYPE_CONFIG,
+  type RpePickerValue,
+} from "@/features/workout/view/activeWorkout.config";
 
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
@@ -30,10 +33,7 @@ import { colors, spacing } from "@/shared/theme/tokens";
 
 import { getPanelLabel } from "../../activeWorkout.viewState.utils";
 
-import type {
-  ActiveSetEditorPanel,
-  RpePickerValue,
-} from "./activeSetEditor.types";
+import type { ActiveSetEditorPanel } from "./activeSetEditor.types";
 import {
   isActiveSetEditorKeypadPanel,
   isRepsKeypadPanel,
@@ -132,7 +132,7 @@ export function ActiveSetEditorDock({
             <AppText variant="sectionLabel">Editing</AppText>
             <AppText
               className="text-sm font-black"
-              style={{ color: SET_TYPE_LABEL_COLORS[activeSet.type] }}
+              style={{ color: SET_TYPE_CONFIG[activeSet.type].accentColor }}
             >
               {getPanelLabel(panel)}
             </AppText>

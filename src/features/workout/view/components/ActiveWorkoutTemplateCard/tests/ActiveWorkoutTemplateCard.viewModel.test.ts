@@ -1,17 +1,17 @@
 import {
+  createWorkoutWithCompetitionBench,
+  createWorkoutWithTwoSets,
+} from "@/domain/workout/tests/workout.test.helpers";
+import {
   completeWorkoutSet,
   createEmptyWorkout,
   updateWorkoutSet,
 } from "@/domain/workout/workout.useCases";
-import {
-  createWorkoutWithCompetitionBench,
-  createWorkoutWithTwoSets,
-} from "@/domain/workout/tests/workout.test.helpers";
 
 import {
   createActiveWorkoutTemplateCardViewModel,
   getActiveWorkoutFooterContent,
-} from "./ActiveWorkoutTemplateCard.viewModel";
+} from "../ActiveWorkoutTemplateCard.viewModel";
 
 describe("createActiveWorkoutTemplateCardViewModel", () => {
   it("describes a new workout that needs its first set configured", () => {

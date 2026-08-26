@@ -4,7 +4,6 @@ import {
 } from "@/domain/workout/workout.selectors";
 import type {
   WorkoutAggregate,
-  WorkoutExerciseAggregate,
   WorkoutExerciseId,
 } from "@/domain/workout/workout.types";
 
@@ -109,24 +108,6 @@ export function getDangerOperation(
   }
 
   return { status: "idle" };
-}
-
-export function formatSetType(
-  type: WorkoutExerciseAggregate["sets"][number]["type"],
-): string {
-  switch (type) {
-    case "warmup":
-      return "Warm-up";
-
-    case "working":
-      return "Working";
-
-    case "top":
-      return "Top Set";
-
-    case "backoff":
-      return "Backoff";
-  }
 }
 
 export function getPanelLabel(panel: ActiveSetEditorPanel): string {
