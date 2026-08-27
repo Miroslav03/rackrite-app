@@ -1,3 +1,5 @@
+import { useIsFocused } from "expo-router";
+
 import type { WorkoutAggregate } from "@/domain/workout/workout.types";
 
 import { ActiveWorkoutCard } from "@/features/workout/view/components/ActiveWorkoutCard";
@@ -19,7 +21,7 @@ export function ActiveWorkoutView({
   workout,
   onOpenWorkout,
 }: ActiveWorkoutViewProps) {
-  const timeElapsed = useElapsedTime(workout.workout.startedAt);
+  const timeElapsed = useElapsedTime(workout.workout.startedAt, useIsFocused());
 
   return (
     <Screen>

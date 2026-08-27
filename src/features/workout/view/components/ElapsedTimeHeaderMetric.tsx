@@ -1,3 +1,5 @@
+import { useIsFocused } from "expo-router";
+
 import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
 import { useElapsedTime } from "@/shared/hooks/useElapsedTime";
 
@@ -8,7 +10,7 @@ type ElapsedTimeHeaderMetricProps = {
 export function ElapsedTimeHeaderMetric({
   startedAt,
 }: ElapsedTimeHeaderMetricProps) {
-  const timeElapsed = useElapsedTime(startedAt);
+  const timeElapsed = useElapsedTime(startedAt, useIsFocused());
 
   return <HeaderMetric value={timeElapsed} label="Duration" />;
 }

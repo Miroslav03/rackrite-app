@@ -305,21 +305,31 @@ export function updateWorkoutSet(
       ...workoutAggregate.workout,
       updatedAt: input.now,
     },
-    exercises: workoutAggregate.exercises.map((exerciseAggregate) => ({
-      ...exerciseAggregate,
-      sets: exerciseAggregate.sets.map((set) =>
-        set.id === input.setId
-          ? {
-              ...set,
-              type: input.type ?? set.type,
-              weight: input.weight !== undefined ? input.weight : set.weight,
-              reps: input.reps !== undefined ? input.reps : set.reps,
-              rpe: input.rpe !== undefined ? input.rpe : set.rpe,
-              updatedAt: input.now,
-            }
-          : set,
-      ),
-    })),
+    exercises: workoutAggregate.exercises.map((exerciseAggregate) => {
+      const containsTargetSet = exerciseAggregate.sets.some(
+        (set) => set.id === input.setId,
+      );
+
+      if (!containsTargetSet) {
+        return exerciseAggregate;
+      }
+
+      return {
+        ...exerciseAggregate,
+        sets: exerciseAggregate.sets.map((set) =>
+          set.id === input.setId
+            ? {
+                ...set,
+                type: input.type ?? set.type,
+                weight: input.weight !== undefined ? input.weight : set.weight,
+                reps: input.reps !== undefined ? input.reps : set.reps,
+                rpe: input.rpe !== undefined ? input.rpe : set.rpe,
+                updatedAt: input.now,
+              }
+            : set,
+        ),
+      };
+    }),
   };
 
   assertWorkoutAggregateInvariants(nextWorkoutAggregate);

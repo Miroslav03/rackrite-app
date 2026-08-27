@@ -225,7 +225,7 @@ export function ActiveWorkoutScreenView({
 
   return (
     <>
-      <Screen>
+      <Screen scroll={false}>
         <ScrollView
           className="flex-1"
           contentContainerStyle={{

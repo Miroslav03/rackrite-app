@@ -8,12 +8,17 @@ function getFormattedElapsedTime(startedAt: number): string {
   return formatElapsedTime(Date.now() - startedAt);
 }
 
-export function useElapsedTime(startedAt: number): string {
+export function useElapsedTime(
+  startedAt: number,
+  enabled: boolean = true,
+): string {
   const [timeElapsed, setTimeElapsed] = useState(() =>
     getFormattedElapsedTime(startedAt),
   );
 
   useEffect(() => {
+    if (!enabled) return;
+
     const updateElapsedTime = () => {
       setTimeElapsed(getFormattedElapsedTime(startedAt));
     };
@@ -28,7 +33,7 @@ export function useElapsedTime(startedAt: number): string {
     return () => {
       clearInterval(intervalId);
     };
-  }, [startedAt]);
+  }, [startedAt, enabled]);
 
   return timeElapsed;
 }
