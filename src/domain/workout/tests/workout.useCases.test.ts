@@ -6,6 +6,7 @@ import {
   createEmptyWorkout,
   finishWorkout,
   removeWorkoutExercise,
+  removeWorkoutSet,
   selectWorkoutSet,
   startWorkoutRestTimer,
   updateWorkoutExerciseRestSeconds,
@@ -23,6 +24,7 @@ import {
 import {
   createWorkoutWithCompetitionBench,
   createWorkoutWithCompletedFirstSet,
+  createWorkoutWithTwoExercises,
   createWorkoutWithTwoSets,
   createWorkoutWithUpdatedFirstSet,
 } from "./workout.test.helpers";
@@ -318,6 +320,113 @@ describe("addWorkoutSet", () => {
         },
       ),
     ).toThrow("Workout exercise not found");
+  });
+});
+
+describe("removeWorkoutSet", () => {
+  it("selects a remaining set when the active set is removed", () => {
+    const nextWorkout = removeWorkoutSet(createWorkoutWithTwoSets(), {
+      setId: "set_2",
+      now: 4000,
+    });
+
+    const exerciseAggregate = nextWorkout.exercises[0];
+
+    expect(exerciseAggregate.workoutExercise.updatedAt).toBe(4000);
+    expect(exerciseAggregate.sets.map((set) => set.id)).toEqual(["set_1"]);
+
+    expect(nextWorkout.workout.activeSetId).toBe("set_1");
+    expect(nextWorkout.workout.updatedAt).toBe(4000);
+  });
+
+  it("removes an exercise when its last set is removed", () => {
+    const nextWorkout = removeWorkoutSet(createWorkoutWithTwoExercises(), {
+      setId: "set_2",
+      now: 4000,
+    });
+
+    expect(
+      nextWorkout.exercises.map(({ workoutExercise }) => workoutExercise.id),
+    ).toEqual(["workout_exercise_1"]);
+    expect(nextWorkout.workout.activeSetId).toBe("set_1");
+    expect(nextWorkout.workout.updatedAt).toBe(4000);
+  });
+
+  it("reindexes exercises after removing the first exercise's last set", () => {
+    const nextWorkout = removeWorkoutSet(createWorkoutWithTwoExercises(), {
+      setId: "set_1",
+      now: 4000,
+    });
+
+    expect(nextWorkout.exercises).toHaveLength(1);
+    expect(nextWorkout.exercises[0].workoutExercise).toMatchObject({
+      id: "workout_exercise_2",
+      orderIndex: 0,
+      updatedAt: 4000,
+    });
+    expect(nextWorkout.workout.activeSetId).toBe("set_2");
+    expect(nextWorkout.workout.updatedAt).toBe(4000);
+  });
+
+  it("reindexes sets after removing a set from the middle", () => {
+    const workout = addWorkoutSet(createWorkoutWithTwoSets(), {
+      workoutExerciseId: "workout_exercise_1",
+      setId: "set_3",
+      now: 4000,
+    });
+
+    const nextWorkout = removeWorkoutSet(workout, {
+      setId: "set_2",
+      now: 5000,
+    });
+
+    expect(
+      nextWorkout.exercises[0].sets.map(({ id, setIndex }) => ({
+        id,
+        setIndex,
+      })),
+    ).toEqual([
+      { id: "set_1", setIndex: 0 },
+      { id: "set_3", setIndex: 1 },
+    ]);
+    expect(nextWorkout.exercises[0].workoutExercise.updatedAt).toBe(5000);
+    expect(nextWorkout.exercises[0].sets[1].updatedAt).toBe(5000);
+    expect(nextWorkout.workout.activeSetId).toBe("set_3");
+    expect(nextWorkout.workout.updatedAt).toBe(5000);
+  });
+
+  it("removes the final exercise and clears the active set", () => {
+    const nextWorkout = removeWorkoutSet(createWorkoutWithCompetitionBench(), {
+      setId: "set_1",
+      now: 3000,
+    });
+
+    expect(nextWorkout.exercises).toEqual([]);
+    expect(nextWorkout.workout.activeSetId).toBeNull();
+    expect(nextWorkout.workout.updatedAt).toBe(3000);
+  });
+
+  it("throws when the set does not exist", () => {
+    expect(() =>
+      removeWorkoutSet(createWorkoutWithCompetitionBench(), {
+        setId: "missing_set",
+        now: 3000,
+      }),
+    ).toThrow("Workout set not found");
+  });
+
+  it("throws when the workout is completed", () => {
+    const completedWorkout = finishWorkout(
+      createWorkoutWithCompletedFirstSet(),
+      { now: 6000 },
+    );
+
+    expect(() =>
+      removeWorkoutSet(completedWorkout, {
+        setId: "set_1",
+        now: 7000,
+      }),
+    ).toThrow("Workout must be active");
   });
 });
 

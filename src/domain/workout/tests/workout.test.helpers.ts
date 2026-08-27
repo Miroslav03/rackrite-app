@@ -6,7 +6,7 @@ import {
   updateWorkoutSet,
 } from "../workout.useCases";
 
-import { competitionBench } from "./workout.test.constants";
+import { barbellRow, competitionBench } from "./workout.test.constants";
 
 export function createWorkoutWithCompetitionBench() {
   return addWorkoutExercise(
@@ -25,6 +25,16 @@ export function createWorkoutWithTwoSets() {
   return addWorkoutSet(createWorkoutWithCompetitionBench(), {
     workoutExerciseId: "workout_exercise_1",
     setId: "set_2",
+    now: 3000,
+  });
+}
+
+export function createWorkoutWithTwoExercises() {
+  return addWorkoutExercise(createWorkoutWithCompetitionBench(), {
+    workoutExerciseId: "workout_exercise_2",
+    setId: "set_2",
+    exercise: barbellRow,
+    restSeconds: barbellRow.defaultRestSeconds ?? 90,
     now: 3000,
   });
 }

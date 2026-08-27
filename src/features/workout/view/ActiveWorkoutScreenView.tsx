@@ -16,6 +16,7 @@ import type { AddExerciseCommand } from "@/features/workout/actions/addExercise"
 import type { AddSetCommand } from "@/features/workout/actions/addSet";
 import type { CompleteSetCommand } from "@/features/workout/actions/completeSet";
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
+import type { RemoveSetCommand } from "@/features/workout/actions/removeSet";
 import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
 import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
 import type {
@@ -37,6 +38,7 @@ import {
   getDangerConfirmationContent,
   getDangerOperation,
   isRemoveExerciseConfirmation,
+  isRemoveSetConfirmation,
 } from "./activeWorkout.viewState.utils";
 import { ActiveSetEditorDock } from "./components/ActiveSetEditor/ActiveSetEditorDock";
 import { useActiveSetEditor } from "./components/ActiveSetEditor/useActiveSetEditor";
@@ -68,6 +70,9 @@ export type ActiveWorkoutScreenActions = {
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   completeSet: (
     command: CompleteSetCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  removeSet: (
+    command: RemoveSetCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
 };
 
@@ -111,6 +116,8 @@ export function ActiveWorkoutScreenView({
   const [activeSetEditorHeight, setActiveSetEditorHeight] = useState(0);
 
   const activeSetEditor = useActiveSetEditor(workout, actions);
+  const editorActiveSet = activeSetEditor.activeSet;
+  const editorActiveExercise = activeSetEditor.activeExercise;
 
   const excludedExerciseIds = workout.exercises.map(
     ({ exercise }) => exercise.id,
@@ -140,7 +147,6 @@ export function ActiveWorkoutScreenView({
     : null;
 
   const dangerOperation = getDangerOperation(activeOverlay, operation);
-
   const addExerciseOperation = getAddExerciseOperation(
     activeOverlay,
     operation,
@@ -186,6 +192,34 @@ export function ActiveWorkoutScreenView({
     });
   }
 
+  async function openRemoveSetConfirmation(workoutSetId: WorkoutSetId) {
+    if (!(await activeSetEditor.prepareSetRemoval())) {
+      return;
+    }
+
+    setActiveOverlay({
+      type: "dangerConfirmationModal",
+      confirmation: {
+        action: "removeSet",
+        workoutSetId,
+      },
+    });
+  }
+
+  async function handleRemoveSet(workoutSetId: WorkoutSetId) {
+    const result = await actions.removeSet({ workoutSetId });
+
+    if (!result.success) {
+      return;
+    }
+
+    setActiveOverlay((currentOverlay) => {
+      return isRemoveSetConfirmation(currentOverlay, workoutSetId)
+        ? NO_ACTIVE_OVERLAY
+        : currentOverlay;
+    });
+  }
+
   function handleAddSet(workoutExerciseId: WorkoutExerciseId) {
     void actions.addSet({ workoutExerciseId });
   }
@@ -219,6 +253,7 @@ export function ActiveWorkoutScreenView({
         return;
 
       case "removeSet":
+        void handleRemoveSet(activeOverlay.confirmation.workoutSetId);
         return;
     }
   }
@@ -298,11 +333,11 @@ export function ActiveWorkoutScreenView({
         </ScrollView>
       </Screen>
 
-      {activeSetEditor.activeSet && activeSetEditor.activeExercise ? (
+      {editorActiveSet && editorActiveExercise ? (
         <ActiveSetEditorDock
-          exerciseName={activeSetEditor.activeExercise.exercise.name}
-          activeSet={activeSetEditor.activeSet}
-          setCount={activeSetEditor.activeExercise.sets.length}
+          exerciseName={editorActiveExercise.exercise.name}
+          activeSet={editorActiveSet}
+          setCount={editorActiveExercise.sets.length}
           panel={activeSetEditor.panel}
           operation={operation}
           onAdjustWeight={activeSetEditor.adjustWeight}
@@ -312,6 +347,9 @@ export function ActiveWorkoutScreenView({
           onSelectRpe={activeSetEditor.selectRpe}
           onSelectSetType={activeSetEditor.selectSetType}
           onComplete={activeSetEditor.completeSet}
+          onDelete={() => {
+            void openRemoveSetConfirmation(editorActiveSet.id);
+          }}
           onHeightChange={setActiveSetEditorHeight}
         />
       ) : null}

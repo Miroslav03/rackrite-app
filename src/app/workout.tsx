@@ -11,6 +11,7 @@ export default function WorkoutScreen() {
     state,
     addExercise,
     removeExercise,
+    removeSet,
     addSet,
     updateSet,
     selectSet,
@@ -41,6 +42,7 @@ export default function WorkoutScreen() {
           actions={{
             addExercise,
             removeExercise,
+            removeSet,
             addSet,
             updateSet,
             selectSet,

@@ -52,6 +52,11 @@ type AddWorkoutSetInput = {
   now: number;
 } & Partial<WorkoutSetValues>;
 
+type RemoveWorkoutSetInput = {
+  setId: WorkoutSetId;
+  now: number;
+};
+
 type UpdateWorkoutSetInput = {
   setId: WorkoutSetId;
   now: number;
@@ -286,6 +291,84 @@ export function addWorkoutSet(
       updatedAt: input.now,
     },
     exercises,
+  };
+
+  assertWorkoutAggregateInvariants(nextWorkoutAggregate);
+
+  return nextWorkoutAggregate;
+}
+
+export function removeWorkoutSet(
+  workoutAggregate: WorkoutAggregate,
+  input: RemoveWorkoutSetInput,
+): WorkoutAggregate {
+  assertWorkoutIsActive(workoutAggregate);
+  assertWorkoutSetExists(getWorkoutSetById(workoutAggregate, input.setId));
+
+  const targetExercise = getWorkoutExerciseBySetId(
+    workoutAggregate,
+    input.setId,
+  );
+  assertWorkoutExerciseExists(targetExercise);
+
+  const remainingExerciseSets = targetExercise.sets
+    .filter((set) => set.id !== input.setId)
+    .map((set, setIndex) =>
+      set.setIndex === setIndex
+        ? set
+        : {
+            ...set,
+            setIndex,
+            updatedAt: input.now,
+          },
+    );
+
+  if (remainingExerciseSets.length === 0) {
+    return removeWorkoutExercise(workoutAggregate, {
+      workoutExerciseId: targetExercise.workoutExercise.id,
+      now: input.now,
+    });
+  }
+
+  const remainingExercises = workoutAggregate.exercises.map(
+    (exerciseAggregate) => {
+      if (
+        exerciseAggregate.workoutExercise.id !==
+        targetExercise.workoutExercise.id
+      ) {
+        return exerciseAggregate;
+      }
+
+      return {
+        ...exerciseAggregate,
+        workoutExercise: {
+          ...exerciseAggregate.workoutExercise,
+          updatedAt: input.now,
+        },
+        sets: remainingExerciseSets,
+      };
+    },
+  );
+
+  const remainingSets = remainingExercises.flatMap(({ sets }) => sets);
+  const firstUnfinishedSet = remainingSets.find(
+    ({ finishedAt }) => finishedAt === null,
+  );
+  const lastRemainingSet = remainingSets[remainingSets.length - 1];
+  const activeSetWasRemoved =
+    workoutAggregate.workout.activeSetId === input.setId;
+
+  const nextActiveSetId = activeSetWasRemoved
+    ? (firstUnfinishedSet?.id ?? lastRemainingSet.id)
+    : workoutAggregate.workout.activeSetId;
+
+  const nextWorkoutAggregate: WorkoutAggregate = {
+    workout: {
+      ...workoutAggregate.workout,
+      activeSetId: nextActiveSetId,
+      updatedAt: input.now,
+    },
+    exercises: remainingExercises,
   };
 
   assertWorkoutAggregateInvariants(nextWorkoutAggregate);

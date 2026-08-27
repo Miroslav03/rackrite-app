@@ -18,6 +18,7 @@ import { addExercise, type AddExerciseCommand } from "./addExercise";
 import { addSet, type AddSetCommand } from "./addSet";
 import { completeSet, type CompleteSetCommand } from "./completeSet";
 import { removeExercise, type RemoveExerciseCommand } from "./removeExercise";
+import { removeSet, type RemoveSetCommand } from "./removeSet";
 import { selectSet, type SelectSetCommand } from "./selectSet";
 import { startQuickWorkout } from "./startQuickWorkout";
 import { updateSet, type UpdateSetCommand } from "./updateSet";
@@ -32,6 +33,10 @@ export type WorkoutSessionActions = {
   removeExercise: (
     workout: WorkoutAggregate,
     command: RemoveExerciseCommand,
+  ) => Promise<WorkoutAggregate>;
+  removeSet: (
+    workout: WorkoutAggregate,
+    command: RemoveSetCommand,
   ) => Promise<WorkoutAggregate>;
   addSet: (
     workout: WorkoutAggregate,
@@ -96,6 +101,17 @@ export function createWorkoutSessionActions(
         workout,
         command,
       ),
+
+    removeSet: (workout, command) =>
+      removeSet(
+        {
+          repository: dependencies.repository,
+          now: dependencies.now,
+        },
+        workout,
+        command,
+      ),
+
     addSet: (workout, command) =>
       addSet(
         {

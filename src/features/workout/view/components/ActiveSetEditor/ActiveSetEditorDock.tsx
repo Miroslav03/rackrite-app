@@ -56,6 +56,7 @@ type ActiveSetEditorDockProps = {
   onSelectRpe: (rpe: RpePickerValue | null) => void;
   onSelectSetType: (setType: SetType) => void;
   onComplete: () => void;
+  onDelete: () => void;
   onHeightChange: (height: number) => void;
 };
 
@@ -72,6 +73,7 @@ export function ActiveSetEditorDock({
   onSelectRpe,
   onSelectSetType,
   onComplete,
+  onDelete,
   onHeightChange,
 }: ActiveSetEditorDockProps) {
   const insets = useSafeAreaInsets();
@@ -137,6 +139,20 @@ export function ActiveSetEditorDock({
               {getPanelLabel(panel)}
             </AppText>
           </View>
+
+          <EditorOptionButton
+            variant="icon"
+            accessibilityLabel={`Remove set ${activeSet.setIndex + 1}`}
+            accessibilityHint="Opens a confirmation before removing this set"
+            accessibilityState={{ disabled: operationPending }}
+            disabled={operationPending}
+            hitSlop={4}
+            hoverBackgroundColor={colors.errorSolid}
+            icon={
+              <Ionicons name="trash-outline" size={20} color={colors.error} />
+            }
+            onPress={onDelete}
+          />
 
           {showKeypadControl ? (
             <EditorOptionButton

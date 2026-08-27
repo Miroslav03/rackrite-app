@@ -5,6 +5,7 @@ import {
 import type {
   WorkoutAggregate,
   WorkoutExerciseId,
+  WorkoutSetId,
 } from "@/domain/workout/workout.types";
 
 import type { ExercisePickerSelectionOperation } from "@/features/exercises/view/components/ExercisePickerSheet";
@@ -71,6 +72,20 @@ export function isRemoveExerciseConfirmation(
   );
 }
 
+export function isRemoveSetConfirmation(
+  overlay: ActiveWorkoutOverlay,
+  workoutSetId: WorkoutSetId,
+): overlay is Extract<
+  ActiveWorkoutOverlay,
+  { type: "dangerConfirmationModal" }
+> {
+  return (
+    overlay.type === "dangerConfirmationModal" &&
+    overlay.confirmation.action === "removeSet" &&
+    overlay.confirmation.workoutSetId === workoutSetId
+  );
+}
+
 export function getAddExerciseOperation(
   overlay: ActiveWorkoutOverlay,
   operation: OperationState<ActiveWorkoutOperation>,
@@ -97,17 +112,24 @@ export function getDangerOperation(
     return { status: "idle" };
   }
 
-  if (
-    overlay.confirmation.action === "removeExercise" &&
-    isOperationPending(operation) &&
-    operation.operation.type === "removeExercise" &&
-    operation.operation.workoutExerciseId ===
-      overlay.confirmation.workoutExerciseId
-  ) {
-    return { status: "pending", label: "REMOVING..." };
+  if (!isOperationPending(operation)) {
+    return { status: "idle" };
   }
 
-  return { status: "idle" };
+  switch (overlay.confirmation.action) {
+    case "removeExercise":
+      return operation.operation.type === "removeExercise" &&
+        operation.operation.workoutExerciseId ===
+          overlay.confirmation.workoutExerciseId
+        ? { status: "pending", label: "REMOVING..." }
+        : { status: "idle" };
+
+    case "removeSet":
+      return operation.operation.type === "removeSet" &&
+        operation.operation.workoutSetId === overlay.confirmation.workoutSetId
+        ? { status: "pending", label: "REMOVING..." }
+        : { status: "idle" };
+  }
 }
 
 export function getPanelLabel(panel: ActiveSetEditorPanel): string {

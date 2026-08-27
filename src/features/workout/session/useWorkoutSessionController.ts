@@ -4,6 +4,7 @@ import type { AddExerciseCommand } from "@/features/workout/actions/addExercise"
 import type { AddSetCommand } from "@/features/workout/actions/addSet";
 import type { CompleteSetCommand } from "@/features/workout/actions/completeSet";
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
+import type { RemoveSetCommand } from "@/features/workout/actions/removeSet";
 import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
 import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
 import type { WorkoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
@@ -31,6 +32,9 @@ export type WorkoutSessionController = {
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   removeExercise: (
     command: RemoveExerciseCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  removeSet: (
+    command: RemoveSetCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   addSet: (
     command: AddSetCommand,
@@ -265,6 +269,21 @@ export function useWorkoutSessionController(
     [actions, runActiveWorkoutOperation],
   );
 
+  const removeSet = useCallback(
+    (command: RemoveSetCommand) =>
+      runActiveWorkoutOperation({
+        operation: {
+          type: "removeSet",
+          workoutSetId: command.workoutSetId,
+        },
+        invalidStateMessage:
+          "A set cannot be removed without an active workout",
+        failureMessage: "Failed to remove the set",
+        run: (workout) => actions.removeSet(workout, command),
+      }),
+    [actions, runActiveWorkoutOperation],
+  );
+
   const addSet = useCallback(
     (command: AddSetCommand) =>
       runActiveWorkoutOperation({
@@ -329,6 +348,7 @@ export function useWorkoutSessionController(
     startEmptyWorkout,
     addExercise,
     removeExercise,
+    removeSet,
     addSet,
     updateSet,
     selectSet,
