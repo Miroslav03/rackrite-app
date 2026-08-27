@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { Pressable } from "react-native";
+import { Pressable, type PressableProps } from "react-native";
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -12,10 +12,23 @@ import { cn } from "@/shared/utils/cn";
 
 import { AppText } from "./AppText";
 
-type EditorOptionButtonProps = {
-  label: string;
+type EditorOptionButtonProps = Omit<
+  PressableProps,
+  | "accessibilityLabel"
+  | "accessibilityRole"
+  | "children"
+  | "disabled"
+  | "onHoverIn"
+  | "onHoverOut"
+  | "onPress"
+  | "onPressIn"
+  | "onPressOut"
+  | "style"
+> & {
+  label?: string;
   accessibilityLabel: string;
   icon?: ReactNode;
+  variant?: "option" | "icon";
   selected?: boolean;
   selectedBackgroundColor?: string;
   selectedForegroundColor?: string;
@@ -29,6 +42,7 @@ export function EditorOptionButton({
   label,
   accessibilityLabel,
   icon,
+  variant = "option",
   selected = false,
   selectedBackgroundColor,
   selectedForegroundColor,
@@ -36,6 +50,8 @@ export function EditorOptionButton({
   disabled = false,
   className,
   onPress,
+  accessibilityState,
+  ...pressableProps
 }: EditorOptionButtonProps) {
   const pressProgress = useSharedValue(0);
   const hoverProgress = useSharedValue(0);
@@ -68,16 +84,23 @@ export function EditorOptionButton({
 
   return (
     <Animated.View
-      className={cn("overflow-hidden rounded-button", className)}
+      className={cn(
+        "overflow-hidden",
+        variant === "icon" ? "h-11 w-11 rounded-full" : "rounded-button",
+        className,
+      )}
       style={buttonStyle}
     >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
-        accessibilityState={{ disabled, selected }}
+        accessibilityState={{ ...accessibilityState, disabled, selected }}
         disabled={disabled}
         className={cn(
-          "min-h-12 items-center justify-center rounded-button border border-transparent bg-surfaceHigh px-sm",
+          "items-center justify-center border border-transparent bg-surfaceHigh",
+          variant === "icon"
+            ? "h-full w-full rounded-full"
+            : "min-h-12 rounded-button px-sm",
           selected && !selectedBackgroundColor && "bg-primary",
         )}
         style={
@@ -90,12 +113,14 @@ export function EditorOptionButton({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={onPress}
+        {...pressableProps}
       >
         {!selected ? (
           <Animated.View
             pointerEvents="none"
             className={cn(
-              "absolute inset-0 rounded-button",
+              "absolute inset-0",
+              variant === "icon" ? "rounded-full" : "rounded-button",
               !hoverBackgroundColor && "bg-primary",
             )}
             style={[
@@ -107,22 +132,23 @@ export function EditorOptionButton({
           />
         ) : null}
 
-        {icon ?? (
-          <AppText
-            variant="button"
-            className={cn(
-              "relative z-10 text-sm",
-              selected && !selectedForegroundColor && "text-white",
-            )}
-            style={
-              selected && selectedForegroundColor
-                ? { color: selectedForegroundColor }
-                : undefined
-            }
-          >
-            {label}
-          </AppText>
-        )}
+        {icon ??
+          (label ? (
+            <AppText
+              variant="button"
+              className={cn(
+                "relative z-10 text-sm",
+                selected && !selectedForegroundColor && "text-white",
+              )}
+              style={
+                selected && selectedForegroundColor
+                  ? { color: selectedForegroundColor }
+                  : undefined
+              }
+            >
+              {label}
+            </AppText>
+          ) : null)}
       </Pressable>
     </Animated.View>
   );

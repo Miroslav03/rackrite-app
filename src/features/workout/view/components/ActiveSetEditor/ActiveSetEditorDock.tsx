@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import {
   BackHandler,
   Platform,
-  Pressable,
   View,
   type LayoutChangeEvent,
 } from "react-native";
@@ -25,6 +24,7 @@ import {
 
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
+import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
 import {
   InteractiveKeypad,
   type InteractiveKeypadKey,
@@ -139,8 +139,8 @@ export function ActiveSetEditorDock({
           </View>
 
           {showKeypadControl ? (
-            <Pressable
-              accessibilityRole="button"
+            <EditorOptionButton
+              variant="icon"
               accessibilityLabel={
                 keypadOpen
                   ? `Save ${keypadInputLabel} and close numeric keypad`
@@ -157,15 +157,15 @@ export function ActiveSetEditorDock({
               }}
               disabled={operationPending}
               hitSlop={4}
-              className="h-11 w-11 items-center justify-center rounded-full bg-surfaceHigh"
+              icon={
+                <Ionicons
+                  name={keypadOpen ? "chevron-down" : "keypad-outline"}
+                  size={20}
+                  color="#fff"
+                />
+              }
               onPress={onToggleKeypad}
-            >
-              <Ionicons
-                name={keypadOpen ? "chevron-down" : "keypad-outline"}
-                size={20}
-                color={colors.primarySoft}
-              />
-            </Pressable>
+            />
           ) : null}
         </View>
       </View>
