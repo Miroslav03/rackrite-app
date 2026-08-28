@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 
+import { usePreventRemove } from "@react-navigation/native";
 import { useEffect } from "react";
 import {
   BackHandler,
@@ -92,6 +93,10 @@ export function ActiveSetEditorDock({
   function handleLayout(event: LayoutChangeEvent) {
     onHeightChange(event.nativeEvent.layout.height);
   }
+
+  usePreventRemove(keypadOpen, () => {
+    void onToggleKeypad();
+  });
 
   useEffect(() => {
     if (!keypadOpen || Platform.OS !== "android") {

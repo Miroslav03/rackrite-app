@@ -245,6 +245,6 @@ export function useActiveSetEditor(
     selectRpe,
     selectSetType,
     completeSet,
-    prepareSetRemoval: savePendingKeypadUpdate,
+    savePendingKeypadUpdate,
   };
 }

@@ -193,7 +193,7 @@ export function ActiveWorkoutScreenView({
   }
 
   async function openRemoveSetConfirmation(workoutSetId: WorkoutSetId) {
-    if (!(await activeSetEditor.prepareSetRemoval())) {
+    if (!(await activeSetEditor.savePendingKeypadUpdate())) {
       return;
     }
 
@@ -224,8 +224,12 @@ export function ActiveWorkoutScreenView({
     void actions.addSet({ workoutExerciseId });
   }
 
-  function handleExerciseOptionSelected(option: WorkoutExerciseOption) {
+  async function handleExerciseOptionSelected(option: WorkoutExerciseOption) {
     if (activeOverlay.type !== "exerciseOptions") {
+      return;
+    }
+
+    if (!(await activeSetEditor.savePendingKeypadUpdate())) {
       return;
     }
 
