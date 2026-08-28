@@ -57,6 +57,7 @@ type ActiveSetEditorDockProps = {
   onSelectRpe: (rpe: RpePickerValue | null) => void;
   onSelectSetType: (setType: SetType) => void;
   onComplete: () => void;
+  onUndoCompletion: () => void;
   onDelete: () => void;
   onHeightChange: (height: number) => void;
 };
@@ -74,6 +75,7 @@ export function ActiveSetEditorDock({
   onSelectRpe,
   onSelectSetType,
   onComplete,
+  onUndoCompletion,
   onDelete,
   onHeightChange,
 }: ActiveSetEditorDockProps) {
@@ -85,9 +87,12 @@ export function ActiveSetEditorDock({
   const keypadOpen = isActiveSetEditorKeypadPanel(panel);
 
   const keypadInputLabel = repsKeypadOpen ? "reps" : "weight";
+  const isCompleted = activeSet.finishedAt !== null;
   const canComplete = activeSet.weight !== null && activeSet.reps !== null;
   const completePending =
     operationPending && operation.operation.type === "completeSet";
+  const undoPending =
+    operationPending && operation.operation.type === "undoCompletedSet";
   const showKeypadControl = panel.type === "weight" || keypadOpen;
 
   function handleLayout(event: LayoutChangeEvent) {
@@ -228,29 +233,47 @@ export function ActiveSetEditorDock({
 
       {!keypadOpen ? (
         <Button
-          title={completePending ? "Completing..." : "Done"}
+          title={
+            isCompleted
+              ? undoPending
+                ? "Undoing..."
+                : "Undo Completion"
+              : completePending
+                ? "Completing..."
+                : "Done"
+          }
+          variant={isCompleted ? "solid" : "solid"}
+          intent={isCompleted ? "neutral" : "primary"}
           size="md"
-          disabled={!canComplete || operationPending}
-          dimWhenDisabled={!canComplete || completePending}
+          disabled={operationPending || (!isCompleted && !canComplete)}
+          dimWhenDisabled={
+            isCompleted ? undoPending : !canComplete || completePending
+          }
           accessibilityRole="button"
-          accessibilityLabel={`Complete set ${activeSet.setIndex + 1}`}
+          accessibilityLabel={
+            isCompleted
+              ? `Undo completion of set ${activeSet.setIndex + 1}`
+              : `Complete set ${activeSet.setIndex + 1}`
+          }
           accessibilityHint={
-            canComplete
-              ? "Marks this set as complete"
-              : "Weight and reps are required before completing this set"
+            isCompleted
+              ? "Marks this set as unfinished while preserving its values"
+              : canComplete
+                ? "Marks this set as complete"
+                : "Weight and reps are required before completing this set"
           }
           accessibilityState={{
-            disabled: !canComplete || operationPending,
-            busy: completePending,
+            disabled: operationPending || (!isCompleted && !canComplete),
+            busy: isCompleted ? undoPending : completePending,
           }}
           leftIcon={
             <Ionicons
-              name="checkmark-circle"
+              name={isCompleted ? "arrow-undo-outline" : "checkmark-circle"}
               size={16}
               color={colors.foreground}
             />
           }
-          onPress={onComplete}
+          onPress={isCompleted ? onUndoCompletion : onComplete}
         />
       ) : null}
     </View>

@@ -6,6 +6,7 @@ import type { CompleteSetCommand } from "@/features/workout/actions/completeSet"
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
 import type { RemoveSetCommand } from "@/features/workout/actions/removeSet";
 import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
+import type { UndoSetCompletionCommand } from "@/features/workout/actions/undoCompletedSet";
 import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
 import type { WorkoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
 
@@ -47,6 +48,9 @@ export type WorkoutSessionController = {
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   completeSet: (
     command: CompleteSetCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  undoCompletedSet: (
+    command: UndoSetCompletionCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
 };
 
@@ -343,6 +347,21 @@ export function useWorkoutSessionController(
     [actions, runActiveWorkoutOperation],
   );
 
+  const undoCompletedSet = useCallback(
+    (command: UndoSetCompletionCommand) =>
+      runActiveWorkoutOperation({
+        operation: {
+          type: "undoCompletedSet",
+          workoutSetId: command.workoutSetId,
+        },
+        invalidStateMessage:
+          "A set completion cannot be undone without an active workout",
+        failureMessage: "Failed to undo the set completion",
+        run: (workout) => actions.undoCompletedSet(workout, command),
+      }),
+    [actions, runActiveWorkoutOperation],
+  );
+
   return {
     state,
     startEmptyWorkout,
@@ -353,6 +372,7 @@ export function useWorkoutSessionController(
     updateSet,
     selectSet,
     completeSet,
+    undoCompletedSet,
     dismissOperationError,
   };
 }

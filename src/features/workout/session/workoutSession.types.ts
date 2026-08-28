@@ -17,6 +17,7 @@ export type ActiveWorkoutOperation =
   | { type: "addSet"; workoutExerciseId: WorkoutExerciseId }
   | { type: "updateSet"; workoutSetId: WorkoutSetId }
   | { type: "completeSet"; workoutSetId: WorkoutSetId }
+  | { type: "undoCompletedSet"; workoutSetId: WorkoutSetId }
   | { type: "selectSet"; workoutSetId: WorkoutSetId }
   | { type: "finishWorkout" };
 

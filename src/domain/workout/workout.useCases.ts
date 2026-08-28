@@ -67,6 +67,11 @@ type CompleteWorkoutSetInput = {
   now: number;
 };
 
+type UndoWorkoutSetCompletionInput = {
+  setId: WorkoutSetId;
+  now: number;
+};
+
 type StartWorkoutRestTimerInput = {
   setId: WorkoutSetId;
   now: number;
@@ -381,14 +386,26 @@ export function updateWorkoutSet(
   input: UpdateWorkoutSetInput,
 ): WorkoutAggregate {
   assertWorkoutIsActive(workoutAggregate);
-  assertWorkoutSetExists(getWorkoutSetById(workoutAggregate, input.setId));
+
+  const targetSet = getWorkoutSetById(workoutAggregate, input.setId);
+  assertWorkoutSetExists(targetSet);
+
+  const shouldAutomaticallyUndo =
+    targetSet.finishedAt !== null &&
+    (input.weight === null || input.reps === null);
+  const editableWorkoutAggregate = shouldAutomaticallyUndo
+    ? undoWorkoutSetCompletion(workoutAggregate, {
+        setId: input.setId,
+        now: input.now,
+      })
+    : workoutAggregate;
 
   const nextWorkoutAggregate: WorkoutAggregate = {
     workout: {
-      ...workoutAggregate.workout,
+      ...editableWorkoutAggregate.workout,
       updatedAt: input.now,
     },
-    exercises: workoutAggregate.exercises.map((exerciseAggregate) => {
+    exercises: editableWorkoutAggregate.exercises.map((exerciseAggregate) => {
       const containsTargetSet = exerciseAggregate.sets.some(
         (set) => set.id === input.setId,
       );
@@ -407,6 +424,51 @@ export function updateWorkoutSet(
                 weight: input.weight !== undefined ? input.weight : set.weight,
                 reps: input.reps !== undefined ? input.reps : set.reps,
                 rpe: input.rpe !== undefined ? input.rpe : set.rpe,
+                updatedAt: input.now,
+              }
+            : set,
+        ),
+      };
+    }),
+  };
+
+  assertWorkoutAggregateInvariants(nextWorkoutAggregate);
+
+  return nextWorkoutAggregate;
+}
+
+export function undoWorkoutSetCompletion(
+  workoutAggregate: WorkoutAggregate,
+  input: UndoWorkoutSetCompletionInput,
+): WorkoutAggregate {
+  assertWorkoutIsActive(workoutAggregate);
+
+  const targetSet = getWorkoutSetById(workoutAggregate, input.setId);
+  assertWorkoutSetExists(targetSet);
+
+  if (targetSet.finishedAt === null) {
+    throw new Error("Set must be completed before it can be undone");
+  }
+
+  const nextWorkoutAggregate: WorkoutAggregate = {
+    workout: {
+      ...workoutAggregate.workout,
+      activeSetId: input.setId,
+      restTimer: null,
+      updatedAt: input.now,
+    },
+    exercises: workoutAggregate.exercises.map((exerciseAggregate) => {
+      if (!exerciseAggregate.sets.some((set) => set.id === input.setId)) {
+        return exerciseAggregate;
+      }
+
+      return {
+        ...exerciseAggregate,
+        sets: exerciseAggregate.sets.map((set) =>
+          set.id === input.setId
+            ? {
+                ...set,
+                finishedAt: null,
                 updatedAt: input.now,
               }
             : set,

@@ -18,6 +18,7 @@ import type { CompleteSetCommand } from "@/features/workout/actions/completeSet"
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
 import type { RemoveSetCommand } from "@/features/workout/actions/removeSet";
 import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
+import type { UndoSetCompletionCommand } from "@/features/workout/actions/undoCompletedSet";
 import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
 import type {
   ActiveWorkoutOperation,
@@ -73,6 +74,9 @@ export type ActiveWorkoutScreenActions = {
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   removeSet: (
     command: RemoveSetCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  undoCompletedSet: (
+    command: UndoSetCompletionCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
 };
 
@@ -351,6 +355,7 @@ export function ActiveWorkoutScreenView({
           onSelectRpe={activeSetEditor.selectRpe}
           onSelectSetType={activeSetEditor.selectSetType}
           onComplete={activeSetEditor.completeSet}
+          onUndoCompletion={activeSetEditor.undoCompletedSet}
           onDelete={() => {
             void openRemoveSetConfirmation(editorActiveSet.id);
           }}

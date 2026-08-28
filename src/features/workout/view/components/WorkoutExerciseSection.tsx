@@ -106,8 +106,9 @@ export function WorkoutExerciseSection({
             repsDraft={activeSetId === set.id ? repsDraft : undefined}
             rpe={set.rpe}
             status={status}
+            selected={set.id === activeSetId}
             activeField={activeSetField}
-            disabled={isOperationPending(operation) || status === "completed"}
+            disabled={isOperationPending(operation)}
             onSelect={() => exerciseActions.openSetEditor(set.id, "weight")}
             onEditField={(field) =>
               exerciseActions.openSetEditor(set.id, field)

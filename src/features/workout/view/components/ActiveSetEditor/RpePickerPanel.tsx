@@ -21,6 +21,15 @@ export function RpePickerPanel({
   return (
     <View className="gap-sm">
       <View className="flex-row flex-wrap gap-sm">
+        <EditorOptionButton
+          label="-"
+          accessibilityLabel="Clear RPE"
+          selected={rpe === null}
+          disabled={disabled}
+          className="w-[10%] flex-grow"
+          onPress={() => onSelect(null)}
+        />
+
         {RPE_PICKER_VALUES.map((value) => (
           <EditorOptionButton
             key={value}

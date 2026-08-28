@@ -9,6 +9,7 @@ import {
   removeWorkoutSet,
   selectWorkoutSet,
   startWorkoutRestTimer,
+  undoWorkoutSetCompletion,
   updateWorkoutExerciseRestSeconds,
   updateWorkoutSet,
 } from "../workout.useCases";
@@ -484,6 +485,107 @@ describe("updateWorkoutSet", () => {
     expect(nextWorkoutAggregate.workout.updatedAt).toBe(3000);
   });
 
+  it("updates a completed set without changing its completion state", () => {
+    const completedWorkout = createWorkoutWithCompletedFirstSet();
+
+    const nextWorkoutAggregate = updateWorkoutSet(completedWorkout, {
+      setId: "set_1",
+      type: "top",
+      weight: 105,
+      reps: 4,
+      rpe: 8,
+      now: 6000,
+    });
+    const updatedSet = nextWorkoutAggregate.exercises[0].sets[0];
+
+    expect(updatedSet).toMatchObject({
+      type: "top",
+      weight: 105,
+      reps: 4,
+      rpe: 8,
+      finishedAt: 5000,
+      updatedAt: 6000,
+    });
+    expect(nextWorkoutAggregate.workout.activeSetId).toBe("set_2");
+    expect(nextWorkoutAggregate.workout.updatedAt).toBe(6000);
+  });
+
+  it("clears rpe without reopening a completed set", () => {
+    const configuredWorkout = updateWorkoutSet(
+      createWorkoutWithUpdatedFirstSet(),
+      {
+        setId: "set_1",
+        rpe: 8,
+        now: 4500,
+      },
+    );
+    const completedWorkout = completeWorkoutSet(configuredWorkout, {
+      setId: "set_1",
+      now: 5000,
+    });
+
+    const nextWorkoutAggregate = updateWorkoutSet(completedWorkout, {
+      setId: "set_1",
+      rpe: null,
+      now: 6000,
+    });
+
+    expect(nextWorkoutAggregate.exercises[0].sets[0]).toMatchObject({
+      rpe: null,
+      finishedAt: 5000,
+      updatedAt: 6000,
+    });
+    expect(nextWorkoutAggregate.workout.activeSetId).toBe("set_2");
+  });
+
+  it.each([
+    ["weight", { weight: null }],
+    ["reps", { reps: null }],
+  ] as const)(
+    "reopens a completed set when %s is explicitly cleared",
+    (_field, values) => {
+      const completedWorkout = createWorkoutWithCompletedFirstSet();
+      const withTimer = startWorkoutRestTimer(completedWorkout, {
+        setId: "set_1",
+        now: 6000,
+      });
+      const untouchedSet = withTimer.exercises[0].sets[1];
+
+      const nextWorkoutAggregate = updateWorkoutSet(withTimer, {
+        setId: "set_1",
+        ...values,
+        now: 7000,
+      });
+      const updatedSet = nextWorkoutAggregate.exercises[0].sets[0];
+
+      expect(updatedSet.finishedAt).toBeNull();
+      expect(updatedSet.updatedAt).toBe(7000);
+      expect(nextWorkoutAggregate.workout.activeSetId).toBe("set_1");
+      expect(nextWorkoutAggregate.workout.restTimer).toBeNull();
+      expect(nextWorkoutAggregate.workout.updatedAt).toBe(7000);
+      expect(nextWorkoutAggregate.exercises[0].sets[1]).toBe(untouchedSet);
+    },
+  );
+
+  it("clears a value on an active unfinished set without changing selection", () => {
+    const workoutWithValue = updateWorkoutSet(createWorkoutWithTwoSets(), {
+      setId: "set_2",
+      weight: 100,
+      now: 4000,
+    });
+
+    const nextWorkout = updateWorkoutSet(workoutWithValue, {
+      setId: "set_2",
+      weight: null,
+      now: 5000,
+    });
+
+    expect(nextWorkout.exercises[0].sets[1].weight).toBeNull();
+    expect(nextWorkout.exercises[0].sets[1].finishedAt).toBeNull();
+    expect(nextWorkout.workout.activeSetId).toBe("set_2");
+    expect(nextWorkout.workout.updatedAt).toBe(5000);
+  });
+
   it("throws when the set does not exist", () => {
     const workoutAggregate = createEmptyWorkout({
       id: "workout_1",
@@ -528,6 +630,112 @@ describe("updateWorkoutSet", () => {
         now: 3000,
       }),
     ).toThrow("RPE must be between 1 and 10");
+  });
+
+  it.each([
+    ["negative weight", { weight: -1 }, "Weight cannot be a negative number"],
+    ["zero reps", { reps: 0 }, "Reps must be a positive number"],
+    ["invalid rpe", { rpe: 11 }, "RPE must be between 1 and 10"],
+  ] as const)(
+    "rejects %s without reopening a completed set",
+    (_case, values, message) => {
+      const completedWorkout = createWorkoutWithCompletedFirstSet();
+
+      expect(() =>
+        updateWorkoutSet(completedWorkout, {
+          setId: "set_1",
+          ...values,
+          now: 6000,
+        }),
+      ).toThrow(message);
+      expect(completedWorkout.exercises[0].sets[0].finishedAt).toBe(5000);
+    },
+  );
+});
+
+describe("undoWorkoutSetCompletion", () => {
+  it("reopens a completed set, activates it, and clears the rest timer", () => {
+    const completedWorkout = createWorkoutWithCompletedFirstSet();
+    const withTimer = startWorkoutRestTimer(completedWorkout, {
+      setId: "set_1",
+      now: 6000,
+    });
+    const untouchedSet = withTimer.exercises[0].sets[1];
+
+    const nextWorkoutAggregate = undoWorkoutSetCompletion(withTimer, {
+      setId: "set_1",
+      now: 7000,
+    });
+    const reopenedSet = nextWorkoutAggregate.exercises[0].sets[0];
+
+    expect(reopenedSet).toMatchObject({
+      type: "working",
+      weight: 100,
+      reps: 5,
+      rpe: null,
+      finishedAt: null,
+      updatedAt: 7000,
+    });
+    expect(nextWorkoutAggregate.workout.activeSetId).toBe("set_1");
+    expect(nextWorkoutAggregate.workout.restTimer).toBeNull();
+    expect(nextWorkoutAggregate.workout.updatedAt).toBe(7000);
+    expect(nextWorkoutAggregate.exercises[0].sets[1]).toBe(untouchedSet);
+  });
+
+  it("preserves unaffected exercise aggregates", () => {
+    const configuredWorkout = updateWorkoutSet(
+      createWorkoutWithTwoExercises(),
+      {
+        setId: "set_1",
+        weight: 100,
+        reps: 5,
+        now: 4000,
+      },
+    );
+    const completedWorkout = completeWorkoutSet(configuredWorkout, {
+      setId: "set_1",
+      now: 5000,
+    });
+    const untouchedExercise = completedWorkout.exercises[1];
+
+    const nextWorkoutAggregate = undoWorkoutSetCompletion(completedWorkout, {
+      setId: "set_1",
+      now: 6000,
+    });
+
+    expect(nextWorkoutAggregate.exercises[1]).toBe(untouchedExercise);
+  });
+
+  it("throws when the set does not exist", () => {
+    expect(() =>
+      undoWorkoutSetCompletion(createWorkoutWithCompletedFirstSet(), {
+        setId: "missing_set",
+        now: 6000,
+      }),
+    ).toThrow("Workout set not found");
+  });
+
+  it("throws when the set is unfinished", () => {
+    expect(() =>
+      undoWorkoutSetCompletion(createWorkoutWithCompetitionBench(), {
+        setId: "set_1",
+        now: 3000,
+      }),
+    ).toThrow("Set must be completed before it can be undone");
+  });
+
+  it("throws when the workout is completed", () => {
+    const completedWorkout = finishWorkout(
+      createWorkoutWithCompletedFirstSet(),
+      { now: 6000 },
+    );
+
+    expect(() =>
+      undoWorkoutSetCompletion(completedWorkout, {
+        setId: "set_1",
+        now: 7000,
+      }),
+    ).toThrow("Workout must be active");
   });
 });
 

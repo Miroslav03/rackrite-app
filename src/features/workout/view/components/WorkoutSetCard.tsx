@@ -23,6 +23,7 @@ type WorkoutSetCardProps = {
   repsDraft?: string;
   rpe: number | null;
   status?: WorkoutSetStatus;
+  selected?: boolean;
   activeField?: ActiveSetEditorPanelType;
   disabled?: boolean;
   className?: string;
@@ -39,6 +40,7 @@ export function WorkoutSetCard({
   repsDraft,
   rpe,
   status = "pending",
+  selected = false,
   activeField,
   className,
   disabled,
@@ -46,7 +48,7 @@ export function WorkoutSetCard({
   onEditField,
 }: WorkoutSetCardProps) {
   const isCompleted = status === "completed";
-  const isActive = status === "active";
+  const isSelected = status === "active" || selected;
   const isPending = status === "pending";
   const setTypeConfig = SET_TYPE_CONFIG[setType];
 
@@ -54,13 +56,13 @@ export function WorkoutSetCard({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Select set ${setIndex}`}
-      accessibilityState={{ disabled, selected: isActive }}
+      accessibilityState={{ disabled, selected: isSelected }}
       disabled={disabled}
       className={className}
       onPress={onSelect}
     >
       <SurfaceCard
-        variant={isActive ? "high" : "default"}
+        variant={isSelected ? "high" : "default"}
         contentClassName="min-h-[58px] flex-row items-center gap-md px-md py-sm"
         className={cn(isPending && "opacity-60")}
         style={
@@ -94,7 +96,7 @@ export function WorkoutSetCard({
           >
             {isCompleted ? (
               <Ionicons name="checkmark" size={10} color={colors.background} />
-            ) : isActive ? (
+            ) : isSelected ? (
               <View
                 className="h-1.5 w-1.5 rounded-full"
                 style={{ backgroundColor: setTypeConfig.accentColor }}
@@ -117,7 +119,7 @@ export function WorkoutSetCard({
           value={formatNumericSetValue(weight, weightDraft)}
           highlightColor={setTypeConfig.accentColor}
           highlighted={
-            isActive &&
+            isSelected &&
             (activeField === "weight" || activeField === "weightKeypad")
           }
           disabled={disabled}
@@ -128,7 +130,7 @@ export function WorkoutSetCard({
           label="Reps"
           value={formatNumericSetValue(reps, repsDraft)}
           highlightColor={setTypeConfig.accentColor}
-          highlighted={isActive && activeField === "repsKeypad"}
+          highlighted={isSelected && activeField === "repsKeypad"}
           disabled={disabled}
           onPress={() => onEditField("repsKeypad")}
         />
@@ -137,12 +139,12 @@ export function WorkoutSetCard({
           label="RPE"
           value={rpe !== null ? String(rpe) : "—"}
           highlightColor={setTypeConfig.accentColor}
-          highlighted={isActive && activeField === "rpe"}
+          highlighted={isSelected && activeField === "rpe"}
           disabled={disabled}
           onPress={() => onEditField("rpe")}
         />
       </SurfaceCard>
-      {isActive ? (
+      {isSelected ? (
         <View
           pointerEvents="none"
           className="absolute inset-0 rounded-card border"

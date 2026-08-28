@@ -1,7 +1,7 @@
 import type { SetType } from "@/domain/domain.types";
 import {
-  getActiveUnfinishedWorkoutSet,
   getActiveWorkoutExercise,
+  getActiveWorkoutSet,
   getWorkoutSetById,
 } from "@/domain/workout/workout.selectors";
 import type {
@@ -34,7 +34,7 @@ import { useActiveSetEditorController } from "./useActiveSetEditorController";
 
 type ActiveSetActions = Pick<
   WorkoutSessionController,
-  "updateSet" | "selectSet" | "completeSet"
+  "updateSet" | "selectSet" | "completeSet" | "undoCompletedSet"
 >;
 
 type SetValueDraftUpdate = {
@@ -46,8 +46,8 @@ export function useActiveSetEditor(
   workout: WorkoutAggregate,
   actions: ActiveSetActions,
 ) {
+  const activeSet = getActiveWorkoutSet(workout);
   const activeExercise = getActiveWorkoutExercise(workout);
-  const activeSet = getActiveUnfinishedWorkoutSet(workout);
 
   const panelController = useActiveSetEditorController(activeSet?.id);
 
@@ -227,6 +227,14 @@ export function useActiveSetEditor(
     void actions.completeSet({ workoutSetId: activeSet.id });
   }
 
+  function undoCompletedSet() {
+    if (!activeSet || activeSet.finishedAt === null) {
+      return;
+    }
+
+    void actions.undoCompletedSet({ workoutSetId: activeSet.id });
+  }
+
   return {
     activeSet,
     activeExercise,
@@ -245,6 +253,7 @@ export function useActiveSetEditor(
     selectRpe,
     selectSetType,
     completeSet,
+    undoCompletedSet,
     savePendingKeypadUpdate,
   };
 }
