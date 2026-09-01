@@ -16,7 +16,7 @@ import type {
   ActiveWorkoutOperation,
   OperationState,
 } from "@/features/workout/session/workoutSession.types";
-import type { ActiveSetEditorPanelType } from "@/features/workout/view/components/ActiveSetEditor/activeSetEditor.types";
+import type { ActiveSetEditorPanelType } from "@/features/workout/view/components/ActiveWorkoutDock/activeWorkoutDock.types";
 
 import { ScreenSection } from "@/shared/components/layout/ScreenSection";
 import { AppText } from "@/shared/components/ui/AppText";
@@ -39,7 +39,7 @@ export type WorkoutExerciseSectionActions = {
 type WorkoutExerciseSectionProps = {
   exerciseAggregate: WorkoutExerciseAggregate;
   activeSetId: WorkoutSetId | null;
-  activeSetField: ActiveSetEditorPanelType;
+  activeSetField?: ActiveSetEditorPanelType;
   weightDraft?: string;
   repsDraft?: string;
   operation: OperationState<ActiveWorkoutOperation>;

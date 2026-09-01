@@ -1,28 +1,39 @@
 import { useCallback, useState } from "react";
 
-import type { WorkoutSetId } from "@/domain/workout/workout.types";
+import type {
+  WorkoutRestTimer,
+  WorkoutSetId,
+} from "@/domain/workout/workout.types";
 
 import type {
   ActiveSetEditorBasePanelType,
   ActiveSetEditorPanel,
-} from "./activeSetEditor.types";
+  ActiveWorkoutDockPanel,
+} from "./activeWorkoutDock.types";
 
 type RequestedPanel = {
   workoutSetId: WorkoutSetId;
-  panel: ActiveSetEditorPanel;
+  panel: ActiveWorkoutDockPanel;
 };
 
 const DEFAULT_PANEL: ActiveSetEditorPanel = { type: "weight" };
 
-export function useActiveSetEditorController(
+export function useActiveWorkoutDockController(
   activeSetId: WorkoutSetId | undefined,
+  restTimer: WorkoutRestTimer | null,
 ) {
   const [requestedPanel, setRequestedPanel] = useState<RequestedPanel | null>(
     null,
   );
 
+  const requestedPanelIsCurrent =
+    requestedPanel?.panel.type === "restTimer"
+      ? requestedPanel.workoutSetId === restTimer?.sourceSetId &&
+        requestedPanel.panel.startedAt === restTimer?.startedAt
+      : requestedPanel?.workoutSetId === activeSetId;
+
   const panel =
-    requestedPanel && requestedPanel.workoutSetId === activeSetId
+    requestedPanel !== null && requestedPanelIsCurrent
       ? requestedPanel.panel
       : DEFAULT_PANEL;
 
@@ -32,6 +43,23 @@ export function useActiveSetEditorController(
     },
     [],
   );
+
+  const openRestTimerPanel = useCallback(
+    (sourceSetId: WorkoutSetId, startedAt: number) => {
+      setRequestedPanel({
+        workoutSetId: sourceSetId,
+        panel: {
+          type: "restTimer",
+          startedAt,
+        },
+      });
+    },
+    [],
+  );
+
+  const closeRestTimerPanel = useCallback(() => {
+    setRequestedPanel(null);
+  }, []);
 
   const openWeightKeypad = useCallback(
     (workoutSetId: WorkoutSetId, draft: string) => {
@@ -76,9 +104,11 @@ export function useActiveSetEditorController(
   return {
     panel,
     openPanel,
+    openRestTimerPanel,
+    closeRestTimerPanel,
     openWeightKeypad,
-    setWeightDraft,
     openRepsKeypad,
+    setWeightDraft,
     setRepsDraft,
   };
 }

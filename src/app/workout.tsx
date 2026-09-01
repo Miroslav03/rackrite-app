@@ -16,6 +16,9 @@ export default function WorkoutScreen() {
     updateSet,
     selectSet,
     completeSet,
+    adjustRestTimer,
+    resetRestTimer,
+    skipRestTimer,
     undoCompletedSet,
     dismissOperationError,
   } = useWorkoutSession();
@@ -48,6 +51,9 @@ export default function WorkoutScreen() {
             updateSet,
             selectSet,
             completeSet,
+            adjustRestTimer,
+            resetRestTimer,
+            skipRestTimer,
             undoCompletedSet,
             dismissOperationError,
           }}

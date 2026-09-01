@@ -1,11 +1,18 @@
-export type ActiveSetEditorPanelType = ActiveSetEditorPanel["type"];
-
 export type ActiveSetEditorPanel =
   | { type: "weight" }
   | { type: "weightKeypad"; draft: string }
   | { type: "repsKeypad"; draft: string }
   | { type: "rpe" }
   | { type: "setType" };
+
+export type RestTimerPanel = {
+  type: "restTimer";
+  startedAt: number;
+};
+
+export type ActiveWorkoutDockPanel = ActiveSetEditorPanel | RestTimerPanel;
+
+export type ActiveSetEditorPanelType = ActiveSetEditorPanel["type"];
 
 export type ActiveSetEditorBasePanelType = Exclude<
   ActiveSetEditorPanelType,

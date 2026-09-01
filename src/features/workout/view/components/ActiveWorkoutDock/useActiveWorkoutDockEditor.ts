@@ -1,40 +1,48 @@
 import type { SetType } from "@/domain/domain.types";
 import {
-  getActiveWorkoutExercise,
-  getActiveWorkoutSet,
-  getWorkoutSetById,
+    getActiveWorkoutExercise,
+    getActiveWorkoutSet,
+    getWorkoutSetById,
 } from "@/domain/workout/workout.selectors";
 import type {
-  WorkoutAggregate,
-  WorkoutSetId,
+    WorkoutAggregate,
+    WorkoutRestTimer,
+    WorkoutSetId,
 } from "@/domain/workout/workout.types";
 
+import type { RestTimerAdjustmentSeconds } from "@/features/workout/actions/adjustRestTimer";
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
 import {
-  SET_VALUE_UPDATE_DEBOUNCE_MS,
-  type RpePickerValue,
+    SET_VALUE_UPDATE_DEBOUNCE_MS,
+    type RpePickerValue,
 } from "@/features/workout/view/activeWorkout.config";
 
 import type { InteractiveKeypadKey } from "@/shared/components/ui/InteractiveKeypad";
 import { useDebouncedCallback } from "@/shared/hooks/useDebouncedCallback";
 
-import type { ActiveSetEditorPanelType } from "./activeSetEditor.types";
 import {
-  isActiveSetEditorKeypadPanel,
-  isRepsKeypadPanel,
-  isWeightKeypadPanel,
-} from "./activeSetEditor.utils";
-import {
-  addWeightIncrement,
-  formatKeypadDraft,
-  parseKeypadDraft,
-  updateKeypadDraft,
+    addWeightIncrement,
+    formatKeypadDraft,
+    parseKeypadDraft,
+    updateKeypadDraft,
 } from "./activeSetEditorKeypad.utils";
-import { useActiveSetEditorController } from "./useActiveSetEditorController";
+import type { ActiveSetEditorPanelType } from "./activeWorkoutDock.types";
+import {
+    isActiveSetEditorKeypadPanel,
+    isRepsKeypadPanel,
+    isWeightKeypadPanel,
+} from "./activeWorkoutDock.types.utils";
+import { useActiveWorkoutDockController } from "./useActiveWorkoutDockController";
 
-type ActiveSetActions = Pick<
+type ActiveDockActions = Pick<
   WorkoutSessionController,
-  "updateSet" | "selectSet" | "completeSet" | "undoCompletedSet"
+  | "updateSet"
+  | "selectSet"
+  | "completeSet"
+  | "undoCompletedSet"
+  | "adjustRestTimer"
+  | "resetRestTimer"
+  | "skipRestTimer"
 >;
 
 type SetValueDraftUpdate = {
@@ -42,14 +50,17 @@ type SetValueDraftUpdate = {
   draft: string;
 };
 
-export function useActiveSetEditor(
+export function useActiveWorkoutDockEditor(
   workout: WorkoutAggregate,
-  actions: ActiveSetActions,
+  actions: ActiveDockActions,
 ) {
   const activeSet = getActiveWorkoutSet(workout);
   const activeExercise = getActiveWorkoutExercise(workout);
 
-  const panelController = useActiveSetEditorController(activeSet?.id);
+  const panelController = useActiveWorkoutDockController(
+    activeSet?.id,
+    workout.workout.restTimer,
+  );
 
   const { schedule: scheduleWeightUpdate, flush: flushWeightUpdate } =
     useDebouncedCallback(
@@ -143,6 +154,56 @@ export function useActiveSetEditor(
     panelController.openPanel(nextWorkoutSetId, nextPanelType);
   }
 
+  async function openRestTimerDock(restTimer: WorkoutRestTimer) {
+    if (!(await savePendingKeypadUpdate())) {
+      return false;
+    }
+
+    showRestTimerPanel(restTimer);
+  }
+
+  function showRestTimerPanel(restTimer: WorkoutRestTimer) {
+    panelController.openRestTimerPanel(
+      restTimer.sourceSetId,
+      restTimer.startedAt,
+    );
+  }
+
+  async function adjustRestTimer(seconds: RestTimerAdjustmentSeconds) {
+    const result = await actions.adjustRestTimer({ seconds });
+
+    if (result.success && result.value.workout.restTimer === null) {
+      panelController.closeRestTimerPanel();
+    }
+  }
+
+  async function resetRestTimer() {
+    const result = await actions.resetRestTimer();
+    const nextTimer = result.success ? result.value.workout.restTimer : null;
+
+    if (!nextTimer) {
+      if (result.success) {
+        panelController.closeRestTimerPanel();
+      }
+
+      return;
+    }
+
+    showRestTimerPanel(nextTimer);
+  }
+
+  async function skipRestTimer() {
+    if (!(await savePendingKeypadUpdate())) {
+      return;
+    }
+
+    const result = await actions.skipRestTimer();
+
+    if (result.success) {
+      panelController.closeRestTimerPanel();
+    }
+  }
+
   function adjustWeight(increment: number) {
     if (!activeSet) return;
 
@@ -221,10 +282,26 @@ export function useActiveSetEditor(
     });
   }
 
-  function completeSet() {
+  async function completeSet() {
     if (!activeSet) return;
 
-    void actions.completeSet({ workoutSetId: activeSet.id });
+    const completedSetId = activeSet.id;
+
+    const result = await actions.completeSet({
+      workoutSetId: completedSetId,
+    });
+
+    if (!result.success) {
+      return;
+    }
+
+    const nextRestTimer = result.value.workout.restTimer;
+
+    if (nextRestTimer?.sourceSetId !== completedSetId) {
+      return;
+    }
+
+    showRestTimerPanel(nextRestTimer);
   }
 
   function undoCompletedSet() {
@@ -246,6 +323,11 @@ export function useActiveSetEditor(
       ? panelController.panel.draft
       : undefined,
     openSetEditor,
+    openRestTimerDock,
+    closeRestTimerDock: panelController.closeRestTimerPanel,
+    adjustRestTimer,
+    resetRestTimer,
+    skipRestTimer,
     adjustWeight,
     toggleKeypad,
     pressWeightKey,

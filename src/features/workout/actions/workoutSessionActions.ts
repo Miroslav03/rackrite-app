@@ -14,12 +14,18 @@ import type {
 
 import { createId } from "@/shared/utils/id";
 
+import {
+  adjustRestTimer,
+  type AdjustRestTimerCommand,
+} from "./adjustRestTimer";
 import { addExercise, type AddExerciseCommand } from "./addExercise";
 import { addSet, type AddSetCommand } from "./addSet";
 import { completeSet, type CompleteSetCommand } from "./completeSet";
 import { removeExercise, type RemoveExerciseCommand } from "./removeExercise";
 import { removeSet, type RemoveSetCommand } from "./removeSet";
+import { resetRestTimer } from "./resetRestTimer";
 import { selectSet, type SelectSetCommand } from "./selectSet";
+import { skipRestTimer } from "./skipRestTimer";
 import { startQuickWorkout } from "./startQuickWorkout";
 import {
   undoCompletedSet,
@@ -58,6 +64,12 @@ export type WorkoutSessionActions = {
     workout: WorkoutAggregate,
     command: CompleteSetCommand,
   ) => Promise<WorkoutAggregate>;
+  adjustRestTimer: (
+    workout: WorkoutAggregate,
+    command: AdjustRestTimerCommand,
+  ) => Promise<WorkoutAggregate>;
+  resetRestTimer: (workout: WorkoutAggregate) => Promise<WorkoutAggregate>;
+  skipRestTimer: (workout: WorkoutAggregate) => Promise<WorkoutAggregate>;
   undoCompletedSet: (
     workout: WorkoutAggregate,
     command: UndoSetCompletionCommand,
@@ -159,6 +171,34 @@ export function createWorkoutSessionActions(
         },
         workout,
         command,
+      ),
+
+    adjustRestTimer: (workout, command) =>
+      adjustRestTimer(
+        {
+          repository: dependencies.repository,
+          now: dependencies.now,
+        },
+        workout,
+        command,
+      ),
+
+    resetRestTimer: (workout) =>
+      resetRestTimer(
+        {
+          repository: dependencies.repository,
+          now: dependencies.now,
+        },
+        workout,
+      ),
+
+    skipRestTimer: (workout) =>
+      skipRestTimer(
+        {
+          repository: dependencies.repository,
+          now: dependencies.now,
+        },
+        workout,
       ),
 
     undoCompletedSet: (workout, command) =>

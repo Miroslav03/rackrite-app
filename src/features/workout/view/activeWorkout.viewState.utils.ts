@@ -22,7 +22,7 @@ import type {
   ActiveWorkoutOverlay,
   DangerConfirmationModal,
 } from "./ActiveWorkoutScreenView";
-import type { ActiveSetEditorPanel } from "./components/ActiveSetEditor/activeSetEditor.types";
+import type { ActiveSetEditorPanel } from "./components/ActiveWorkoutDock/activeWorkoutDock.types";
 
 export function getDangerConfirmationContent(
   workout: WorkoutAggregate,

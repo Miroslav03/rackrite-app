@@ -1,4 +1,5 @@
 import type { ExerciseId } from "@/domain/exercises/exercise.types";
+import type { RestTimerAdjustmentSeconds } from "@/features/workout/actions/adjustRestTimer";
 import type {
   WorkoutAggregate,
   WorkoutExerciseId,
@@ -17,6 +18,9 @@ export type ActiveWorkoutOperation =
   | { type: "addSet"; workoutExerciseId: WorkoutExerciseId }
   | { type: "updateSet"; workoutSetId: WorkoutSetId }
   | { type: "completeSet"; workoutSetId: WorkoutSetId }
+  | { type: "adjustRestTimer"; seconds: RestTimerAdjustmentSeconds }
+  | { type: "resetRestTimer" }
+  | { type: "skipRestTimer" }
   | { type: "undoCompletedSet"; workoutSetId: WorkoutSetId }
   | { type: "selectSet"; workoutSetId: WorkoutSetId }
   | { type: "finishWorkout" };

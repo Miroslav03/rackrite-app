@@ -31,6 +31,7 @@ export const workoutsTable = sqliteTable(
     sourceTemplateId: text("source_template_id"),
     status: text("status").$type<WorkoutStatus>().notNull(),
     activeSetId: text("active_set_id"),
+    restTimerSourceSetId: text("rest_timer_source_set_id"),
     restTimerStartedAt: integer("rest_timer_started_at"),
     restTimerEndsAt: integer("rest_timer_ends_at"),
     startedAt: integer("started_at").notNull(),
@@ -43,12 +44,15 @@ export const workoutsTable = sqliteTable(
       "workouts_rest_timer_is_valid",
       sql`
         (
+          ${table.restTimerSourceSetId} IS NULL
+          AND
           ${table.restTimerStartedAt} IS NULL
           AND ${table.restTimerEndsAt} IS NULL
         )
         OR
         (
           ${table.status} = 'active'
+          AND ${table.restTimerSourceSetId} IS NOT NULL
           AND ${table.restTimerStartedAt} IS NOT NULL
           AND ${table.restTimerEndsAt} IS NOT NULL
           AND ${table.restTimerEndsAt} > ${table.restTimerStartedAt}

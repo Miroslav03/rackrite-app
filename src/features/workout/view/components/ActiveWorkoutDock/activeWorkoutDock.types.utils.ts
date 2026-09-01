@@ -1,24 +1,24 @@
 import type {
   ActiveSetEditorKeypadPanel,
-  ActiveSetEditorPanel,
+  ActiveWorkoutDockPanel,
   RepsKeypadPanel,
   WeightKeypadPanel,
-} from "./activeSetEditor.types";
+} from "./activeWorkoutDock.types";
 
 export function isWeightKeypadPanel(
-  panel: ActiveSetEditorPanel,
+  panel: ActiveWorkoutDockPanel,
 ): panel is WeightKeypadPanel {
   return panel.type === "weightKeypad";
 }
 
 export function isRepsKeypadPanel(
-  panel: ActiveSetEditorPanel,
+  panel: ActiveWorkoutDockPanel,
 ): panel is RepsKeypadPanel {
   return panel.type === "repsKeypad";
 }
 
 export function isActiveSetEditorKeypadPanel(
-  panel: ActiveSetEditorPanel,
+  panel: ActiveWorkoutDockPanel,
 ): panel is ActiveSetEditorKeypadPanel {
   return isWeightKeypadPanel(panel) || isRepsKeypadPanel(panel);
 }

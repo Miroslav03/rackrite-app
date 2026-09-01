@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { usePreventRemove } from "@react-navigation/native";
 import { useEffect } from "react";
@@ -34,12 +34,12 @@ import { colors, spacing } from "@/shared/theme/tokens";
 
 import { getPanelLabel } from "../../activeWorkout.viewState.utils";
 
-import type { ActiveSetEditorPanel } from "./activeSetEditor.types";
+import type { ActiveSetEditorPanel } from "./activeWorkoutDock.types";
 import {
   isActiveSetEditorKeypadPanel,
   isRepsKeypadPanel,
   isWeightKeypadPanel,
-} from "./activeSetEditor.utils";
+} from "./activeWorkoutDock.types.utils";
 import { RpePickerPanel } from "./RpePickerPanel";
 import { SetTypePickerPanel } from "./SetTypePickerPanel";
 import { WeightQuickAdjustPanel } from "./WeightQuickAdjustPanel";
@@ -237,7 +237,7 @@ export function ActiveSetEditorDock({
             isCompleted
               ? undoPending
                 ? "Undoing..."
-                : "Undo Completion"
+                : "Undo"
               : completePending
                 ? "Completing..."
                 : "Done"
@@ -267,11 +267,19 @@ export function ActiveSetEditorDock({
             busy: isCompleted ? undoPending : completePending,
           }}
           leftIcon={
-            <Ionicons
-              name={isCompleted ? "arrow-undo-outline" : "checkmark-circle"}
-              size={16}
-              color={colors.foreground}
-            />
+            isCompleted ? (
+              <Ionicons
+                name={isCompleted ? "arrow-undo" : "checkmark"}
+                size={16}
+                color={"#fff"}
+              />
+            ) : (
+              <MaterialCommunityIcons
+                name="check-bold"
+                size={18}
+                color={"#fff"}
+              />
+            )
           }
           onPress={isCompleted ? onUndoCompletion : onComplete}
         />

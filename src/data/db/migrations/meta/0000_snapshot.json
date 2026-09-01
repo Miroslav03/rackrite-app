@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "01668846-397b-42b1-9385-93dd1b05e9cb",
+  "id": "57d1324f-dce7-4ddd-9277-6868c63be74e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "exercises": {
@@ -290,6 +290,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "rest_timer_source_set_id": {
+          "name": "rest_timer_source_set_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "rest_timer_started_at": {
           "name": "rest_timer_started_at",
           "type": "integer",
@@ -340,7 +347,7 @@
       "checkConstraints": {
         "workouts_rest_timer_is_valid": {
           "name": "workouts_rest_timer_is_valid",
-          "value": "\n        (\n          \"workouts\".\"rest_timer_started_at\" IS NULL\n          AND \"workouts\".\"rest_timer_ends_at\" IS NULL\n        )\n        OR\n        (\n          \"workouts\".\"status\" = 'active'\n          AND \"workouts\".\"rest_timer_started_at\" IS NOT NULL\n          AND \"workouts\".\"rest_timer_ends_at\" IS NOT NULL\n          AND \"workouts\".\"rest_timer_ends_at\" > \"workouts\".\"rest_timer_started_at\"\n        )\n      "
+          "value": "\n        (\n          \"workouts\".\"rest_timer_source_set_id\" IS NULL\n          AND\n          \"workouts\".\"rest_timer_started_at\" IS NULL\n          AND \"workouts\".\"rest_timer_ends_at\" IS NULL\n        )\n        OR\n        (\n          \"workouts\".\"status\" = 'active'\n          AND \"workouts\".\"rest_timer_source_set_id\" IS NOT NULL\n          AND \"workouts\".\"rest_timer_started_at\" IS NOT NULL\n          AND \"workouts\".\"rest_timer_ends_at\" IS NOT NULL\n          AND \"workouts\".\"rest_timer_ends_at\" > \"workouts\".\"rest_timer_started_at\"\n        )\n      "
         }
       }
     }

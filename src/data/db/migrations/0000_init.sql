@@ -41,6 +41,7 @@ CREATE TABLE `workouts` (
 	`source_template_id` text,
 	`status` text NOT NULL,
 	`active_set_id` text,
+	`rest_timer_source_set_id` text,
 	`rest_timer_started_at` integer,
 	`rest_timer_ends_at` integer,
 	`started_at` integer NOT NULL,
@@ -49,12 +50,15 @@ CREATE TABLE `workouts` (
 	`updated_at` integer NOT NULL,
 	CONSTRAINT "workouts_rest_timer_is_valid" CHECK(
         (
+          "workouts"."rest_timer_source_set_id" IS NULL
+          AND
           "workouts"."rest_timer_started_at" IS NULL
           AND "workouts"."rest_timer_ends_at" IS NULL
         )
         OR
         (
           "workouts"."status" = 'active'
+          AND "workouts"."rest_timer_source_set_id" IS NOT NULL
           AND "workouts"."rest_timer_started_at" IS NOT NULL
           AND "workouts"."rest_timer_ends_at" IS NOT NULL
           AND "workouts"."rest_timer_ends_at" > "workouts"."rest_timer_started_at"

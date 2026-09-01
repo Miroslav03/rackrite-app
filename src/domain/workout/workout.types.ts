@@ -50,6 +50,7 @@ export type WorkoutSetValues = Pick<
 >;
 
 export type WorkoutRestTimer = {
+  sourceSetId: WorkoutSetId;
   startedAt: number;
   endsAt: number;
 };

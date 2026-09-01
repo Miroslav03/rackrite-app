@@ -24,6 +24,7 @@ export function workoutToRow(workout: Workout): NewWorkoutRow {
     sourceTemplateId: workout.sourceTemplateId,
     status: workout.status,
     activeSetId: workout.activeSetId,
+    restTimerSourceSetId: workout.restTimer?.sourceSetId ?? null,
     restTimerStartedAt: workout.restTimer?.startedAt ?? null,
     restTimerEndsAt: workout.restTimer?.endsAt ?? null,
     startedAt: workout.startedAt,
@@ -64,11 +65,20 @@ export function workoutSetToRow(set: WorkoutSet): NewWorkoutSetRow {
 }
 
 export function workoutRowToWorkout(workoutRow: WorkoutRow): Workout {
-  const { restTimerStartedAt, restTimerEndsAt } = workoutRow;
+  const { restTimerSourceSetId, restTimerStartedAt, restTimerEndsAt } =
+    workoutRow;
+  const hasAnyRestTimerValue =
+    restTimerSourceSetId !== null ||
+    restTimerStartedAt !== null ||
+    restTimerEndsAt !== null;
+  const hasCompleteRestTimer =
+    restTimerSourceSetId !== null &&
+    restTimerStartedAt !== null &&
+    restTimerEndsAt !== null;
 
-  if ((restTimerStartedAt === null) !== (restTimerEndsAt === null)) {
+  if (hasAnyRestTimerValue && !hasCompleteRestTimer) {
     throw new Error(
-      `Invalid workout row "${workoutRow.id}": rest timer timestamps must both be defined or both be null`,
+      `Invalid workout row "${workoutRow.id}": rest timer source and timestamps must all be defined or all be null`,
     );
   }
 
@@ -78,9 +88,12 @@ export function workoutRowToWorkout(workoutRow: WorkoutRow): Workout {
     status: workoutRow.status,
     activeSetId: workoutRow.activeSetId,
     restTimer:
-      restTimerStartedAt === null || restTimerEndsAt === null
+      restTimerSourceSetId === null ||
+      restTimerStartedAt === null ||
+      restTimerEndsAt === null
         ? null
         : {
+            sourceSetId: restTimerSourceSetId,
             startedAt: restTimerStartedAt,
             endsAt: restTimerEndsAt,
           },

@@ -8,10 +8,15 @@ import {
 import { assertWorkoutAggregateInvariants } from "./assertions/workout.invariants";
 
 import {
+  getActiveSetIdAfterRemoval,
   getAllWorkoutSets,
+  getNextActiveWorkoutSetIdAfter,
+  getNextUnfinishedWorkoutSetAfter,
+  getRestTimerAfterRemoval,
   getWorkoutExerciseById,
   getWorkoutExerciseBySetId,
   getWorkoutSetById,
+  isWorkoutRestTimerExpired,
 } from "./workout.selectors";
 import type {
   WorkoutAggregate,
@@ -78,6 +83,19 @@ type StartWorkoutRestTimerInput = {
 };
 
 type ClearWorkoutRestTimerInput = {
+  now: number;
+};
+
+type AdjustWorkoutRestTimerInput = {
+  seconds: number;
+  now: number;
+};
+
+type ResetWorkoutRestTimerInput = {
+  now: number;
+};
+
+type SkipWorkoutRestTimerInput = {
   now: number;
 };
 
@@ -173,6 +191,7 @@ export function removeWorkoutExercise(
     workoutAggregate,
     input.workoutExerciseId,
   );
+
   assertWorkoutExerciseExists(exerciseToRemove);
 
   const remainingExercises = workoutAggregate.exercises
@@ -193,28 +212,29 @@ export function removeWorkoutExercise(
     );
 
   const remainingSets = remainingExercises.flatMap(({ sets }) => sets);
-  const activeSetWasRemoved = exerciseToRemove.sets.some(
-    ({ id }) => id === workoutAggregate.workout.activeSetId,
+  const removedSetIds = new Set(exerciseToRemove.sets.map(({ id }) => id));
+
+  const nextActiveSetId = getActiveSetIdAfterRemoval(
+    workoutAggregate,
+    removedSetIds,
   );
-  const firstUnfinishedSet = remainingSets.find(
-    ({ finishedAt }) => finishedAt === null,
+
+  const nextRestTimer = getRestTimerAfterRemoval(
+    workoutAggregate,
+    remainingSets,
+    removedSetIds,
   );
-  const lastRemainingSet = remainingSets[remainingSets.length - 1];
-  const nextActiveSetId =
-    remainingSets.length === 0
-      ? null
-      : activeSetWasRemoved
-        ? (firstUnfinishedSet?.id ?? lastRemainingSet.id)
-        : workoutAggregate.workout.activeSetId;
 
   const nextWorkoutAggregate: WorkoutAggregate = {
     workout: {
       ...workoutAggregate.workout,
       activeSetId: nextActiveSetId,
+      restTimer: nextRestTimer,
       updatedAt: input.now,
     },
     exercises: remainingExercises,
   };
+
   assertWorkoutAggregateInvariants(nextWorkoutAggregate);
 
   return nextWorkoutAggregate;
@@ -356,21 +376,23 @@ export function removeWorkoutSet(
   );
 
   const remainingSets = remainingExercises.flatMap(({ sets }) => sets);
-  const firstUnfinishedSet = remainingSets.find(
-    ({ finishedAt }) => finishedAt === null,
+  const removedSetIds = new Set<WorkoutSetId>([input.setId]);
+  const nextActiveSetId = getActiveSetIdAfterRemoval(
+    workoutAggregate,
+    removedSetIds,
   );
-  const lastRemainingSet = remainingSets[remainingSets.length - 1];
-  const activeSetWasRemoved =
-    workoutAggregate.workout.activeSetId === input.setId;
 
-  const nextActiveSetId = activeSetWasRemoved
-    ? (firstUnfinishedSet?.id ?? lastRemainingSet.id)
-    : workoutAggregate.workout.activeSetId;
+  const nextRestTimer = getRestTimerAfterRemoval(
+    workoutAggregate,
+    remainingSets,
+    removedSetIds,
+  );
 
   const nextWorkoutAggregate: WorkoutAggregate = {
     workout: {
       ...workoutAggregate.workout,
       activeSetId: nextActiveSetId,
+      restTimer: nextRestTimer,
       updatedAt: input.now,
     },
     exercises: remainingExercises,
@@ -520,14 +542,25 @@ export function completeWorkoutSet(
     throw new Error("Set must have reps before it can be completed");
   }
 
-  const exercises = workoutAggregate.exercises.map((exerciseAggregate) => ({
-    ...exerciseAggregate,
-    sets: exerciseAggregate.sets.map((set) =>
-      set.id === input.setId
-        ? { ...set, finishedAt: input.now, updatedAt: input.now }
-        : set,
-    ),
-  }));
+  const exercises = workoutAggregate.exercises.map((exerciseAggregate) => {
+    if (exerciseAggregate.workoutExercise.id !== targetSet.workoutExerciseId) {
+      return exerciseAggregate;
+    }
+
+    return {
+      ...exerciseAggregate,
+      sets: exerciseAggregate.sets.map((set) =>
+        set.id === input.setId
+          ? {
+              ...set,
+              finishedAt: input.now,
+              updatedAt: input.now,
+            }
+          : set,
+      ),
+    };
+  });
+
   const workoutAfterSetUpdate: WorkoutAggregate = {
     workout: {
       ...workoutAggregate.workout,
@@ -536,21 +569,17 @@ export function completeWorkoutSet(
     },
     exercises,
   };
-  const allSets = getAllWorkoutSets(workoutAfterSetUpdate);
-  const completedSetIndex = allSets.findIndex((set) => set.id === input.setId);
-  const nextUnfinishedSet = allSets
-    .slice(completedSetIndex + 1)
-    .find((set) => set.finishedAt === null);
-  const previousUnfinishedSet = allSets
-    .slice(0, completedSetIndex)
-    .find((set) => set.finishedAt === null);
-  const lastSet = allSets[allSets.length - 1];
+
+  const nextActiveSetId = getNextActiveWorkoutSetIdAfter(
+    workoutAfterSetUpdate,
+    input.setId,
+  );
+
   const nextWorkoutAggregate: WorkoutAggregate = {
     ...workoutAfterSetUpdate,
     workout: {
       ...workoutAfterSetUpdate.workout,
-      activeSetId:
-        nextUnfinishedSet?.id ?? previousUnfinishedSet?.id ?? lastSet.id,
+      activeSetId: nextActiveSetId,
     },
   };
 
@@ -566,6 +595,7 @@ export function startWorkoutRestTimer(
   assertWorkoutIsActive(workoutAggregate);
 
   const sourceSet = getWorkoutSetById(workoutAggregate, input.setId);
+
   assertWorkoutSetExists(sourceSet);
 
   if (sourceSet.finishedAt === null) {
@@ -576,12 +606,20 @@ export function startWorkoutRestTimer(
     workoutAggregate,
     input.setId,
   );
+
   assertWorkoutExerciseExists(sourceExercise);
+
+  if (
+    !getAllWorkoutSets(workoutAggregate).some((set) => set.finishedAt === null)
+  ) {
+    throw new Error("Rest timer requires an unfinished set");
+  }
 
   const nextWorkoutAggregate: WorkoutAggregate = {
     workout: {
       ...workoutAggregate.workout,
       restTimer: {
+        sourceSetId: input.setId,
         startedAt: input.now,
         endsAt: input.now + sourceExercise.workoutExercise.restSeconds * 1_000,
       },
@@ -608,6 +646,126 @@ export function clearWorkoutRestTimer(
   const nextWorkoutAggregate: WorkoutAggregate = {
     workout: {
       ...workoutAggregate.workout,
+      restTimer: null,
+      updatedAt: input.now,
+    },
+    exercises: workoutAggregate.exercises,
+  };
+
+  assertWorkoutAggregateInvariants(nextWorkoutAggregate);
+
+  return nextWorkoutAggregate;
+}
+
+export function adjustWorkoutRestTimer(
+  workoutAggregate: WorkoutAggregate,
+  input: AdjustWorkoutRestTimerInput,
+): WorkoutAggregate {
+  assertWorkoutIsActive(workoutAggregate);
+
+  const timer = workoutAggregate.workout.restTimer;
+
+  if (timer === null) {
+    return workoutAggregate;
+  }
+
+  if (!Number.isInteger(input.seconds) || input.seconds === 0) {
+    throw new Error("Rest timer adjustment must be a non-zero whole number");
+  }
+
+  if (isWorkoutRestTimerExpired(timer, input.now)) {
+    return skipWorkoutRestTimer(workoutAggregate, { now: input.now });
+  }
+
+  const adjustedEndsAt = timer.endsAt + input.seconds * 1_000;
+
+  if (adjustedEndsAt <= input.now) {
+    return skipWorkoutRestTimer(workoutAggregate, { now: input.now });
+  }
+
+  const nextWorkoutAggregate: WorkoutAggregate = {
+    workout: {
+      ...workoutAggregate.workout,
+      restTimer: {
+        ...timer,
+        endsAt: adjustedEndsAt,
+      },
+      updatedAt: input.now,
+    },
+    exercises: workoutAggregate.exercises,
+  };
+
+  assertWorkoutAggregateInvariants(nextWorkoutAggregate);
+
+  return nextWorkoutAggregate;
+}
+
+export function resetWorkoutRestTimer(
+  workoutAggregate: WorkoutAggregate,
+  input: ResetWorkoutRestTimerInput,
+): WorkoutAggregate {
+  assertWorkoutIsActive(workoutAggregate);
+
+  const timer = workoutAggregate.workout.restTimer;
+
+  if (timer === null) {
+    return workoutAggregate;
+  }
+
+  if (isWorkoutRestTimerExpired(timer, input.now)) {
+    return skipWorkoutRestTimer(workoutAggregate, { now: input.now });
+  }
+
+  const sourceExercise = getWorkoutExerciseBySetId(
+    workoutAggregate,
+    timer.sourceSetId,
+  );
+
+  assertWorkoutExerciseExists(sourceExercise);
+
+  const nextWorkoutAggregate: WorkoutAggregate = {
+    workout: {
+      ...workoutAggregate.workout,
+      restTimer: {
+        sourceSetId: timer.sourceSetId,
+        startedAt: input.now,
+        endsAt: input.now + sourceExercise.workoutExercise.restSeconds * 1_000,
+      },
+      updatedAt: input.now,
+    },
+    exercises: workoutAggregate.exercises,
+  };
+
+  assertWorkoutAggregateInvariants(nextWorkoutAggregate);
+
+  return nextWorkoutAggregate;
+}
+
+export function skipWorkoutRestTimer(
+  workoutAggregate: WorkoutAggregate,
+  input: SkipWorkoutRestTimerInput,
+): WorkoutAggregate {
+  assertWorkoutIsActive(workoutAggregate);
+
+  const timer = workoutAggregate.workout.restTimer;
+
+  if (timer === null) {
+    return workoutAggregate;
+  }
+
+  const nextUnfinishedSet = getNextUnfinishedWorkoutSetAfter(
+    workoutAggregate,
+    timer.sourceSetId,
+  );
+
+  if (!nextUnfinishedSet) {
+    throw new Error("Rest timer requires an unfinished set");
+  }
+
+  const nextWorkoutAggregate: WorkoutAggregate = {
+    workout: {
+      ...workoutAggregate.workout,
+      activeSetId: nextUnfinishedSet.id,
       restTimer: null,
       updatedAt: input.now,
     },

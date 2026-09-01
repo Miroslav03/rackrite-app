@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "clean-code": {
+      "source": "btseee/clean-code-skills",
+      "sourceType": "github",
+      "skillPath": "skills/clean-code/SKILL.md",
+      "computedHash": "bad98acdc05184f5325eb2c30b960c1dce9d00f310cb07db3cdd01d05f8ed170"
+    },
     "react-native-best-practices": {
       "source": "callstackincubator/agent-skills",
       "sourceType": "github",

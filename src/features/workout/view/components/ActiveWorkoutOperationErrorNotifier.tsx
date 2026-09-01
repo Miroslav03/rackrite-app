@@ -3,8 +3,8 @@ import { useEffect } from "react";
 import { useToast } from "@/shared/components/feedback/ToastContext";
 
 import type {
-    ActiveWorkoutOperation,
-    OperationState,
+  ActiveWorkoutOperation,
+  OperationState,
 } from "../../session/workoutSession.types";
 
 type ActiveWorkoutOperationErrorNotifierProps = {
@@ -56,6 +56,15 @@ function getOperationErrorMessage(operation: ActiveWorkoutOperation): string {
 
     case "completeSet":
       return "Couldn't complete set. Try again.";
+
+    case "adjustRestTimer":
+      return "Couldn't adjust rest timer. Try again.";
+
+    case "resetRestTimer":
+      return "Couldn't reset rest timer. Try again.";
+
+    case "skipRestTimer":
+      return "Couldn't skip rest timer. Try again.";
 
     case "undoCompletedSet":
       return "Couldn't undo set completion. Try again.";

@@ -5,7 +5,7 @@ import { Pressable, View } from "react-native";
 import type { SetType } from "@/domain/domain.types";
 
 import { SET_TYPE_CONFIG } from "@/features/workout/view/activeWorkout.config";
-import type { ActiveSetEditorPanelType } from "@/features/workout/view/components/ActiveSetEditor/activeSetEditor.types";
+import type { ActiveSetEditorPanelType } from "@/features/workout/view/components/ActiveWorkoutDock/activeWorkoutDock.types";
 
 import { AppText } from "@/shared/components/ui/AppText";
 import { SurfaceCard } from "@/shared/components/ui/SurfaceCard";

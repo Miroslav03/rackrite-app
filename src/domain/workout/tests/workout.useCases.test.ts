@@ -1,13 +1,17 @@
+import { assertWorkoutAggregateInvariants } from "../assertions/workout.invariants";
 import {
   addWorkoutExercise,
   addWorkoutSet,
+  adjustWorkoutRestTimer,
   clearWorkoutRestTimer,
   completeWorkoutSet,
   createEmptyWorkout,
   finishWorkout,
   removeWorkoutExercise,
   removeWorkoutSet,
+  resetWorkoutRestTimer,
   selectWorkoutSet,
+  skipWorkoutRestTimer,
   startWorkoutRestTimer,
   undoWorkoutSetCompletion,
   updateWorkoutExerciseRestSeconds,
@@ -236,6 +240,30 @@ describe("removeWorkoutExercise", () => {
     expect(nextWorkout.workout.activeSetId).toBe("set_2");
   });
 
+  it("selects the next unfinished set after a removed active exercise", () => {
+    const workoutWithThreeExercises = addWorkoutExercise(
+      createWorkoutWithTwoExercises(),
+      {
+        workoutExerciseId: "workout_exercise_3",
+        setId: "set_3",
+        exercise: pausedBench,
+        restSeconds: pausedBench.defaultRestSeconds ?? 90,
+        now: 4000,
+      },
+    );
+    const withMiddleExerciseActive = selectWorkoutSet(
+      workoutWithThreeExercises,
+      { setId: "set_2", now: 5000 },
+    );
+
+    const nextWorkout = removeWorkoutExercise(withMiddleExerciseActive, {
+      workoutExerciseId: "workout_exercise_2",
+      now: 6000,
+    });
+
+    expect(nextWorkout.workout.activeSetId).toBe("set_3");
+  });
+
   it("throws when the workout exercise does not exist", () => {
     expect(() =>
       removeWorkoutExercise(createWorkoutWithCompetitionBench(), {
@@ -394,6 +422,26 @@ describe("removeWorkoutSet", () => {
     expect(nextWorkout.exercises[0].sets[1].updatedAt).toBe(5000);
     expect(nextWorkout.workout.activeSetId).toBe("set_3");
     expect(nextWorkout.workout.updatedAt).toBe(5000);
+  });
+
+  it("selects the next unfinished set after a removed active set", () => {
+    const workoutWithThreeSets = addWorkoutSet(createWorkoutWithTwoSets(), {
+      workoutExerciseId: "workout_exercise_1",
+      setId: "set_3",
+      now: 4000,
+    });
+
+    const withMiddleSetActive = selectWorkoutSet(workoutWithThreeSets, {
+      setId: "set_2",
+      now: 5000,
+    });
+
+    const nextWorkout = removeWorkoutSet(withMiddleSetActive, {
+      setId: "set_2",
+      now: 6000,
+    });
+
+    expect(nextWorkout.workout.activeSetId).toBe("set_3");
   });
 
   it("removes the final exercise and clears the active set", () => {
@@ -901,6 +949,7 @@ describe("workout rest timer", () => {
     );
 
     expect(nextWorkoutAggregate.workout.restTimer).toEqual({
+      sourceSetId: "set_1",
       startedAt: 6000,
       endsAt: 186000,
     });
@@ -914,6 +963,315 @@ describe("workout rest timer", () => {
         now: 3000,
       }),
     ).toThrow("Rest timer can only start after a completed set");
+  });
+
+  it("rejects a timer whose source set does not exist", () => {
+    const withTimer = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      { setId: "set_1", now: 6000 },
+    );
+
+    const timer = withTimer.workout.restTimer;
+
+    if (!timer) {
+      throw new Error("Expected a running timer");
+    }
+
+    expect(() =>
+      assertWorkoutAggregateInvariants({
+        ...withTimer,
+        workout: {
+          ...withTimer.workout,
+          restTimer: {
+            ...timer,
+            sourceSetId: "missing_set",
+          },
+        },
+      }),
+    ).toThrow("Rest timer source must point to an existing set");
+  });
+
+  it("rejects an unfinished source set", () => {
+    const withTimer = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      { setId: "set_1", now: 6000 },
+    );
+    const timer = withTimer.workout.restTimer;
+
+    if (!timer) {
+      throw new Error("Expected a running timer");
+    }
+
+    expect(() =>
+      assertWorkoutAggregateInvariants({
+        ...withTimer,
+        workout: {
+          ...withTimer.workout,
+          restTimer: {
+            ...timer,
+            sourceSetId: "set_2",
+          },
+        },
+      }),
+    ).toThrow("Rest timer source set must be completed");
+  });
+
+  it("does not start when no unfinished set remains", () => {
+    const onlyCompletedSet = completeWorkoutSet(
+      updateWorkoutSet(createWorkoutWithCompetitionBench(), {
+        setId: "set_1",
+        weight: 100,
+        reps: 5,
+        now: 3000,
+      }),
+      { setId: "set_1", now: 4000 },
+    );
+
+    expect(() =>
+      startWorkoutRestTimer(onlyCompletedSet, {
+        setId: "set_1",
+        now: 5000,
+      }),
+    ).toThrow("Rest timer requires an unfinished set");
+  });
+
+  it("adds time while preserving the source and exercise references", () => {
+    const withTimer = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      { setId: "set_1", now: 6000 },
+    );
+
+    const nextWorkout = adjustWorkoutRestTimer(withTimer, {
+      seconds: 15,
+      now: 7000,
+    });
+
+    expect(nextWorkout.workout.restTimer).toEqual({
+      sourceSetId: "set_1",
+      startedAt: 6000,
+      endsAt: 201000,
+    });
+    expect(nextWorkout.workout.updatedAt).toBe(7000);
+    expect(nextWorkout.exercises).toBe(withTimer.exercises);
+  });
+
+  it("skips when adding time to an already expired timer", () => {
+    const withTimer = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      { setId: "set_1", now: 6000 },
+    );
+
+    const nextWorkout = adjustWorkoutRestTimer(withTimer, {
+      seconds: 15,
+      now: 200000,
+    });
+
+    expect(nextWorkout.workout.restTimer).toBeNull();
+    expect(nextWorkout.workout.activeSetId).toBe("set_2");
+    expect(nextWorkout.workout.updatedAt).toBe(200000);
+    expect(nextWorkout.exercises).toBe(withTimer.exercises);
+  });
+
+  it("subtracts time from a running timer", () => {
+    const withTimer = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      { setId: "set_1", now: 6000 },
+    );
+
+    const nextWorkout = adjustWorkoutRestTimer(withTimer, {
+      seconds: -15,
+      now: 7000,
+    });
+
+    expect(nextWorkout.workout.restTimer).toEqual({
+      sourceSetId: "set_1",
+      startedAt: 6000,
+      endsAt: 171000,
+    });
+  });
+
+  it("skips when subtracting time reaches zero", () => {
+    const withTimer = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      { setId: "set_1", now: 6000 },
+    );
+
+    const nextWorkout = adjustWorkoutRestTimer(withTimer, {
+      seconds: -15,
+      now: 180000,
+    });
+
+    expect(nextWorkout.workout.restTimer).toBeNull();
+    expect(nextWorkout.workout.activeSetId).toBe("set_2");
+    expect(nextWorkout.workout.updatedAt).toBe(180000);
+  });
+
+  it("resets to the source exercise rest duration", () => {
+    const withTimer = adjustWorkoutRestTimer(
+      startWorkoutRestTimer(createWorkoutWithCompletedFirstSet(), {
+        setId: "set_1",
+        now: 6000,
+      }),
+      { seconds: 15, now: 7000 },
+    );
+
+    const nextWorkout = resetWorkoutRestTimer(withTimer, { now: 8000 });
+
+    expect(nextWorkout.workout.restTimer).toEqual({
+      sourceSetId: "set_1",
+      startedAt: 8000,
+      endsAt: 188000,
+    });
+    expect(nextWorkout.workout.updatedAt).toBe(8000);
+    expect(nextWorkout.exercises).toBe(withTimer.exercises);
+  });
+
+  it("skips when resetting an already expired timer", () => {
+    const withTimer = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      { setId: "set_1", now: 6000 },
+    );
+
+    const nextWorkout = resetWorkoutRestTimer(withTimer, { now: 200000 });
+
+    expect(nextWorkout.workout.restTimer).toBeNull();
+    expect(nextWorkout.workout.activeSetId).toBe("set_2");
+    expect(nextWorkout.workout.updatedAt).toBe(200000);
+    expect(nextWorkout.exercises).toBe(withTimer.exercises);
+  });
+
+  it("skips to the next unfinished set after the source", () => {
+    const withTimer = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      { setId: "set_1", now: 6000 },
+    );
+
+    const nextWorkout = skipWorkoutRestTimer(withTimer, { now: 7000 });
+
+    expect(nextWorkout.workout.restTimer).toBeNull();
+    expect(nextWorkout.workout.activeSetId).toBe("set_2");
+    expect(nextWorkout.workout.updatedAt).toBe(7000);
+    expect(nextWorkout.exercises).toBe(withTimer.exercises);
+  });
+
+  it("wraps to an unfinished set before the source", () => {
+    const configuredWorkout = updateWorkoutSet(createWorkoutWithTwoSets(), {
+      setId: "set_2",
+      weight: 100,
+      reps: 5,
+      now: 4000,
+    });
+
+    const completedSecondSet = completeWorkoutSet(configuredWorkout, {
+      setId: "set_2",
+      now: 5000,
+    });
+
+    const withTimer = startWorkoutRestTimer(completedSecondSet, {
+      setId: "set_2",
+      now: 6000,
+    });
+
+    const nextWorkout = skipWorkoutRestTimer(withTimer, { now: 7000 });
+
+    expect(nextWorkout.workout.restTimer).toBeNull();
+    expect(nextWorkout.workout.activeSetId).toBe("set_1");
+  });
+
+  it("treats rest timer controls as no-ops when no timer exists", () => {
+    const sourceWorkout = createWorkoutWithCompletedFirstSet();
+
+    expect(
+      adjustWorkoutRestTimer(sourceWorkout, { seconds: 15, now: 7000 }),
+    ).toBe(sourceWorkout);
+    expect(resetWorkoutRestTimer(sourceWorkout, { now: 7000 })).toBe(
+      sourceWorkout,
+    );
+    expect(skipWorkoutRestTimer(sourceWorkout, { now: 7000 })).toBe(
+      sourceWorkout,
+    );
+  });
+
+  it("clears the timer when its source set is removed", () => {
+    const withTimer = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      { setId: "set_1", now: 6000 },
+    );
+
+    const nextWorkout = removeWorkoutSet(withTimer, {
+      setId: "set_1",
+      now: 7000,
+    });
+
+    expect(nextWorkout.workout.restTimer).toBeNull();
+  });
+
+  it("clears the timer when the final unfinished set is removed", () => {
+    const withTimer = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      { setId: "set_1", now: 6000 },
+    );
+
+    const nextWorkout = removeWorkoutSet(withTimer, {
+      setId: "set_2",
+      now: 7000,
+    });
+
+    expect(nextWorkout.workout.restTimer).toBeNull();
+  });
+
+  it("clears the timer when its source exercise is removed", () => {
+    const configuredWorkout = updateWorkoutSet(
+      createWorkoutWithTwoExercises(),
+      {
+        setId: "set_1",
+        weight: 100,
+        reps: 5,
+        now: 4000,
+      },
+    );
+    const completedSource = completeWorkoutSet(configuredWorkout, {
+      setId: "set_1",
+      now: 5000,
+    });
+    const withTimer = startWorkoutRestTimer(completedSource, {
+      setId: "set_1",
+      now: 6000,
+    });
+
+    const nextWorkout = removeWorkoutExercise(withTimer, {
+      workoutExerciseId: "workout_exercise_1",
+      now: 7000,
+    });
+
+    expect(nextWorkout.workout.restTimer).toBeNull();
+  });
+
+  it("clears the timer when the final unfinished exercise is removed", () => {
+    const configuredWorkout = updateWorkoutSet(
+      createWorkoutWithTwoExercises(),
+      {
+        setId: "set_1",
+        weight: 100,
+        reps: 5,
+        now: 4000,
+      },
+    );
+    const completedSource = completeWorkoutSet(configuredWorkout, {
+      setId: "set_1",
+      now: 5000,
+    });
+    const withTimer = startWorkoutRestTimer(completedSource, {
+      setId: "set_1",
+      now: 6000,
+    });
+
+    const nextWorkout = removeWorkoutExercise(withTimer, {
+      workoutExerciseId: "workout_exercise_2",
+      now: 7000,
+    });
+
+    expect(nextWorkout.workout.restTimer).toBeNull();
   });
 
   it("clears a running timer", () => {

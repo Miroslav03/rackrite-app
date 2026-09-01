@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useIsFocused } from "expo-router";
 
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -14,25 +15,30 @@ import type {
 import { ExercisePickerSheet } from "@/features/exercises/view/components/ExercisePickerSheet";
 import type { AddExerciseCommand } from "@/features/workout/actions/addExercise";
 import type { AddSetCommand } from "@/features/workout/actions/addSet";
+import type { AdjustRestTimerCommand } from "@/features/workout/actions/adjustRestTimer";
 import type { CompleteSetCommand } from "@/features/workout/actions/completeSet";
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
 import type { RemoveSetCommand } from "@/features/workout/actions/removeSet";
 import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
 import type { UndoSetCompletionCommand } from "@/features/workout/actions/undoCompletedSet";
 import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
+import { isOperationPending } from "@/features/workout/session/workoutSession.selectors";
 import type {
   ActiveWorkoutOperation,
   OperationState,
   WorkoutSessionResult,
 } from "@/features/workout/session/workoutSession.types";
 
+import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
 import { Screen } from "@/shared/components/layout/Screen";
 import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 import { ScreenSection } from "@/shared/components/layout/ScreenSection";
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
+import { CountdownTimer } from "@/shared/components/ui/CountdownTimer";
 import { DangerModal } from "@/shared/components/ui/DangerModal";
-import { colors } from "@/shared/theme/tokens";
+import { ElapsedTimer } from "@/shared/components/ui/ElapsedTimer";
+import { colors, spacing } from "@/shared/theme/tokens";
 
 import {
   getAddExerciseOperation,
@@ -41,10 +47,10 @@ import {
   isRemoveExerciseConfirmation,
   isRemoveSetConfirmation,
 } from "./activeWorkout.viewState.utils";
-import { ActiveSetEditorDock } from "./components/ActiveSetEditor/ActiveSetEditorDock";
-import { useActiveSetEditor } from "./components/ActiveSetEditor/useActiveSetEditor";
+import { ActiveSetEditorDock } from "./components/ActiveWorkoutDock/ActiveSetEditorDock";
+import { RestTimerDock } from "./components/ActiveWorkoutDock/RestTimerDock";
+import { useActiveWorkoutDockEditor } from "./components/ActiveWorkoutDock/useActiveWorkoutDockEditor";
 import { ActiveWorkoutOperationErrorNotifier } from "./components/ActiveWorkoutOperationErrorNotifier";
-import { ElapsedTimeHeaderMetric } from "./components/ElapsedTimeHeaderMetric";
 import { RestTimerCard } from "./components/RestTimerCard";
 import {
   WorkoutExerciseOptionsSheet,
@@ -78,6 +84,11 @@ export type ActiveWorkoutScreenActions = {
   undoCompletedSet: (
     command: UndoSetCompletionCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  adjustRestTimer: (
+    command: AdjustRestTimerCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  skipRestTimer: () => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  resetRestTimer: () => Promise<WorkoutSessionResult<WorkoutAggregate>>;
 };
 
 type ActiveWorkoutScreenViewProps = {
@@ -115,13 +126,23 @@ export function ActiveWorkoutScreenView({
   operation,
   actions,
 }: ActiveWorkoutScreenViewProps) {
+  const [activeDockHeight, setActiveDockHeight] = useState(0);
   const [activeOverlay, setActiveOverlay] =
     useState<ActiveWorkoutOverlay>(NO_ACTIVE_OVERLAY);
-  const [activeSetEditorHeight, setActiveSetEditorHeight] = useState(0);
 
-  const activeSetEditor = useActiveSetEditor(workout, actions);
-  const editorActiveSet = activeSetEditor.activeSet;
-  const editorActiveExercise = activeSetEditor.activeExercise;
+  const isFocused = useIsFocused();
+  const activeDockEditor = useActiveWorkoutDockEditor(workout, actions);
+
+  const operationPending = isOperationPending(operation);
+
+  const restTimer = workout.workout.restTimer;
+  const editorActiveSet = activeDockEditor.activeSet;
+  const editorActiveExercise = activeDockEditor.activeExercise;
+
+  const activeSetPanel =
+    activeDockEditor.panel.type === "restTimer" ? null : activeDockEditor.panel;
+  const restTimerDockOpen =
+    activeDockEditor.panel.type === "restTimer" && restTimer !== null;
 
   const excludedExerciseIds = workout.exercises.map(
     ({ exercise }) => exercise.id,
@@ -197,7 +218,7 @@ export function ActiveWorkoutScreenView({
   }
 
   async function openRemoveSetConfirmation(workoutSetId: WorkoutSetId) {
-    if (!(await activeSetEditor.savePendingKeypadUpdate())) {
+    if (!(await activeDockEditor.savePendingKeypadUpdate())) {
       return;
     }
 
@@ -233,7 +254,7 @@ export function ActiveWorkoutScreenView({
       return;
     }
 
-    if (!(await activeSetEditor.savePendingKeypadUpdate())) {
+    if (!(await activeDockEditor.savePendingKeypadUpdate())) {
       return;
     }
 
@@ -268,14 +289,40 @@ export function ActiveWorkoutScreenView({
 
   return (
     <>
-      <Screen scroll={false}>
+      <Screen
+        scroll={false}
+        className="pt-0"
+        headerRightAccessory={
+          restTimer ? (
+            <CountdownTimer
+              endsAt={restTimer.endsAt}
+              enabled={isFocused}
+              onExpire={() => {
+                void activeDockEditor.skipRestTimer();
+              }}
+            >
+              {(value) => (
+                <RestTimerCard
+                  time={value}
+                  disabled={operationPending}
+                  onPress={() => {
+                    void activeDockEditor.openRestTimerDock(restTimer);
+                  }}
+                />
+              )}
+            </CountdownTimer>
+          ) : null
+        }
+      >
         <ScrollView
           className="flex-1"
           contentContainerStyle={{
             flexGrow: 1,
-            paddingBottom: !activeSetEditor.activeSet
-              ? 0
-              : activeSetEditorHeight,
+            paddingTop: spacing.xl,
+            paddingBottom:
+              !restTimerDockOpen && !activeDockEditor.activeSet
+                ? 0
+                : activeDockHeight,
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -284,13 +331,14 @@ export function ActiveWorkoutScreenView({
             title="New Workout"
             subtitle={`${workout.workout.status} workout`.toUpperCase()}
             rightAccessory={
-              <ElapsedTimeHeaderMetric startedAt={workout.workout.startedAt} />
+              <ElapsedTimer
+                startedAt={workout.workout.startedAt}
+                enabled={isFocused}
+              >
+                {(value) => <HeaderMetric label="Duration" value={value} />}
+              </ElapsedTimer>
             }
           />
-
-          <ScreenSection>
-            <RestTimerCard time="12:22" />
-          </ScreenSection>
 
           {workout.exercises.length === 0 ? (
             <ScreenSection>
@@ -299,22 +347,23 @@ export function ActiveWorkoutScreenView({
               </AppText>
             </ScreenSection>
           ) : (
-            <View>
+            <View className="mt-2">
               {workout.exercises.map((exerciseAggregate) => (
                 <WorkoutExerciseSection
                   key={exerciseAggregate.workoutExercise.id}
                   exerciseAggregate={exerciseAggregate}
                   activeSetId={
-                    activeSetEditor.activeSet?.id ?? workout.workout.activeSetId
+                    activeDockEditor.activeSet?.id ??
+                    workout.workout.activeSetId
                   }
-                  activeSetField={activeSetEditor.panel.type}
-                  weightDraft={activeSetEditor.weightDraft}
-                  repsDraft={activeSetEditor.repsDraft}
+                  activeSetField={activeSetPanel?.type}
+                  weightDraft={activeDockEditor.weightDraft}
+                  repsDraft={activeDockEditor.repsDraft}
                   operation={operation}
                   exerciseActions={{
                     openOptions: openExerciseOptions,
                     addSet: handleAddSet,
-                    openSetEditor: activeSetEditor.openSetEditor,
+                    openSetEditor: activeDockEditor.openSetEditor,
                   }}
                 />
               ))}
@@ -324,9 +373,9 @@ export function ActiveWorkoutScreenView({
           <ScreenSection className="relative z-30 mt-auto pt-8 pb-4">
             <Button
               title="Add Exercise"
-              variant="solid"
-              intent="primary"
-              size="lg"
+              variant="ghost"
+              intent="neutral"
+              size="md"
               accessibilityRole="button"
               leftIcon={
                 <Ionicons
@@ -337,29 +386,63 @@ export function ActiveWorkoutScreenView({
               }
               onPress={openExercisePicker}
             />
+            <Button
+              title="Finish Workout"
+              variant="ghost"
+              intent="primary"
+              size="lg"
+              accessibilityRole="button"
+              leftIcon={
+                <Ionicons name="trophy" size={18} color={colors.primarySoft} />
+              }
+              textClassName="color-primarySoft"
+              onPress={() => {}}
+            />
+            <Button
+              title="Cancel Workout"
+              variant="ghost"
+              intent="danger"
+              size="md"
+              accessibilityRole="button"
+              leftIcon={
+                <Ionicons name="close-outline" size={18} color={colors.error} />
+              }
+              onPress={() => {}}
+            />
           </ScreenSection>
         </ScrollView>
       </Screen>
 
-      {editorActiveSet && editorActiveExercise ? (
+      {restTimerDockOpen && restTimer ? (
+        <RestTimerDock
+          endsAt={restTimer.endsAt}
+          enabled={isFocused}
+          operation={operation}
+          onAdjust={activeDockEditor.adjustRestTimer}
+          onReset={activeDockEditor.resetRestTimer}
+          onSkip={activeDockEditor.skipRestTimer}
+          onDismiss={activeDockEditor.closeRestTimerDock}
+          onHeightChange={setActiveDockHeight}
+        />
+      ) : activeSetPanel && editorActiveSet && editorActiveExercise ? (
         <ActiveSetEditorDock
           exerciseName={editorActiveExercise.exercise.name}
           activeSet={editorActiveSet}
           setCount={editorActiveExercise.sets.length}
-          panel={activeSetEditor.panel}
+          panel={activeSetPanel}
           operation={operation}
-          onAdjustWeight={activeSetEditor.adjustWeight}
-          onToggleKeypad={activeSetEditor.toggleKeypad}
-          onPressWeightKey={activeSetEditor.pressWeightKey}
-          onPressRepsKey={activeSetEditor.pressRepsKey}
-          onSelectRpe={activeSetEditor.selectRpe}
-          onSelectSetType={activeSetEditor.selectSetType}
-          onComplete={activeSetEditor.completeSet}
-          onUndoCompletion={activeSetEditor.undoCompletedSet}
+          onAdjustWeight={activeDockEditor.adjustWeight}
+          onToggleKeypad={activeDockEditor.toggleKeypad}
+          onPressWeightKey={activeDockEditor.pressWeightKey}
+          onPressRepsKey={activeDockEditor.pressRepsKey}
+          onSelectRpe={activeDockEditor.selectRpe}
+          onSelectSetType={activeDockEditor.selectSetType}
+          onComplete={activeDockEditor.completeSet}
+          onUndoCompletion={activeDockEditor.undoCompletedSet}
           onDelete={() => {
             void openRemoveSetConfirmation(editorActiveSet.id);
           }}
-          onHeightChange={setActiveSetEditorHeight}
+          onHeightChange={setActiveDockHeight}
         />
       ) : null}
 

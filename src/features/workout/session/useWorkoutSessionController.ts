@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 
+import type { AdjustRestTimerCommand } from "@/features/workout/actions/adjustRestTimer";
 import type { AddExerciseCommand } from "@/features/workout/actions/addExercise";
 import type { AddSetCommand } from "@/features/workout/actions/addSet";
 import type { CompleteSetCommand } from "@/features/workout/actions/completeSet";
@@ -49,6 +50,11 @@ export type WorkoutSessionController = {
   completeSet: (
     command: CompleteSetCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  adjustRestTimer: (
+    command: AdjustRestTimerCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  resetRestTimer: () => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  skipRestTimer: () => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   undoCompletedSet: (
     command: UndoSetCompletionCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
@@ -347,6 +353,45 @@ export function useWorkoutSessionController(
     [actions, runActiveWorkoutOperation],
   );
 
+  const adjustRestTimer = useCallback(
+    (command: AdjustRestTimerCommand) =>
+      runActiveWorkoutOperation({
+        operation: {
+          type: "adjustRestTimer",
+          seconds: command.seconds,
+        },
+        invalidStateMessage:
+          "The rest timer cannot be adjusted without an active workout",
+        failureMessage: "Failed to adjust the rest timer",
+        run: (workout) => actions.adjustRestTimer(workout, command),
+      }),
+    [actions, runActiveWorkoutOperation],
+  );
+
+  const resetRestTimer = useCallback(
+    () =>
+      runActiveWorkoutOperation({
+        operation: { type: "resetRestTimer" },
+        invalidStateMessage:
+          "The rest timer cannot be reset without an active workout",
+        failureMessage: "Failed to reset the rest timer",
+        run: (workout) => actions.resetRestTimer(workout),
+      }),
+    [actions, runActiveWorkoutOperation],
+  );
+
+  const skipRestTimer = useCallback(
+    () =>
+      runActiveWorkoutOperation({
+        operation: { type: "skipRestTimer" },
+        invalidStateMessage:
+          "The rest timer cannot be skipped without an active workout",
+        failureMessage: "Failed to skip the rest timer",
+        run: (workout) => actions.skipRestTimer(workout),
+      }),
+    [actions, runActiveWorkoutOperation],
+  );
+
   const undoCompletedSet = useCallback(
     (command: UndoSetCompletionCommand) =>
       runActiveWorkoutOperation({
@@ -372,6 +417,9 @@ export function useWorkoutSessionController(
     updateSet,
     selectSet,
     completeSet,
+    adjustRestTimer,
+    resetRestTimer,
+    skipRestTimer,
     undoCompletedSet,
     dismissOperationError,
   };

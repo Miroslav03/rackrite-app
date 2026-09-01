@@ -160,6 +160,21 @@ export function assertWorkoutRestTimerIsValid(
   if (timer.endsAt <= timer.startedAt) {
     throw new Error("Rest timer must end after it starts");
   }
+
+  const allSets = getAllWorkoutSets(workoutAggregate);
+  const sourceSet = allSets.find((set) => set.id === timer.sourceSetId);
+
+  if (!sourceSet) {
+    throw new Error("Rest timer source must point to an existing set");
+  }
+
+  if (sourceSet.finishedAt === null) {
+    throw new Error("Rest timer source set must be completed");
+  }
+
+  if (!allSets.some((set) => set.finishedAt === null)) {
+    throw new Error("Rest timer requires an unfinished set");
+  }
 }
 
 export function assertWorkoutAggregateInvariants(
