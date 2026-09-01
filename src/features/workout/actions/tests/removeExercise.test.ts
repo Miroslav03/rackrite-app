@@ -8,7 +8,7 @@ import {
 function createDependencies(): RemoveExerciseDependencies {
   return {
     repository: {
-      saveWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
+      updateWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
     },
     now: () => 3_000,
   };
@@ -26,7 +26,8 @@ describe("removeExercise", () => {
     expect(nextWorkout.exercises).toEqual([]);
     expect(nextWorkout.workout.activeSetId).toBeNull();
     expect(nextWorkout.workout.updatedAt).toBe(3_000);
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledWith(
+    expect(dependencies.repository.updateWorkoutAggregate).toHaveBeenCalledWith(
+      workout,
       nextWorkout,
     );
   });

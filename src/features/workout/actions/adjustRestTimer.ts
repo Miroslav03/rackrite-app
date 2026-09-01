@@ -10,7 +10,7 @@ export type AdjustRestTimerCommand = {
 };
 
 export type AdjustRestTimerDependencies = {
-  repository: Pick<WorkoutRepository, "saveWorkoutAggregate">;
+  repository: Pick<WorkoutRepository, "updateWorkoutAggregate">;
   now: () => number;
 };
 
@@ -28,7 +28,7 @@ export async function adjustRestTimer(
     return workout;
   }
 
-  await dependencies.repository.saveWorkoutAggregate(nextWorkout);
+  await dependencies.repository.updateWorkoutAggregate(workout, nextWorkout);
 
   return nextWorkout;
 }

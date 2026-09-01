@@ -15,7 +15,7 @@ const customAccessory: Exercise = {
 function createDependencies(): AddExerciseDependencies {
   return {
     repository: {
-      saveWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
+      updateWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
     },
     now: () => 2_000,
     createWorkoutExerciseId: () => "workout_exercise_1",
@@ -51,7 +51,8 @@ describe("addExercise", () => {
       ],
     });
     expect(nextWorkout.workout.activeSetId).toBe("set_1");
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledWith(
+    expect(dependencies.repository.updateWorkoutAggregate).toHaveBeenCalledWith(
+      workout,
       nextWorkout,
     );
   });

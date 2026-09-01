@@ -5,7 +5,7 @@ import { selectSet, type SelectSetDependencies } from "../selectSet";
 function createDependencies(): SelectSetDependencies {
   return {
     repository: {
-      saveWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
+      updateWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
     },
     now: () => 4_000,
   };
@@ -14,16 +14,16 @@ function createDependencies(): SelectSetDependencies {
 describe("selectSet", () => {
   it("selects the requested set and persists the returned aggregate", async () => {
     const dependencies = createDependencies();
+    const workout = createWorkoutWithTwoSets();
 
-    const nextWorkout = await selectSet(
-      dependencies,
-      createWorkoutWithTwoSets(),
-      { workoutSetId: "set_1" },
-    );
+    const nextWorkout = await selectSet(dependencies, workout, {
+      workoutSetId: "set_1",
+    });
 
     expect(nextWorkout.workout.activeSetId).toBe("set_1");
     expect(nextWorkout.workout.updatedAt).toBe(4_000);
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledWith(
+    expect(dependencies.repository.updateWorkoutAggregate).toHaveBeenCalledWith(
+      workout,
       nextWorkout,
     );
   });

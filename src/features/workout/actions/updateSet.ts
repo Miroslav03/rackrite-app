@@ -13,7 +13,7 @@ export type UpdateSetCommand = {
 };
 
 export type UpdateSetDependencies = {
-  repository: Pick<WorkoutRepository, "saveWorkoutAggregate">;
+  repository: Pick<WorkoutRepository, "updateWorkoutAggregate">;
   now: () => number;
 };
 
@@ -28,7 +28,7 @@ export async function updateSet(
     ...command.values,
   });
 
-  await dependencies.repository.saveWorkoutAggregate(nextWorkout);
+  await dependencies.repository.updateWorkoutAggregate(workout, nextWorkout);
 
   return nextWorkout;
 }

@@ -5,7 +5,7 @@ import { addSet, type AddSetDependencies } from "../addSet";
 function createDependencies(): AddSetDependencies {
   return {
     repository: {
-      saveWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
+      updateWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
     },
     createWorkoutSetId: () => "set_2",
     now: () => 3_000,
@@ -34,7 +34,8 @@ describe("addSet", () => {
       updatedAt: 3_000,
     });
     expect(nextWorkout.workout.activeSetId).toBe("set_2");
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledWith(
+    expect(dependencies.repository.updateWorkoutAggregate).toHaveBeenCalledWith(
+      workout,
       nextWorkout,
     );
   });
@@ -59,7 +60,8 @@ describe("addSet", () => {
       reps: 8,
       rpe: 6,
     });
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledWith(
+    expect(dependencies.repository.updateWorkoutAggregate).toHaveBeenCalledWith(
+      workout,
       nextWorkout,
     );
   });

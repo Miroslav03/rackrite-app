@@ -16,7 +16,7 @@ export type AddSetCommand = {
 };
 
 export type AddSetDependencies = {
-  repository: Pick<WorkoutRepository, "saveWorkoutAggregate">;
+  repository: Pick<WorkoutRepository, "updateWorkoutAggregate">;
   createWorkoutSetId: () => WorkoutSetId;
   now: () => number;
 };
@@ -33,7 +33,7 @@ export async function addSet(
     ...command.initialValues,
   });
 
-  await dependencies.repository.saveWorkoutAggregate(nextWorkout);
+  await dependencies.repository.updateWorkoutAggregate(workout, nextWorkout);
 
   return nextWorkout;
 }

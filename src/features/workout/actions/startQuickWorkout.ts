@@ -9,7 +9,7 @@ import { createEmptyWorkout } from "@/domain/workout/workout.useCases";
 export type StartQuickWorkoutDependencies = {
   repository: Pick<
     WorkoutRepository,
-    "getActiveWorkoutAggregate" | "saveWorkoutAggregate"
+    "getActiveWorkoutAggregate" | "insertWorkoutAggregate"
   >;
   now: () => number;
   createWorkoutId: () => WorkoutId;
@@ -30,7 +30,7 @@ export async function startQuickWorkout(
     now: dependencies.now(),
   });
 
-  await dependencies.repository.saveWorkoutAggregate(workout);
+  await dependencies.repository.insertWorkoutAggregate(workout);
 
   return workout;
 }

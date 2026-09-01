@@ -5,7 +5,7 @@ import { removeSet, type RemoveSetDependencies } from "../removeSet";
 function createDependencies(): RemoveSetDependencies {
   return {
     repository: {
-      saveWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
+      updateWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
     },
     now: () => 4_000,
   };
@@ -25,7 +25,8 @@ describe("removeSet", () => {
     ]);
     expect(nextWorkout.workout.activeSetId).toBe("set_1");
     expect(nextWorkout.workout.updatedAt).toBe(4_000);
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledWith(
+    expect(dependencies.repository.updateWorkoutAggregate).toHaveBeenCalledWith(
+      workout,
       nextWorkout,
     );
   });

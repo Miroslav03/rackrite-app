@@ -4,7 +4,7 @@ import type { WorkoutAggregate } from "@/domain/workout/workout.types";
 import { resetWorkoutRestTimer } from "@/domain/workout/workout.useCases";
 
 export type ResetRestTimerDependencies = {
-  repository: Pick<WorkoutRepository, "saveWorkoutAggregate">;
+  repository: Pick<WorkoutRepository, "updateWorkoutAggregate">;
   now: () => number;
 };
 
@@ -20,7 +20,7 @@ export async function resetRestTimer(
     return workout;
   }
 
-  await dependencies.repository.saveWorkoutAggregate(nextWorkout);
+  await dependencies.repository.updateWorkoutAggregate(workout, nextWorkout);
 
   return nextWorkout;
 }

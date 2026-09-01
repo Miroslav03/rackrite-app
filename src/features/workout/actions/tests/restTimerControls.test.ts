@@ -21,7 +21,7 @@ type RestTimerDependencies = AdjustRestTimerDependencies &
 function createDependencies(now = 7_000): RestTimerDependencies {
   return {
     repository: {
-      saveWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
+      updateWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
     },
     now: jest.fn(() => now),
   };
@@ -37,19 +37,19 @@ function createWorkoutWithRunningTimer() {
 describe("adjustRestTimer", () => {
   it("adjusts the timer using one timestamp and persists once", async () => {
     const dependencies = createDependencies();
+    const workout = createWorkoutWithRunningTimer();
 
-    const nextWorkout = await adjustRestTimer(
-      dependencies,
-      createWorkoutWithRunningTimer(),
-      { seconds: 15 },
-    );
+    const nextWorkout = await adjustRestTimer(dependencies, workout, {
+      seconds: 15,
+    });
 
     expect(nextWorkout.workout.restTimer?.endsAt).toBe(201_000);
     expect(dependencies.now).toHaveBeenCalledTimes(1);
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledTimes(
-      1,
-    );
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledWith(
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).toHaveBeenCalledTimes(1);
+    expect(dependencies.repository.updateWorkoutAggregate).toHaveBeenCalledWith(
+      workout,
       nextWorkout,
     );
   });
@@ -65,9 +65,9 @@ describe("adjustRestTimer", () => {
 
     expect(nextWorkout.workout.restTimer).toBeNull();
     expect(nextWorkout.workout.activeSetId).toBe("set_2");
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it("persists an expired-timer adjustment as one combined skip", async () => {
@@ -82,9 +82,9 @@ describe("adjustRestTimer", () => {
     expect(nextWorkout.workout.restTimer).toBeNull();
     expect(nextWorkout.workout.activeSetId).toBe("set_2");
     expect(dependencies.now).toHaveBeenCalledTimes(1);
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it("does not persist when the timer has already been cleared", async () => {
@@ -96,7 +96,9 @@ describe("adjustRestTimer", () => {
     });
 
     expect(nextWorkout).toBe(sourceWorkout);
-    expect(dependencies.repository.saveWorkoutAggregate).not.toHaveBeenCalled();
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).not.toHaveBeenCalled();
   });
 
   it("rejects without changing source state when persistence fails", async () => {
@@ -105,7 +107,7 @@ describe("adjustRestTimer", () => {
     const error = new Error("Database unavailable");
 
     jest
-      .mocked(dependencies.repository.saveWorkoutAggregate)
+      .mocked(dependencies.repository.updateWorkoutAggregate)
       .mockRejectedValueOnce(error);
 
     await expect(
@@ -130,9 +132,9 @@ describe("resetRestTimer", () => {
       endsAt: 188_000,
     });
     expect(dependencies.now).toHaveBeenCalledTimes(1);
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it("persists an expired-timer reset as one combined skip", async () => {
@@ -146,9 +148,9 @@ describe("resetRestTimer", () => {
     expect(nextWorkout.workout.restTimer).toBeNull();
     expect(nextWorkout.workout.activeSetId).toBe("set_2");
     expect(dependencies.now).toHaveBeenCalledTimes(1);
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it("does not persist when the timer has already been cleared", async () => {
@@ -158,7 +160,9 @@ describe("resetRestTimer", () => {
     const nextWorkout = await resetRestTimer(dependencies, sourceWorkout);
 
     expect(nextWorkout).toBe(sourceWorkout);
-    expect(dependencies.repository.saveWorkoutAggregate).not.toHaveBeenCalled();
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).not.toHaveBeenCalled();
   });
 
   it("rejects without changing source state when persistence fails", async () => {
@@ -167,7 +171,7 @@ describe("resetRestTimer", () => {
     const error = new Error("Database unavailable");
 
     jest
-      .mocked(dependencies.repository.saveWorkoutAggregate)
+      .mocked(dependencies.repository.updateWorkoutAggregate)
       .mockRejectedValueOnce(error);
 
     await expect(resetRestTimer(dependencies, sourceWorkout)).rejects.toBe(
@@ -189,9 +193,9 @@ describe("skipRestTimer", () => {
     expect(nextWorkout.workout.restTimer).toBeNull();
     expect(nextWorkout.workout.activeSetId).toBe("set_2");
     expect(dependencies.now).toHaveBeenCalledTimes(1);
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it("does not persist when the timer has already been cleared", async () => {
@@ -201,7 +205,9 @@ describe("skipRestTimer", () => {
     const nextWorkout = await skipRestTimer(dependencies, sourceWorkout);
 
     expect(nextWorkout).toBe(sourceWorkout);
-    expect(dependencies.repository.saveWorkoutAggregate).not.toHaveBeenCalled();
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).not.toHaveBeenCalled();
   });
 
   it("rejects without changing source state when persistence fails", async () => {
@@ -210,7 +216,7 @@ describe("skipRestTimer", () => {
     const error = new Error("Database unavailable");
 
     jest
-      .mocked(dependencies.repository.saveWorkoutAggregate)
+      .mocked(dependencies.repository.updateWorkoutAggregate)
       .mockRejectedValueOnce(error);
 
     await expect(skipRestTimer(dependencies, sourceWorkout)).rejects.toBe(

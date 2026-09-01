@@ -11,7 +11,7 @@ export type RemoveSetCommand = {
 };
 
 export type RemoveSetDependencies = {
-  repository: Pick<WorkoutRepository, "saveWorkoutAggregate">;
+  repository: Pick<WorkoutRepository, "updateWorkoutAggregate">;
   now: () => number;
 };
 
@@ -25,7 +25,7 @@ export async function removeSet(
     now: dependencies.now(),
   });
 
-  await dependencies.repository.saveWorkoutAggregate(nextWorkout);
+  await dependencies.repository.updateWorkoutAggregate(workout, nextWorkout);
 
   return nextWorkout;
 }

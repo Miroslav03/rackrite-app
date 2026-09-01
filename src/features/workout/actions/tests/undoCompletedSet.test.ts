@@ -8,7 +8,7 @@ import {
 function createDependencies(): UndoSetCompletionDependencies {
   return {
     repository: {
-      saveWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
+      updateWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
     },
     now: () => 6_000,
   };
@@ -17,10 +17,11 @@ function createDependencies(): UndoSetCompletionDependencies {
 describe("undoCompletedSet", () => {
   it("reopens the set and persists the returned aggregate once", async () => {
     const dependencies = createDependencies();
+    const workout = createWorkoutWithCompletedFirstSet();
 
     const nextWorkout = await undoCompletedSet(
       dependencies,
-      createWorkoutWithCompletedFirstSet(),
+      workout,
       { workoutSetId: "set_1" },
     );
 
@@ -29,10 +30,11 @@ describe("undoCompletedSet", () => {
       updatedAt: 6_000,
     });
     expect(nextWorkout.workout.activeSetId).toBe("set_1");
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledTimes(
-      1,
-    );
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledWith(
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).toHaveBeenCalledTimes(1);
+    expect(dependencies.repository.updateWorkoutAggregate).toHaveBeenCalledWith(
+      workout,
       nextWorkout,
     );
   });
@@ -43,7 +45,7 @@ describe("undoCompletedSet", () => {
     const dependencies = createDependencies();
 
     jest
-      .mocked(dependencies.repository.saveWorkoutAggregate)
+      .mocked(dependencies.repository.updateWorkoutAggregate)
       .mockRejectedValueOnce(error);
 
     await expect(

@@ -15,7 +15,7 @@ export type CompleteSetCommand = {
 };
 
 export type CompleteSetDependencies = {
-  repository: Pick<WorkoutRepository, "saveWorkoutAggregate">;
+  repository: Pick<WorkoutRepository, "updateWorkoutAggregate">;
   now: () => number;
 };
 
@@ -42,7 +42,7 @@ export async function completeSet(
       })
     : completedWorkout;
 
-  await dependencies.repository.saveWorkoutAggregate(nextWorkout);
+  await dependencies.repository.updateWorkoutAggregate(workout, nextWorkout);
 
   return nextWorkout;
 }

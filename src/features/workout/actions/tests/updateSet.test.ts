@@ -8,7 +8,7 @@ import { updateSet, type UpdateSetDependencies } from "../updateSet";
 function createDependencies(): UpdateSetDependencies {
   return {
     repository: {
-      saveWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
+      updateWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
     },
     now: () => 3_000,
   };
@@ -17,15 +17,12 @@ function createDependencies(): UpdateSetDependencies {
 describe("updateSet", () => {
   it("updates the requested values and persists the returned aggregate", async () => {
     const dependencies = createDependencies();
+    const workout = createWorkoutWithCompetitionBench();
 
-    const nextWorkout = await updateSet(
-      dependencies,
-      createWorkoutWithCompetitionBench(),
-      {
-        workoutSetId: "set_1",
-        values: { type: "top", weight: 100, rpe: 8 },
-      },
-    );
+    const nextWorkout = await updateSet(dependencies, workout, {
+      workoutSetId: "set_1",
+      values: { type: "top", weight: 100, rpe: 8 },
+    });
 
     expect(nextWorkout.exercises[0].sets[0]).toMatchObject({
       type: "top",
@@ -33,22 +30,20 @@ describe("updateSet", () => {
       rpe: 8,
       updatedAt: 3_000,
     });
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledWith(
+    expect(dependencies.repository.updateWorkoutAggregate).toHaveBeenCalledWith(
+      workout,
       nextWorkout,
     );
   });
 
   it("persists an automatic completed-set undo and update once", async () => {
     const dependencies = createDependencies();
+    const workout = createWorkoutWithCompletedFirstSet();
 
-    const nextWorkout = await updateSet(
-      dependencies,
-      createWorkoutWithCompletedFirstSet(),
-      {
-        workoutSetId: "set_1",
-        values: { reps: null },
-      },
-    );
+    const nextWorkout = await updateSet(dependencies, workout, {
+      workoutSetId: "set_1",
+      values: { reps: null },
+    });
 
     expect(nextWorkout.exercises[0].sets[0]).toMatchObject({
       reps: null,
@@ -56,10 +51,11 @@ describe("updateSet", () => {
       updatedAt: 3_000,
     });
     expect(nextWorkout.workout.activeSetId).toBe("set_1");
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledTimes(
-      1,
-    );
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledWith(
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).toHaveBeenCalledTimes(1);
+    expect(dependencies.repository.updateWorkoutAggregate).toHaveBeenCalledWith(
+      workout,
       nextWorkout,
     );
   });
@@ -70,7 +66,7 @@ describe("updateSet", () => {
     const dependencies = createDependencies();
 
     jest
-      .mocked(dependencies.repository.saveWorkoutAggregate)
+      .mocked(dependencies.repository.updateWorkoutAggregate)
       .mockRejectedValueOnce(error);
 
     await expect(

@@ -14,7 +14,7 @@ import { completeSet, type CompleteSetDependencies } from "../completeSet";
 function createDependencies(now = 5_000): CompleteSetDependencies {
   return {
     repository: {
-      saveWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
+      updateWorkoutAggregate: jest.fn().mockResolvedValue(undefined),
     },
     now: jest.fn(() => now),
   };
@@ -23,12 +23,11 @@ function createDependencies(now = 5_000): CompleteSetDependencies {
 describe("completeSet", () => {
   it("completes the set, starts rest, and persists the combined aggregate once", async () => {
     const dependencies = createDependencies();
+    const workout = createWorkoutWithUpdatedFirstSet();
 
-    const nextWorkout = await completeSet(
-      dependencies,
-      createWorkoutWithUpdatedFirstSet(),
-      { workoutSetId: "set_1" },
-    );
+    const nextWorkout = await completeSet(dependencies, workout, {
+      workoutSetId: "set_1",
+    });
 
     expect(nextWorkout.exercises[0].sets[0].finishedAt).toBe(5_000);
     expect(nextWorkout.workout.restTimer).toEqual({
@@ -37,10 +36,11 @@ describe("completeSet", () => {
       endsAt: 185_000,
     });
     expect(dependencies.now).toHaveBeenCalledTimes(1);
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledTimes(
-      1,
-    );
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledWith(
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).toHaveBeenCalledTimes(1);
+    expect(dependencies.repository.updateWorkoutAggregate).toHaveBeenCalledWith(
+      workout,
       nextWorkout,
     );
   });
@@ -72,9 +72,9 @@ describe("completeSet", () => {
       startedAt: 9_000,
       endsAt: 189_000,
     });
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it("does not start rest after the final unfinished set is completed", async () => {
@@ -94,9 +94,9 @@ describe("completeSet", () => {
     });
 
     expect(nextWorkout.workout.restTimer).toBeNull();
-    expect(dependencies.repository.saveWorkoutAggregate).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(
+      dependencies.repository.updateWorkoutAggregate,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it("rejects without changing the source aggregate when persistence fails", async () => {
@@ -105,7 +105,7 @@ describe("completeSet", () => {
     const error = new Error("Database unavailable");
 
     jest
-      .mocked(dependencies.repository.saveWorkoutAggregate)
+      .mocked(dependencies.repository.updateWorkoutAggregate)
       .mockRejectedValueOnce(error);
 
     await expect(
