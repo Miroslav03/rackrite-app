@@ -7,15 +7,18 @@ import type { SetType } from "@/domain/domain.types";
 import { SET_TYPE_CONFIG } from "@/features/workout/view/activeWorkout.config";
 import type { ActiveSetEditorPanelType } from "@/features/workout/view/components/ActiveWorkoutDock/activeWorkoutDock.types";
 
+import { WorkoutSetId } from "@/domain/workout/workout.types";
 import { AppText } from "@/shared/components/ui/AppText";
 import { SurfaceCard } from "@/shared/components/ui/SurfaceCard";
 import { colors } from "@/shared/theme/tokens";
 import { cn } from "@/shared/utils/cn";
+import { memo } from "react";
 
 type WorkoutSetStatus = "completed" | "active" | "pending";
 
 type WorkoutSetCardProps = {
   setIndex: number;
+  workoutSetId: WorkoutSetId;
   setType: SetType;
   weight: number | null;
   weightDraft?: string;
@@ -27,12 +30,15 @@ type WorkoutSetCardProps = {
   activeField?: ActiveSetEditorPanelType;
   disabled?: boolean;
   className?: string;
-  onSelect: () => void;
-  onEditField: (field: ActiveSetEditorPanelType) => void;
+  onOpenEditor: (
+    workoutSetId: WorkoutSetId,
+    field: ActiveSetEditorPanelType,
+  ) => void;
 };
 
-export function WorkoutSetCard({
+export const WorkoutSetCard = memo(function WorkoutSetCard({
   setIndex,
+  workoutSetId,
   setType,
   weight,
   weightDraft,
@@ -44,13 +50,20 @@ export function WorkoutSetCard({
   activeField,
   className,
   disabled,
-  onSelect,
-  onEditField,
+  onOpenEditor,
 }: WorkoutSetCardProps) {
   const isCompleted = status === "completed";
   const isSelected = status === "active" || selected;
   const isPending = status === "pending";
   const setTypeConfig = SET_TYPE_CONFIG[setType];
+
+  const handleSelect = () => {
+    onOpenEditor(workoutSetId, "weight");
+  };
+
+  const handleEditField = (field: ActiveSetEditorPanelType) => {
+    onOpenEditor(workoutSetId, field);
+  };
 
   return (
     <Pressable
@@ -59,7 +72,7 @@ export function WorkoutSetCard({
       accessibilityState={{ disabled, selected: isSelected }}
       disabled={disabled}
       className={className}
-      onPress={onSelect}
+      onPress={handleSelect}
     >
       <SurfaceCard
         variant={isSelected ? "high" : "default"}
@@ -111,7 +124,7 @@ export function WorkoutSetCard({
           valueColor={setTypeConfig.accentColor}
           disabled={disabled}
           className="flex-[1.4]"
-          onPress={() => onEditField("setType")}
+          onPress={() => handleEditField("setType")}
         />
 
         <SetFieldButton
@@ -123,7 +136,7 @@ export function WorkoutSetCard({
             (activeField === "weight" || activeField === "weightKeypad")
           }
           disabled={disabled}
-          onPress={() => onEditField("weightKeypad")}
+          onPress={() => handleEditField("weightKeypad")}
         />
 
         <SetFieldButton
@@ -132,7 +145,7 @@ export function WorkoutSetCard({
           highlightColor={setTypeConfig.accentColor}
           highlighted={isSelected && activeField === "repsKeypad"}
           disabled={disabled}
-          onPress={() => onEditField("repsKeypad")}
+          onPress={() => handleEditField("repsKeypad")}
         />
 
         <SetFieldButton
@@ -141,7 +154,7 @@ export function WorkoutSetCard({
           highlightColor={setTypeConfig.accentColor}
           highlighted={isSelected && activeField === "rpe"}
           disabled={disabled}
-          onPress={() => onEditField("rpe")}
+          onPress={() => handleEditField("rpe")}
         />
       </SurfaceCard>
       {isSelected ? (
@@ -153,7 +166,7 @@ export function WorkoutSetCard({
       ) : null}
     </Pressable>
   );
-}
+});
 
 function formatNumericSetValue(
   value: number | null,

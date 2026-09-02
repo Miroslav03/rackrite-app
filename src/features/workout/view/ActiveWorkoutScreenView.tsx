@@ -1,13 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "expo-router";
 
-import { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { FlatList, type ListRenderItemInfo } from "react-native";
 
 import type { Exercise, ExerciseKind } from "@/domain/exercises/exercise.types";
 import { getWorkoutExerciseById } from "@/domain/workout/workout.selectors";
 import type {
   WorkoutAggregate,
+  WorkoutExerciseAggregate,
   WorkoutExerciseId,
   WorkoutSetId,
 } from "@/domain/workout/workout.types";
@@ -56,7 +57,10 @@ import {
   WorkoutExerciseOptionsSheet,
   type WorkoutExerciseOption,
 } from "./components/WorkoutExerciseOptionsSheet";
-import { WorkoutExerciseSection } from "./components/WorkoutExerciseSection";
+import {
+  WorkoutExerciseSection,
+  type WorkoutExerciseSectionActions,
+} from "./components/WorkoutExerciseSection";
 
 export type ActiveWorkoutScreenActions = {
   dismissOperationError: (error: Error) => void;
@@ -133,11 +137,14 @@ export function ActiveWorkoutScreenView({
   const isFocused = useIsFocused();
   const activeDockEditor = useActiveWorkoutDockEditor(workout, actions);
 
-  const operationPending = isOperationPending(operation);
+  const { addSet } = actions;
 
   const restTimer = workout.workout.restTimer;
   const editorActiveSet = activeDockEditor.activeSet;
   const editorActiveExercise = activeDockEditor.activeExercise;
+  const editorActiveSetId = editorActiveSet?.id ?? workout.workout.activeSetId;
+  const editorActiveExerciseId =
+    editorActiveExercise?.workoutExercise.id ?? null;
 
   const activeSetPanel =
     activeDockEditor.panel.type === "restTimer" ? null : activeDockEditor.panel;
@@ -185,9 +192,12 @@ export function ActiveWorkoutScreenView({
     setActiveOverlay({ type: "exercisePicker" });
   }
 
-  function openExerciseOptions(workoutExerciseId: WorkoutExerciseId) {
-    setActiveOverlay({ type: "exerciseOptions", workoutExerciseId });
-  }
+  const openExerciseOptions = useCallback(
+    (workoutExerciseId: WorkoutExerciseId) => {
+      setActiveOverlay({ type: "exerciseOptions", workoutExerciseId });
+    },
+    [],
+  );
 
   async function handleExerciseSelected(exercise: Exercise) {
     const result = await actions.addExercise({ exercise });
@@ -245,9 +255,12 @@ export function ActiveWorkoutScreenView({
     });
   }
 
-  function handleAddSet(workoutExerciseId: WorkoutExerciseId) {
-    void actions.addSet({ workoutExerciseId });
-  }
+  const handleAddSet = useCallback(
+    (workoutExerciseId: WorkoutExerciseId) => {
+      void addSet({ workoutExerciseId });
+    },
+    [addSet],
+  );
 
   async function handleExerciseOptionSelected(option: WorkoutExerciseOption) {
     if (activeOverlay.type !== "exerciseOptions") {
@@ -287,6 +300,68 @@ export function ActiveWorkoutScreenView({
     }
   }
 
+  const exerciseActions = useMemo<WorkoutExerciseSectionActions>(
+    () => ({
+      openOptions: openExerciseOptions,
+      addSet: handleAddSet,
+      openSetEditor: activeDockEditor.openSetEditor,
+    }),
+    [openExerciseOptions, handleAddSet, activeDockEditor.openSetEditor],
+  );
+
+  const activeSetField = activeSetPanel?.type;
+  const weightDraft = activeDockEditor.weightDraft;
+  const repsDraft = activeDockEditor.repsDraft;
+
+  const exerciseListExtraData = useMemo(
+    () => ({
+      editorActiveExerciseId,
+      editorActiveSetId,
+      activeSetField,
+      weightDraft,
+      repsDraft,
+      operation,
+    }),
+    [
+      editorActiveExerciseId,
+      editorActiveSetId,
+      activeSetField,
+      weightDraft,
+      repsDraft,
+      operation, //Maybe manualy redundant since when updating state this changes but for local rendering is fine
+    ],
+  );
+
+  const renderExercise = useCallback(
+    ({
+      item: exerciseAggregate,
+    }: ListRenderItemInfo<WorkoutExerciseAggregate>) => {
+      const isActiveExercise =
+        exerciseAggregate.workoutExercise.id === editorActiveExerciseId;
+
+      return (
+        <WorkoutExerciseSection
+          exerciseAggregate={exerciseAggregate}
+          activeSetId={isActiveExercise ? editorActiveSetId : null}
+          activeSetField={isActiveExercise ? activeSetField : undefined}
+          weightDraft={isActiveExercise ? weightDraft : undefined}
+          repsDraft={isActiveExercise ? repsDraft : undefined}
+          operation={operation}
+          exerciseActions={exerciseActions}
+        />
+      );
+    },
+    [
+      editorActiveExerciseId,
+      editorActiveSetId,
+      activeSetField,
+      weightDraft,
+      repsDraft,
+      operation,
+      exerciseActions,
+    ],
+  );
+
   return (
     <>
       <Screen
@@ -304,7 +379,7 @@ export function ActiveWorkoutScreenView({
               {(value) => (
                 <RestTimerCard
                   time={value}
-                  disabled={operationPending}
+                  disabled={isOperationPending(operation)}
                   onPress={() => {
                     void activeDockEditor.openRestTimerDock(restTimer);
                   }}
@@ -314,8 +389,17 @@ export function ActiveWorkoutScreenView({
           ) : null
         }
       >
-        <ScrollView
+        <FlatList
           className="flex-1"
+          data={workout.exercises}
+          extraData={exerciseListExtraData}
+          keyExtractor={(exerciseAggregate) =>
+            exerciseAggregate.workoutExercise.id
+          }
+          renderItem={renderExercise}
+          initialNumToRender={3}
+          maxToRenderPerBatch={3}
+          windowSize={5}
           contentContainerStyle={{
             flexGrow: 1,
             paddingTop: spacing.xl,
@@ -326,91 +410,84 @@ export function ActiveWorkoutScreenView({
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-        >
-          <ScreenHeader
-            title="New Workout"
-            subtitle={`${workout.workout.status} workout`.toUpperCase()}
-            rightAccessory={
-              <ElapsedTimer
-                startedAt={workout.workout.startedAt}
-                enabled={isFocused}
-              >
-                {(value) => <HeaderMetric label="Duration" value={value} />}
-              </ElapsedTimer>
-            }
-          />
-
-          {workout.exercises.length === 0 ? (
+          ListHeaderComponent={
+            <ScreenHeader
+              title="New Workout"
+              subtitle={`${workout.workout.status} workout`.toUpperCase()}
+              rightAccessory={
+                <ElapsedTimer
+                  startedAt={workout.workout.startedAt}
+                  enabled={isFocused}
+                >
+                  {(value) => <HeaderMetric label="Duration" value={value} />}
+                </ElapsedTimer>
+              }
+            />
+          }
+          ListHeaderComponentStyle={
+            workout.exercises.length > 0
+              ? { marginBottom: spacing.sm }
+              : undefined
+          }
+          ListEmptyComponent={
             <ScreenSection>
               <AppText variant="subtitle">
                 Add an exercise to begin your workout.
               </AppText>
             </ScreenSection>
-          ) : (
-            <View className="mt-2">
-              {workout.exercises.map((exerciseAggregate) => (
-                <WorkoutExerciseSection
-                  key={exerciseAggregate.workoutExercise.id}
-                  exerciseAggregate={exerciseAggregate}
-                  activeSetId={
-                    activeDockEditor.activeSet?.id ??
-                    workout.workout.activeSetId
-                  }
-                  activeSetField={activeSetPanel?.type}
-                  weightDraft={activeDockEditor.weightDraft}
-                  repsDraft={activeDockEditor.repsDraft}
-                  operation={operation}
-                  exerciseActions={{
-                    openOptions: openExerciseOptions,
-                    addSet: handleAddSet,
-                    openSetEditor: activeDockEditor.openSetEditor,
-                  }}
-                />
-              ))}
-            </View>
-          )}
-
-          <ScreenSection className="relative z-30 mt-auto pt-8 pb-4">
-            <Button
-              title="Add Exercise"
-              variant="ghost"
-              intent="neutral"
-              size="md"
-              accessibilityRole="button"
-              leftIcon={
-                <Ionicons
-                  name="barbell-outline"
-                  size={18}
-                  color={colors.foreground}
-                />
-              }
-              onPress={openExercisePicker}
-            />
-            <Button
-              title="Finish Workout"
-              variant="ghost"
-              intent="primary"
-              size="lg"
-              accessibilityRole="button"
-              leftIcon={
-                <Ionicons name="trophy" size={18} color={colors.primarySoft} />
-              }
-              textClassName="color-primarySoft"
-              onPress={() => {}}
-            />
-            <Button
-              title="Cancel Workout"
-              variant="ghost"
-              intent="danger"
-              size="md"
-              accessibilityRole="button"
-              leftIcon={
-                <Ionicons name="close-outline" size={18} color={colors.error} />
-              }
-              onPress={() => {}}
-            />
-          </ScreenSection>
-        </ScrollView>
+          }
+          ListFooterComponent={
+            <ScreenSection className="relative z-30 mt-0 pt-8 pb-4">
+              <Button
+                title="Add Exercise"
+                variant="ghost"
+                intent="neutral"
+                size="md"
+                accessibilityRole="button"
+                leftIcon={
+                  <Ionicons
+                    name="barbell-outline"
+                    size={18}
+                    color={colors.foreground}
+                  />
+                }
+                onPress={openExercisePicker}
+              />
+              <Button
+                title="Finish Workout"
+                variant="ghost"
+                intent="primary"
+                size="lg"
+                accessibilityRole="button"
+                leftIcon={
+                  <Ionicons
+                    name="trophy"
+                    size={18}
+                    color={colors.primarySoft}
+                  />
+                }
+                textClassName="color-primarySoft"
+                onPress={() => {}}
+              />
+              <Button
+                title="Cancel Workout"
+                variant="ghost"
+                intent="danger"
+                size="md"
+                accessibilityRole="button"
+                leftIcon={
+                  <Ionicons
+                    name="close-outline"
+                    size={18}
+                    color={colors.error}
+                  />
+                }
+                onPress={() => {}}
+              />
+            </ScreenSection>
+          }
+          ListFooterComponentStyle={{ marginTop: "auto" }}
+        />
       </Screen>
 
       {restTimerDockOpen && restTimer ? (

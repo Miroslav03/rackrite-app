@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 
+import { memo } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
 import type {
@@ -87,35 +88,14 @@ export function WorkoutExerciseSection({
       </View>
       {/* TODO: Should add notes with desgin later here */}
 
-      {sets.map((set) => {
-        const status =
-          set.finishedAt !== null
-            ? "completed"
-            : set.id === activeSetId
-              ? "active"
-              : "pending";
-
-        return (
-          <WorkoutSetCard
-            key={set.id}
-            setIndex={set.setIndex + 1}
-            setType={set.type}
-            weight={set.weight}
-            weightDraft={activeSetId === set.id ? weightDraft : undefined}
-            reps={set.reps}
-            repsDraft={activeSetId === set.id ? repsDraft : undefined}
-            rpe={set.rpe}
-            status={status}
-            selected={set.id === activeSetId}
-            activeField={activeSetField}
-            disabled={isOperationPending(operation)}
-            onSelect={() => exerciseActions.openSetEditor(set.id, "weight")}
-            onEditField={(field) =>
-              exerciseActions.openSetEditor(set.id, field)
-            }
-          />
-        );
-      })}
+      <WorkoutSetList
+        sets={sets}
+        activeSetId={activeSetId}
+        activeSetField={activeSetField}
+        weightDraft={weightDraft}
+        repsDraft={repsDraft}
+        onOpenEditor={exerciseActions.openSetEditor}
+      />
 
       <Button
         title={addSetPending ? "Adding..." : "Add Set"}
@@ -141,3 +121,49 @@ export function WorkoutExerciseSection({
     </ScreenSection>
   );
 }
+
+type WorkoutSetListProps = {
+  sets: WorkoutExerciseAggregate["sets"];
+  activeSetId: WorkoutSetId | null;
+  activeSetField?: ActiveSetEditorPanelType;
+  weightDraft?: string;
+  repsDraft?: string;
+  onOpenEditor: WorkoutExerciseSectionActions["openSetEditor"];
+};
+
+const WorkoutSetList = memo(function WorkoutSetList({
+  sets,
+  activeSetId,
+  activeSetField,
+  weightDraft,
+  repsDraft,
+  onOpenEditor,
+}: WorkoutSetListProps) {
+  return sets.map((set) => {
+    const isActiveSet = set.id === activeSetId;
+    const status =
+      set.finishedAt !== null
+        ? "completed"
+        : isActiveSet
+          ? "active"
+          : "pending";
+
+    return (
+      <WorkoutSetCard
+        key={set.id}
+        workoutSetId={set.id}
+        setIndex={set.setIndex + 1}
+        setType={set.type}
+        weight={set.weight}
+        weightDraft={isActiveSet ? weightDraft : undefined}
+        reps={set.reps}
+        repsDraft={isActiveSet ? repsDraft : undefined}
+        rpe={set.rpe}
+        status={status}
+        selected={isActiveSet}
+        activeField={isActiveSet ? activeSetField : undefined}
+        onOpenEditor={onOpenEditor}
+      />
+    );
+  });
+});

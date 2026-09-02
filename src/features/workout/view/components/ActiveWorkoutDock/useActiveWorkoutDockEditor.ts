@@ -1,36 +1,38 @@
+import { useCallback, useEffect, useRef } from "react";
+
 import type { SetType } from "@/domain/domain.types";
 import {
-    getActiveWorkoutExercise,
-    getActiveWorkoutSet,
-    getWorkoutSetById,
+  getActiveWorkoutExercise,
+  getActiveWorkoutSet,
+  getWorkoutSetById,
 } from "@/domain/workout/workout.selectors";
 import type {
-    WorkoutAggregate,
-    WorkoutRestTimer,
-    WorkoutSetId,
+  WorkoutAggregate,
+  WorkoutRestTimer,
+  WorkoutSetId,
 } from "@/domain/workout/workout.types";
 
 import type { RestTimerAdjustmentSeconds } from "@/features/workout/actions/adjustRestTimer";
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
 import {
-    SET_VALUE_UPDATE_DEBOUNCE_MS,
-    type RpePickerValue,
+  SET_VALUE_UPDATE_DEBOUNCE_MS,
+  type RpePickerValue,
 } from "@/features/workout/view/activeWorkout.config";
 
 import type { InteractiveKeypadKey } from "@/shared/components/ui/InteractiveKeypad";
 import { useDebouncedCallback } from "@/shared/hooks/useDebouncedCallback";
 
 import {
-    addWeightIncrement,
-    formatKeypadDraft,
-    parseKeypadDraft,
-    updateKeypadDraft,
+  addWeightIncrement,
+  formatKeypadDraft,
+  parseKeypadDraft,
+  updateKeypadDraft,
 } from "./activeSetEditorKeypad.utils";
 import type { ActiveSetEditorPanelType } from "./activeWorkoutDock.types";
 import {
-    isActiveSetEditorKeypadPanel,
-    isRepsKeypadPanel,
-    isWeightKeypadPanel,
+  isActiveSetEditorKeypadPanel,
+  isRepsKeypadPanel,
+  isWeightKeypadPanel,
 } from "./activeWorkoutDock.types.utils";
 import { useActiveWorkoutDockController } from "./useActiveWorkoutDockController";
 
@@ -94,10 +96,10 @@ export function useActiveWorkoutDockEditor(
     return true;
   }
 
-  async function openSetEditor(
+  const openSetEditor = async (
     nextWorkoutSetId: WorkoutSetId,
     nextPanelType: ActiveSetEditorPanelType,
-  ) {
+  ) => {
     const isChangingSet = workout.workout.activeSetId !== nextWorkoutSetId;
     const isChangingPanel = panelController.panel.type !== nextPanelType;
 
@@ -152,6 +154,25 @@ export function useActiveWorkoutDockEditor(
     }
 
     panelController.openPanel(nextWorkoutSetId, nextPanelType);
+  };
+
+  const latestOpenSetEditorRef = useRef(openSetEditor);
+
+  useEffect(() => {
+    latestOpenSetEditorRef.current = openSetEditor;
+  });
+
+  const openSetEditorMemoized = useCallback(
+    (nextWorkoutSetId: WorkoutSetId, nextPanelType: ActiveSetEditorPanelType) =>
+      latestOpenSetEditorRef.current(nextWorkoutSetId, nextPanelType),
+    [],
+  );
+
+  function showRestTimerPanel(restTimer: WorkoutRestTimer) {
+    panelController.openRestTimerPanel(
+      restTimer.sourceSetId,
+      restTimer.startedAt,
+    );
   }
 
   async function openRestTimerDock(restTimer: WorkoutRestTimer) {
@@ -160,13 +181,6 @@ export function useActiveWorkoutDockEditor(
     }
 
     showRestTimerPanel(restTimer);
-  }
-
-  function showRestTimerPanel(restTimer: WorkoutRestTimer) {
-    panelController.openRestTimerPanel(
-      restTimer.sourceSetId,
-      restTimer.startedAt,
-    );
   }
 
   async function adjustRestTimer(seconds: RestTimerAdjustmentSeconds) {
@@ -322,7 +336,7 @@ export function useActiveWorkoutDockEditor(
     repsDraft: isRepsKeypadPanel(panelController.panel)
       ? panelController.panel.draft
       : undefined,
-    openSetEditor,
+    openSetEditor: openSetEditorMemoized,
     openRestTimerDock,
     closeRestTimerDock: panelController.closeRestTimerPanel,
     adjustRestTimer,
