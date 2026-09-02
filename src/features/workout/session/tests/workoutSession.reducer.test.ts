@@ -377,7 +377,8 @@ describe("workoutSessionReducer", () => {
         status: "active",
         workout,
         operation: {
-          status: "idle",
+          status: "pending",
+          operation: { type: "cancelWorkout" },
         },
       };
 

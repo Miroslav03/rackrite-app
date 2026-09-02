@@ -3,6 +3,7 @@ import {
   addWorkoutExercise,
   addWorkoutSet,
   adjustWorkoutRestTimer,
+  cancelWorkout,
   clearWorkoutRestTimer,
   completeWorkoutSet,
   createEmptyWorkout,
@@ -935,6 +936,28 @@ describe("finishWorkout", () => {
     expect(finishedWorkout.workout.status).toBe("completed");
     expect(finishedWorkout.exercises[0].sets[0].finishedAt).toBe(5000);
     expect(finishedWorkout.exercises[0].sets[1].finishedAt).toBeNull();
+  });
+});
+
+describe("cancelWorkout", () => {
+  it("returns the active workout ID as the deletion target", () => {
+    const workout = createEmptyWorkout({
+      id: "workout_1",
+      now: 1_000,
+    });
+
+    expect(cancelWorkout(workout)).toBe("workout_1");
+  });
+
+  it("throws when cancelling a completed workout", () => {
+    const completedWorkout = finishWorkout(
+      createWorkoutWithCompletedFirstSet(),
+      { now: 6_000 },
+    );
+
+    expect(() => cancelWorkout(completedWorkout)).toThrow(
+      "Workout must be active",
+    );
   });
 });
 

@@ -29,6 +29,7 @@ export type WorkoutSessionController = {
   state: WorkoutSessionState;
   dismissOperationError: (error: Error) => void;
   startEmptyWorkout: () => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  cancelWorkout: () => Promise<WorkoutSessionResult<void>>;
   addExercise: (
     command: AddExerciseCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
@@ -60,12 +61,23 @@ export type WorkoutSessionController = {
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
 };
 
-type RunActiveWorkoutOperationInput = {
+type ExecuteActiveWorkoutOperationInput<TResult> = {
   operation: ActiveWorkoutOperation;
   invalidStateMessage: string;
   failureMessage: string;
-  run: (workout: WorkoutAggregate) => Promise<WorkoutAggregate>;
+  run: (workout: WorkoutAggregate) => Promise<TResult>;
+  onSuccess: (result: TResult) => void;
 };
+
+type RunActiveWorkoutOperationInput = Omit<
+  ExecuteActiveWorkoutOperationInput<WorkoutAggregate>,
+  "onSuccess"
+>;
+
+type RunTerminalWorkoutOperationInput = Omit<
+  ExecuteActiveWorkoutOperationInput<void>,
+  "onSuccess"
+>;
 
 const initialWorkoutSessionState: WorkoutSessionState = {
   status: "loading",
@@ -124,14 +136,15 @@ export function useWorkoutSessionController(
     };
   }, [actions]);
 
-  const runActiveWorkoutOperation = useCallback(
-    async ({
+  const executeActiveWorkoutOperation = useCallback(
+    async <TResult,>({
       operation,
       invalidStateMessage,
       failureMessage,
       run,
-    }: RunActiveWorkoutOperationInput): Promise<
-      WorkoutSessionResult<WorkoutAggregate>
+      onSuccess,
+    }: ExecuteActiveWorkoutOperationInput<TResult>): Promise<
+      WorkoutSessionResult<TResult>
     > => {
       const activeWorkout = activeWorkoutRef.current;
 
@@ -157,12 +170,11 @@ export function useWorkoutSessionController(
       dispatch({ type: "activeOperationStarted", operation });
 
       try {
-        const workout = await run(activeWorkout);
+        const result = await run(activeWorkout);
 
-        activeWorkoutRef.current = workout;
-        dispatch({ type: "workoutCommitted", workout });
+        onSuccess(result);
 
-        return success(workout);
+        return success(result);
       } catch (error) {
         const sessionError = new WorkoutSessionError({
           code: "operationFailed",
@@ -182,6 +194,30 @@ export function useWorkoutSessionController(
       }
     },
     [state.status],
+  );
+
+  const runActiveWorkoutOperation = useCallback(
+    (input: RunActiveWorkoutOperationInput) =>
+      executeActiveWorkoutOperation({
+        ...input,
+        onSuccess: (workout) => {
+          activeWorkoutRef.current = workout;
+          dispatch({ type: "workoutCommitted", workout });
+        },
+      }),
+    [executeActiveWorkoutOperation],
+  );
+
+  const runTerminalWorkoutOperation = useCallback(
+    (input: RunTerminalWorkoutOperationInput) =>
+      executeActiveWorkoutOperation({
+        ...input,
+        onSuccess: () => {
+          activeWorkoutRef.current = null;
+          dispatch({ type: "workoutCleared" });
+        },
+      }),
+    [executeActiveWorkoutOperation],
   );
 
   const dismissOperationError = useCallback((error: Error) => {
@@ -262,6 +298,18 @@ export function useWorkoutSessionController(
         run: (workout) => actions.addExercise(workout, command),
       }),
     [actions, runActiveWorkoutOperation],
+  );
+
+  const cancelWorkout = useCallback(
+    () =>
+      runTerminalWorkoutOperation({
+        operation: { type: "cancelWorkout" },
+        invalidStateMessage:
+          "A workout cannot be cancelled without an active workout",
+        failureMessage: "Failed to cancel the workout",
+        run: (workout) => actions.cancelWorkout(workout),
+      }),
+    [actions, runTerminalWorkoutOperation],
   );
 
   const removeExercise = useCallback(
@@ -410,6 +458,7 @@ export function useWorkoutSessionController(
   return {
     state,
     startEmptyWorkout,
+    cancelWorkout,
     addExercise,
     removeExercise,
     removeSet,

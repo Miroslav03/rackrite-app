@@ -806,3 +806,11 @@ export function finishWorkout(
 
   return nextWorkoutAggregate;
 }
+
+export function cancelWorkout(
+  workoutAggregate: WorkoutAggregate,
+): WorkoutId {
+  assertWorkoutIsActive(workoutAggregate);
+
+  return workoutAggregate.workout.id;
+}

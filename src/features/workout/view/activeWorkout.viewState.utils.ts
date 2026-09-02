@@ -29,6 +29,15 @@ export function getDangerConfirmationContent(
   confirmation: DangerConfirmationModal,
 ) {
   switch (confirmation.action) {
+    case "cancelWorkout":
+      return {
+        title: "CANCEL WORKOUT?",
+        description:
+          "This workout and all logged exercises and sets will be permanently deleted. This action cannot be undone.",
+        confirmLabel: "CANCEL",
+        pendingLabel: "CANCELING...",
+      };
+
     case "removeExercise": {
       const exercise = getWorkoutExerciseById(
         workout,
@@ -117,6 +126,11 @@ export function getDangerOperation(
   }
 
   switch (overlay.confirmation.action) {
+    case "cancelWorkout":
+      return operation.operation.type === "cancelWorkout"
+        ? { status: "pending", label: "CANCELING..." }
+        : { status: "idle" };
+
     case "removeExercise":
       return operation.operation.type === "removeExercise" &&
         operation.operation.workoutExerciseId ===

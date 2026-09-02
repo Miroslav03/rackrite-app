@@ -72,6 +72,9 @@ function getOperationErrorMessage(operation: ActiveWorkoutOperation): string {
     case "selectSet":
       return "Couldn't select set. Try again.";
 
+    case "cancelWorkout":
+      return "Couldn't cancel workout. Try again.";
+
     case "finishWorkout":
       return "Couldn't finish workout. Try again.";
   }

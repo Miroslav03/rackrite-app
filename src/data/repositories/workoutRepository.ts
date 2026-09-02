@@ -22,6 +22,7 @@ import { diffRowsById, haveSamePersistedRowValues } from "../utils";
 
 export type WorkoutRepository = {
   insertWorkoutAggregate: (workout: WorkoutAggregate) => Promise<void>;
+  deleteWorkoutAggregate: (workoutId: WorkoutId) => Promise<void>;
   updateWorkoutAggregate: (
     previous: WorkoutAggregate,
     next: WorkoutAggregate,
@@ -56,6 +57,11 @@ export const insertWorkoutAggregate: WorkoutRepository["insertWorkoutAggregate"]
         await tx.insert(workoutSetsTable).values(workoutSetRows);
       }
     });
+  };
+
+export const deleteWorkoutAggregate: WorkoutRepository["deleteWorkoutAggregate"] =
+  async (workoutId) => {
+    await db.delete(workoutsTable).where(eq(workoutsTable.id, workoutId));
   };
 
 export const updateWorkoutAggregate: WorkoutRepository["updateWorkoutAggregate"] =
@@ -275,6 +281,7 @@ export const getCompletedWorkoutAggregates: WorkoutRepository["getCompletedWorko
 
 export const workoutRepository: WorkoutRepository = {
   insertWorkoutAggregate,
+  deleteWorkoutAggregate,
   updateWorkoutAggregate,
   getWorkoutAggregateById,
   getActiveWorkoutAggregate,

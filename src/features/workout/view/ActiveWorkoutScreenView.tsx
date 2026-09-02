@@ -64,6 +64,7 @@ import {
 
 export type ActiveWorkoutScreenActions = {
   dismissOperationError: (error: Error) => void;
+  cancelWorkout: () => Promise<WorkoutSessionResult<void>>;
   addExercise: (
     command: AddExerciseCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
@@ -102,6 +103,9 @@ type ActiveWorkoutScreenViewProps = {
 };
 
 export type DangerConfirmationModal =
+  | {
+      action: "cancelWorkout";
+    }
   | {
       action: "removeExercise";
       workoutExerciseId: WorkoutExerciseId;
@@ -227,6 +231,21 @@ export function ActiveWorkoutScreenView({
     });
   }
 
+  async function openCancelWorkoutConfirmation() {
+    if (!(await activeDockEditor.savePendingKeypadUpdate())) {
+      return;
+    }
+
+    setActiveOverlay({
+      type: "dangerConfirmationModal",
+      confirmation: { action: "cancelWorkout" },
+    });
+  }
+
+  async function handleCancelWorkout() {
+    await actions.cancelWorkout();
+  }
+
   async function openRemoveSetConfirmation(workoutSetId: WorkoutSetId) {
     if (!(await activeDockEditor.savePendingKeypadUpdate())) {
       return;
@@ -290,6 +309,10 @@ export function ActiveWorkoutScreenView({
     }
 
     switch (activeOverlay.confirmation.action) {
+      case "cancelWorkout":
+        void handleCancelWorkout();
+        return;
+
       case "removeExercise":
         void handleRemoveExercise(activeOverlay.confirmation.workoutExerciseId);
         return;
@@ -482,7 +505,9 @@ export function ActiveWorkoutScreenView({
                     color={colors.error}
                   />
                 }
-                onPress={() => {}}
+                onPress={() => {
+                  void openCancelWorkoutConfirmation();
+                }}
               />
             </ScreenSection>
           }

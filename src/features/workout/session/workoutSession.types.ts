@@ -23,6 +23,7 @@ export type ActiveWorkoutOperation =
   | { type: "skipRestTimer" }
   | { type: "undoCompletedSet"; workoutSetId: WorkoutSetId }
   | { type: "selectSet"; workoutSetId: WorkoutSetId }
+  | { type: "cancelWorkout" }
   | { type: "finishWorkout" };
 
 export type WorkoutSessionResult<TValue> = Result<TValue, WorkoutSessionError>;

@@ -9,6 +9,7 @@ import { FullScreenLoader } from "@/shared/components/feedback/FullScreenLoader"
 export default function WorkoutScreen() {
   const {
     state,
+    cancelWorkout,
     addExercise,
     removeExercise,
     removeSet,
@@ -44,6 +45,7 @@ export default function WorkoutScreen() {
           workout={state.workout}
           operation={state.operation}
           actions={{
+            cancelWorkout,
             addExercise,
             removeExercise,
             removeSet,
