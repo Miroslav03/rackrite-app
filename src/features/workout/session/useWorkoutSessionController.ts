@@ -4,6 +4,7 @@ import type { AdjustRestTimerCommand } from "@/features/workout/actions/adjustRe
 import type { AddExerciseCommand } from "@/features/workout/actions/addExercise";
 import type { AddSetCommand } from "@/features/workout/actions/addSet";
 import type { CompleteSetCommand } from "@/features/workout/actions/completeSet";
+import type { CopyPreviousSetCommand } from "@/features/workout/actions/copyPreviousSet";
 import type { FinishWorkoutCommand } from "@/features/workout/actions/finishWorkout";
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
 import type { RemoveSetCommand } from "@/features/workout/actions/removeSet";
@@ -45,6 +46,9 @@ export type WorkoutSessionController = {
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   addSet: (
     command: AddSetCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  copyPreviousSet: (
+    command: CopyPreviousSetCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   updateSet: (
     command: UpdateSetCommand,
@@ -141,7 +145,7 @@ export function useWorkoutSessionController(
   }, [actions]);
 
   const executeActiveWorkoutOperation = useCallback(
-    async <TResult,>({
+    async <TResult>({
       operation,
       invalidStateMessage,
       failureMessage,
@@ -372,6 +376,21 @@ export function useWorkoutSessionController(
     [actions, runActiveWorkoutOperation],
   );
 
+  const copyPreviousSet = useCallback(
+    (command: CopyPreviousSetCommand) =>
+      runActiveWorkoutOperation({
+        operation: {
+          type: "copyPreviousSet",
+          workoutExerciseId: command.workoutExerciseId,
+        },
+        invalidStateMessage:
+          "A previous set cannot be copied without an active workout",
+        failureMessage: "Failed to copy the previous set",
+        run: (workout) => actions.copyPreviousSet(workout, command),
+      }),
+    [actions, runActiveWorkoutOperation],
+  );
+
   const updateSet = useCallback(
     (command: UpdateSetCommand) =>
       runActiveWorkoutOperation({
@@ -480,6 +499,7 @@ export function useWorkoutSessionController(
     removeExercise,
     removeSet,
     addSet,
+    copyPreviousSet,
     updateSet,
     selectSet,
     completeSet,

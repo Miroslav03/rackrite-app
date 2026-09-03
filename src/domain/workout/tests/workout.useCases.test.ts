@@ -337,6 +337,28 @@ describe("addWorkoutSet", () => {
     expect(nextWorkoutAggregate.workout.updatedAt).toBe(3000);
   });
 
+  it("uses the provided values for the new set", () => {
+    const nextWorkoutAggregate = addWorkoutSet(
+      createWorkoutWithCompetitionBench(),
+      {
+        workoutExerciseId: "workout_exercise_1",
+        setId: "set_2",
+        type: "warmup",
+        weight: 60,
+        reps: 8,
+        rpe: 6,
+        now: 3000,
+      },
+    );
+
+    expect(nextWorkoutAggregate.exercises[0].sets[1]).toMatchObject({
+      type: "warmup",
+      weight: 60,
+      reps: 8,
+      rpe: 6,
+    });
+  });
+
   it("throws when the workout exercise does not exist", () => {
     expect(() =>
       addWorkoutSet(

@@ -21,6 +21,7 @@ import type { AddExerciseCommand } from "@/features/workout/actions/addExercise"
 import type { AddSetCommand } from "@/features/workout/actions/addSet";
 import type { AdjustRestTimerCommand } from "@/features/workout/actions/adjustRestTimer";
 import type { CompleteSetCommand } from "@/features/workout/actions/completeSet";
+import type { CopyPreviousSetCommand } from "@/features/workout/actions/copyPreviousSet";
 import type { FinishWorkoutCommand } from "@/features/workout/actions/finishWorkout";
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
 import type { RemoveSetCommand } from "@/features/workout/actions/removeSet";
@@ -81,6 +82,9 @@ export type ActiveWorkoutScreenActions = {
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   addSet: (
     command: AddSetCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  copyPreviousSet: (
+    command: CopyPreviousSetCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   updateSet: (
     command: UpdateSetCommand,
@@ -144,7 +148,8 @@ export function ActiveWorkoutScreenView({
   const modalContent = getModalContent(workout, activeOverlay);
   const workoutEligibility = getWorkoutFinishEligibility(workout);
 
-  const { addSet } = actions;
+  const { addSet, copyPreviousSet } = actions;
+  const { savePendingKeypadUpdate } = activeDockEditor;
 
   const restTimer = workout.workout.restTimer;
   const editorActiveSet = activeDockEditor.activeSet;
@@ -280,10 +285,25 @@ export function ActiveWorkoutScreenView({
   }
 
   const handleAddSet = useCallback(
-    (workoutExerciseId: WorkoutExerciseId) => {
+    async (workoutExerciseId: WorkoutExerciseId) => {
+      if (!(await savePendingKeypadUpdate())) {
+        return;
+      }
+
       void addSet({ workoutExerciseId });
     },
-    [addSet],
+    [addSet, savePendingKeypadUpdate],
+  );
+
+  const handleCopyPreviousSet = useCallback(
+    async (workoutExerciseId: WorkoutExerciseId) => {
+      if (!(await savePendingKeypadUpdate())) {
+        return;
+      }
+
+      void copyPreviousSet({ workoutExerciseId });
+    },
+    [copyPreviousSet, savePendingKeypadUpdate],
   );
 
   async function handleExerciseOptionSelected(option: WorkoutExerciseOption) {
@@ -346,9 +366,15 @@ export function ActiveWorkoutScreenView({
     () => ({
       openOptions: openExerciseOptions,
       addSet: handleAddSet,
+      copyPreviousSet: handleCopyPreviousSet,
       openSetEditor: activeDockEditor.openSetEditor,
     }),
-    [openExerciseOptions, handleAddSet, activeDockEditor.openSetEditor],
+    [
+      openExerciseOptions,
+      handleAddSet,
+      handleCopyPreviousSet,
+      activeDockEditor.openSetEditor,
+    ],
   );
 
   const activeSetField = activeSetPanel?.type;

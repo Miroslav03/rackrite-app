@@ -16,6 +16,7 @@ export type ActiveWorkoutOperation =
   | { type: "removeExercise"; workoutExerciseId: WorkoutExerciseId }
   | { type: "removeSet"; workoutSetId: WorkoutSetId }
   | { type: "addSet"; workoutExerciseId: WorkoutExerciseId }
+  | { type: "copyPreviousSet"; workoutExerciseId: WorkoutExerciseId }
   | { type: "updateSet"; workoutSetId: WorkoutSetId }
   | { type: "completeSet"; workoutSetId: WorkoutSetId }
   | { type: "adjustRestTimer"; seconds: RestTimerAdjustmentSeconds }

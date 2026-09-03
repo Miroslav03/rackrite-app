@@ -21,3 +21,14 @@ export function isAddSetOperationPending(
     state.operation.workoutExerciseId === workoutExerciseId
   );
 }
+
+export function isCopyPreviousSetOperationPending(
+  state: OperationState<ActiveWorkoutOperation>,
+  workoutExerciseId: WorkoutExerciseId,
+): boolean {
+  return (
+    isOperationPending(state) &&
+    state.operation.type === "copyPreviousSet" &&
+    state.operation.workoutExerciseId === workoutExerciseId
+  );
+}

@@ -51,6 +51,9 @@ function getOperationErrorMessage(operation: ActiveWorkoutOperation): string {
     case "addSet":
       return "Couldn't add set. Try again.";
 
+    case "copyPreviousSet":
+      return "Couldn't copy previous set. Try again.";
+
     case "updateSet":
       return "Couldn't update set. Try again.";
 

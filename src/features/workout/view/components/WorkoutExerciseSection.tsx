@@ -11,6 +11,7 @@ import type {
 
 import {
   isAddSetOperationPending,
+  isCopyPreviousSetOperationPending,
   isOperationPending,
 } from "@/features/workout/session/workoutSession.selectors";
 import type {
@@ -31,6 +32,7 @@ import { WorkoutSetCard } from "./WorkoutSetCard";
 export type WorkoutExerciseSectionActions = {
   openOptions: (workoutExerciseId: WorkoutExerciseId) => void;
   addSet: (workoutExerciseId: WorkoutExerciseId) => void;
+  copyPreviousSet: (workoutExerciseId: WorkoutExerciseId) => void;
   openSetEditor: (
     workoutSetId: WorkoutSetId,
     panel: ActiveSetEditorPanelType,
@@ -62,7 +64,11 @@ export function WorkoutExerciseSection({
   const workoutExerciseId = exerciseAggregate.workoutExercise.id;
 
   const addSetPending = isAddSetOperationPending(operation, workoutExerciseId);
-  const addSetButtonDisabled = isOperationPending(operation);
+  const copyPreviousSetPending = isCopyPreviousSetOperationPending(
+    operation,
+    workoutExerciseId,
+  );
+  const setButtonDisabled = isOperationPending(operation);
 
   return (
     <ScreenSection className={className}>
@@ -97,27 +103,53 @@ export function WorkoutExerciseSection({
         onOpenEditor={exerciseActions.openSetEditor}
       />
 
-      <Button
-        title={addSetPending ? "Adding..." : "Add Set"}
-        variant="ghost"
-        intent="neutral"
-        size="md"
-        disabled={addSetButtonDisabled}
-        dimWhenDisabled={addSetPending}
-        accessibilityLabel={`Add set to ${exercise.name}`}
-        accessibilityState={{
-          disabled: addSetButtonDisabled,
-          busy: addSetPending,
-        }}
-        leftIcon={
-          addSetPending ? (
-            <ActivityIndicator color={colors.muted} size="small" />
-          ) : (
-            <Ionicons name="add" size={18} color={colors.muted} />
-          )
-        }
-        onPress={() => exerciseActions.addSet(workoutExerciseId)}
-      />
+      <View className="flex-row gap-sm">
+        <Button
+          title={addSetPending ? "Adding..." : "Add Set"}
+          variant="ghost"
+          intent="neutral"
+          size="md"
+          className="flex-1"
+          disabled={setButtonDisabled}
+          dimWhenDisabled={addSetPending}
+          accessibilityLabel={`Add set to ${exercise.name}`}
+          accessibilityState={{
+            disabled: setButtonDisabled,
+            busy: addSetPending,
+          }}
+          leftIcon={
+            addSetPending ? (
+              <ActivityIndicator color={colors.muted} size="small" />
+            ) : (
+              <Ionicons name="add" size={18} color={colors.muted} />
+            )
+          }
+          onPress={() => exerciseActions.addSet(workoutExerciseId)}
+        />
+
+        <Button
+          title={copyPreviousSetPending ? "Copying..." : "Copy"}
+          variant="ghost"
+          intent="neutral"
+          size="md"
+          className="flex-1"
+          disabled={setButtonDisabled}
+          dimWhenDisabled={copyPreviousSetPending}
+          accessibilityLabel={`Copy previous set for ${exercise.name}`}
+          accessibilityState={{
+            disabled: setButtonDisabled,
+            busy: copyPreviousSetPending,
+          }}
+          leftIcon={
+            copyPreviousSetPending ? (
+              <ActivityIndicator color={colors.muted} size="small" />
+            ) : (
+              <Ionicons name="copy-outline" size={18} color={colors.muted} />
+            )
+          }
+          onPress={() => exerciseActions.copyPreviousSet(workoutExerciseId)}
+        />
+      </View>
     </ScreenSection>
   );
 }

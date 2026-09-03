@@ -84,17 +84,20 @@ export function useActiveWorkoutDockEditor(
       SET_VALUE_UPDATE_DEBOUNCE_MS,
     );
 
-  async function savePendingKeypadUpdate() {
-    if (isWeightKeypadPanel(panelController.panel)) {
+  const weightKeypadOpen = isWeightKeypadPanel(panelController.panel);
+  const repsKeypadOpen = isRepsKeypadPanel(panelController.panel);
+
+  const savePendingKeypadUpdate = useCallback(async () => {
+    if (weightKeypadOpen) {
       return (await flushWeightUpdate())?.success ?? true;
     }
 
-    if (isRepsKeypadPanel(panelController.panel)) {
+    if (repsKeypadOpen) {
       return (await flushRepsUpdate())?.success ?? true;
     }
 
     return true;
-  }
+  }, [flushRepsUpdate, flushWeightUpdate, repsKeypadOpen, weightKeypadOpen]);
 
   const openSetEditor = async (
     nextWorkoutSetId: WorkoutSetId,
