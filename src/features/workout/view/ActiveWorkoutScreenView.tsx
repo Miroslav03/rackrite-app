@@ -5,7 +5,10 @@ import { useCallback, useMemo, useState } from "react";
 import { FlatList, type ListRenderItemInfo } from "react-native";
 
 import type { Exercise, ExerciseKind } from "@/domain/exercises/exercise.types";
-import { getWorkoutExerciseById } from "@/domain/workout/workout.selectors";
+import {
+  getWorkoutExerciseById,
+  getWorkoutFinishEligibility,
+} from "@/domain/workout/workout.selectors";
 import type {
   WorkoutAggregate,
   WorkoutExerciseAggregate,
@@ -18,6 +21,7 @@ import type { AddExerciseCommand } from "@/features/workout/actions/addExercise"
 import type { AddSetCommand } from "@/features/workout/actions/addSet";
 import type { AdjustRestTimerCommand } from "@/features/workout/actions/adjustRestTimer";
 import type { CompleteSetCommand } from "@/features/workout/actions/completeSet";
+import type { FinishWorkoutCommand } from "@/features/workout/actions/finishWorkout";
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
 import type { RemoveSetCommand } from "@/features/workout/actions/removeSet";
 import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
@@ -36,15 +40,16 @@ import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 import { ScreenSection } from "@/shared/components/layout/ScreenSection";
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
+import { ConfirmationModal as ConfirmationModalView } from "@/shared/components/ui/ConfirmationModal";
 import { CountdownTimer } from "@/shared/components/ui/CountdownTimer";
-import { DangerModal } from "@/shared/components/ui/DangerModal";
+import { DangerModal as DangerModalView } from "@/shared/components/ui/DangerModal";
 import { ElapsedTimer } from "@/shared/components/ui/ElapsedTimer";
 import { colors, spacing } from "@/shared/theme/tokens";
 
 import {
   getAddExerciseOperation,
-  getDangerConfirmationContent,
-  getDangerOperation,
+  getModalContent,
+  getModalOperation,
   isRemoveExerciseConfirmation,
   isRemoveSetConfirmation,
 } from "./activeWorkout.viewState.utils";
@@ -65,6 +70,9 @@ import {
 export type ActiveWorkoutScreenActions = {
   dismissOperationError: (error: Error) => void;
   cancelWorkout: () => Promise<WorkoutSessionResult<void>>;
+  finishWorkout: (
+    command: FinishWorkoutCommand,
+  ) => Promise<WorkoutSessionResult<void>>;
   addExercise: (
     command: AddExerciseCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
@@ -102,30 +110,21 @@ type ActiveWorkoutScreenViewProps = {
   actions: ActiveWorkoutScreenActions;
 };
 
-export type DangerConfirmationModal =
-  | {
-      action: "cancelWorkout";
-    }
-  | {
-      action: "removeExercise";
-      workoutExerciseId: WorkoutExerciseId;
-    }
-  | {
-      action: "removeSet";
-      workoutSetId: WorkoutSetId;
-    };
+export type DangerModal =
+  | { action: "cancelWorkout" }
+  | { action: "removeExercise"; workoutExerciseId: WorkoutExerciseId }
+  | { action: "removeSet"; workoutSetId: WorkoutSetId };
+
+export type ConfirmationModal = {
+  action: "finishWorkout";
+};
 
 export type ActiveWorkoutOverlay =
   | { type: "none" }
   | { type: "exercisePicker" }
-  | {
-      type: "exerciseOptions";
-      workoutExerciseId: WorkoutExerciseId;
-    }
-  | {
-      type: "dangerConfirmationModal";
-      confirmation: DangerConfirmationModal;
-    };
+  | { type: "exerciseOptions"; workoutExerciseId: WorkoutExerciseId }
+  | { type: "confirmationModal"; confirmation: ConfirmationModal }
+  | { type: "dangerModal"; confirmation: DangerModal };
 
 const NO_ACTIVE_OVERLAY: ActiveWorkoutOverlay = { type: "none" };
 
@@ -139,7 +138,11 @@ export function ActiveWorkoutScreenView({
     useState<ActiveWorkoutOverlay>(NO_ACTIVE_OVERLAY);
 
   const isFocused = useIsFocused();
+  const operationPending = isOperationPending(operation);
   const activeDockEditor = useActiveWorkoutDockEditor(workout, actions);
+
+  const modalContent = getModalContent(workout, activeOverlay);
+  const workoutEligibility = getWorkoutFinishEligibility(workout);
 
   const { addSet } = actions;
 
@@ -149,7 +152,7 @@ export function ActiveWorkoutScreenView({
   const editorActiveSetId = editorActiveSet?.id ?? workout.workout.activeSetId;
   const editorActiveExerciseId =
     editorActiveExercise?.workoutExercise.id ?? null;
-
+  const finishWorkoutButtonBlocked = workoutEligibility.status === "blocked";
   const activeSetPanel =
     activeDockEditor.panel.type === "restTimer" ? null : activeDockEditor.panel;
   const restTimerDockOpen =
@@ -174,19 +177,6 @@ export function ActiveWorkoutScreenView({
       ? (getWorkoutExerciseById(workout, activeOverlay.workoutExerciseId) ??
         null)
       : null;
-
-  const dangerOverlay =
-    activeOverlay.type === "dangerConfirmationModal" ? activeOverlay : null;
-
-  const dangerContent = dangerOverlay
-    ? getDangerConfirmationContent(workout, dangerOverlay.confirmation)
-    : null;
-
-  const dangerOperation = getDangerOperation(activeOverlay, operation);
-  const addExerciseOperation = getAddExerciseOperation(
-    activeOverlay,
-    operation,
-  );
 
   function closeOverlay() {
     setActiveOverlay(NO_ACTIVE_OVERLAY);
@@ -237,7 +227,7 @@ export function ActiveWorkoutScreenView({
     }
 
     setActiveOverlay({
-      type: "dangerConfirmationModal",
+      type: "dangerModal",
       confirmation: { action: "cancelWorkout" },
     });
   }
@@ -246,13 +236,28 @@ export function ActiveWorkoutScreenView({
     await actions.cancelWorkout();
   }
 
+  async function handleFinishWorkoutPress() {
+    if (workoutEligibility.status === "blocked") {
+      return;
+    }
+
+    if (!(await activeDockEditor.savePendingKeypadUpdate())) {
+      return;
+    }
+
+    setActiveOverlay({
+      type: "confirmationModal",
+      confirmation: { action: "finishWorkout" },
+    });
+  }
+
   async function openRemoveSetConfirmation(workoutSetId: WorkoutSetId) {
     if (!(await activeDockEditor.savePendingKeypadUpdate())) {
       return;
     }
 
     setActiveOverlay({
-      type: "dangerConfirmationModal",
+      type: "dangerModal",
       confirmation: {
         action: "removeSet",
         workoutSetId,
@@ -293,7 +298,7 @@ export function ActiveWorkoutScreenView({
     switch (option) {
       case "removeExercise":
         setActiveOverlay({
-          type: "dangerConfirmationModal",
+          type: "dangerModal",
           confirmation: {
             action: "removeExercise",
             workoutExerciseId: activeOverlay.workoutExerciseId,
@@ -303,23 +308,37 @@ export function ActiveWorkoutScreenView({
     }
   }
 
-  function handleDangerConfirmation() {
-    if (activeOverlay.type !== "dangerConfirmationModal") {
-      return;
-    }
+  function handleModalAction() {
+    switch (activeOverlay.type) {
+      case "dangerModal":
+        switch (activeOverlay.confirmation.action) {
+          case "cancelWorkout":
+            void handleCancelWorkout();
+            return;
 
-    switch (activeOverlay.confirmation.action) {
-      case "cancelWorkout":
-        void handleCancelWorkout();
-        return;
+          case "removeExercise":
+            void handleRemoveExercise(
+              activeOverlay.confirmation.workoutExerciseId,
+            );
+            return;
 
-      case "removeExercise":
-        void handleRemoveExercise(activeOverlay.confirmation.workoutExerciseId);
-        return;
+          case "removeSet":
+            void handleRemoveSet(activeOverlay.confirmation.workoutSetId);
+            return;
+        }
 
-      case "removeSet":
-        void handleRemoveSet(activeOverlay.confirmation.workoutSetId);
-        return;
+      case "confirmationModal":
+        switch (activeOverlay.confirmation.action) {
+          case "finishWorkout":
+            if (workoutEligibility.status === "blocked") {
+              return;
+            }
+
+            void actions.finishWorkout({
+              skipUnfinishedSets: workoutEligibility.unfinishedSetCount > 0,
+            });
+            return;
+        }
     }
   }
 
@@ -402,7 +421,7 @@ export function ActiveWorkoutScreenView({
               {(value) => (
                 <RestTimerCard
                   time={value}
-                  disabled={isOperationPending(operation)}
+                  disabled={operationPending}
                   onPress={() => {
                     void activeDockEditor.openRestTimerDock(restTimer);
                   }}
@@ -467,6 +486,8 @@ export function ActiveWorkoutScreenView({
                 intent="neutral"
                 size="md"
                 accessibilityRole="button"
+                disabled={operationPending}
+                dimWhenDisabled={false}
                 leftIcon={
                   <Ionicons
                     name="barbell-outline"
@@ -481,6 +502,8 @@ export function ActiveWorkoutScreenView({
                 variant="ghost"
                 intent="primary"
                 size="lg"
+                disabled={finishWorkoutButtonBlocked || operationPending}
+                dimWhenDisabled={finishWorkoutButtonBlocked}
                 accessibilityRole="button"
                 leftIcon={
                   <Ionicons
@@ -490,13 +513,17 @@ export function ActiveWorkoutScreenView({
                   />
                 }
                 textClassName="color-primarySoft"
-                onPress={() => {}}
+                onPress={() => {
+                  void handleFinishWorkoutPress();
+                }}
               />
               <Button
                 title="Cancel Workout"
                 variant="ghost"
                 intent="danger"
                 size="md"
+                disabled={operationPending}
+                dimWhenDisabled={false}
                 accessibilityRole="button"
                 leftIcon={
                   <Ionicons
@@ -556,7 +583,7 @@ export function ActiveWorkoutScreenView({
       <ExercisePickerSheet
         open={activeOverlay.type === "exercisePicker"}
         excludedExerciseIds={excludedExerciseIds}
-        selectionOperation={addExerciseOperation}
+        selectionOperation={getAddExerciseOperation(activeOverlay, operation)}
         onSelect={(exercise) => {
           void handleExerciseSelected(exercise);
         }}
@@ -571,15 +598,25 @@ export function ActiveWorkoutScreenView({
           onClose={closeOverlay}
         />
       )}
-
-      {dangerContent !== null && (
-        <DangerModal
+      {activeOverlay.type === "dangerModal" && modalContent !== null && (
+        <DangerModalView
           open
-          title={dangerContent.title}
-          description={dangerContent.description}
-          confirmLabel={dangerContent.confirmLabel}
-          operation={dangerOperation}
-          onConfirm={handleDangerConfirmation}
+          title={modalContent.title}
+          description={modalContent.description}
+          confirmLabel={modalContent.confirmLabel}
+          operation={getModalOperation(activeOverlay, operation)}
+          onConfirm={handleModalAction}
+          onClose={closeOverlay}
+        />
+      )}
+      {activeOverlay.type === "confirmationModal" && modalContent !== null && (
+        <ConfirmationModalView
+          open
+          title={modalContent.title}
+          description={modalContent.description}
+          confirmLabel={modalContent.confirmLabel}
+          operation={getModalOperation(activeOverlay, operation)}
+          onConfirm={handleModalAction}
           onClose={closeOverlay}
         />
       )}

@@ -10,6 +10,7 @@ export default function WorkoutScreen() {
   const {
     state,
     cancelWorkout,
+    finishWorkout,
     addExercise,
     removeExercise,
     removeSet,
@@ -46,6 +47,7 @@ export default function WorkoutScreen() {
           operation={state.operation}
           actions={{
             cancelWorkout,
+            finishWorkout,
             addExercise,
             removeExercise,
             removeSet,

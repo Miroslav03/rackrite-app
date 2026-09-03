@@ -54,3 +54,20 @@ export function createWorkoutWithCompletedFirstSet() {
     now: 5000,
   });
 }
+
+export function createWorkoutWithAllSetsCompleted() {
+  const withUpdatedSecondSet = updateWorkoutSet(
+    createWorkoutWithCompletedFirstSet(),
+    {
+      setId: "set_2",
+      weight: 90,
+      reps: 6,
+      now: 6000,
+    },
+  );
+
+  return completeWorkoutSet(withUpdatedSecondSet, {
+    setId: "set_2",
+    now: 7000,
+  });
+}

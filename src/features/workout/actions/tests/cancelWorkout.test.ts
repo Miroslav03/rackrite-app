@@ -35,7 +35,7 @@ describe("cancelWorkout", () => {
   it("does not delete a completed workout", async () => {
     const completedWorkout = finishWorkout(
       createWorkoutWithCompletedFirstSet(),
-      { now: 6_000 },
+      { now: 6_000, skipUnfinishedSets: true },
     );
     const dependencies = createDependencies();
 

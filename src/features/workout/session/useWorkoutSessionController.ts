@@ -4,6 +4,7 @@ import type { AdjustRestTimerCommand } from "@/features/workout/actions/adjustRe
 import type { AddExerciseCommand } from "@/features/workout/actions/addExercise";
 import type { AddSetCommand } from "@/features/workout/actions/addSet";
 import type { CompleteSetCommand } from "@/features/workout/actions/completeSet";
+import type { FinishWorkoutCommand } from "@/features/workout/actions/finishWorkout";
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
 import type { RemoveSetCommand } from "@/features/workout/actions/removeSet";
 import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
@@ -30,6 +31,9 @@ export type WorkoutSessionController = {
   dismissOperationError: (error: Error) => void;
   startEmptyWorkout: () => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   cancelWorkout: () => Promise<WorkoutSessionResult<void>>;
+  finishWorkout: (
+    command: FinishWorkoutCommand,
+  ) => Promise<WorkoutSessionResult<void>>;
   addExercise: (
     command: AddExerciseCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
@@ -312,6 +316,18 @@ export function useWorkoutSessionController(
     [actions, runTerminalWorkoutOperation],
   );
 
+  const finishWorkout = useCallback(
+    (command: FinishWorkoutCommand) =>
+      runTerminalWorkoutOperation({
+        operation: { type: "finishWorkout" },
+        invalidStateMessage:
+          "A workout cannot be finished without an active workout",
+        failureMessage: "Failed to finish the workout",
+        run: (workout) => actions.finishWorkout(workout, command),
+      }),
+    [actions, runTerminalWorkoutOperation],
+  );
+
   const removeExercise = useCallback(
     (command: RemoveExerciseCommand) =>
       runActiveWorkoutOperation({
@@ -459,6 +475,7 @@ export function useWorkoutSessionController(
     state,
     startEmptyWorkout,
     cancelWorkout,
+    finishWorkout,
     addExercise,
     removeExercise,
     removeSet,

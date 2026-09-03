@@ -240,28 +240,14 @@ If user changes variation:
 
 ## Finish Workout Behavior
 
-### No modal confirmation
-
-When user taps:
-
-[ Finish Workout ]
-
-### App:
-
-- Saves instantly
-- Returns to Start Screen
-- Shows snackbar:
-
-Workout saved ✓ [Undo]
-
----
-
-## Undo Behavior
-
-If user taps Undo:
-
-- Restore workout
-- Return to workout screen
+- Finish is disabled until at least one set is completed.
+- When every set is completed, Finish asks for a standard confirmation before saving.
+- When some sets are unfinished, Finish shows the unfinished-set warning instead of
+  a second, generic confirmation.
+- Confirming saves the completed performance and keeps unfinished sets as skipped
+  (`finishedAt` remains `null`).
+- Finishing never updates the source template, even when workout structure or
+  performance values changed.
 
 ---
 

@@ -28,6 +28,7 @@ import {
   pausedBench,
 } from "./workout.test.constants";
 import {
+  createWorkoutWithAllSetsCompleted,
   createWorkoutWithCompetitionBench,
   createWorkoutWithCompletedFirstSet,
   createWorkoutWithTwoExercises,
@@ -468,7 +469,7 @@ describe("removeWorkoutSet", () => {
   it("throws when the workout is completed", () => {
     const completedWorkout = finishWorkout(
       createWorkoutWithCompletedFirstSet(),
-      { now: 6000 },
+      { now: 6000, skipUnfinishedSets: true },
     );
 
     expect(() =>
@@ -776,7 +777,7 @@ describe("undoWorkoutSetCompletion", () => {
   it("throws when the workout is completed", () => {
     const completedWorkout = finishWorkout(
       createWorkoutWithCompletedFirstSet(),
-      { now: 6000 },
+      { now: 6000, skipUnfinishedSets: true },
     );
 
     expect(() =>
@@ -900,42 +901,106 @@ describe("completeWorkoutSet", () => {
 
 describe("finishWorkout", () => {
   it("marks an active workout as completed", () => {
-    const finishedWorkout = finishWorkout(
-      createWorkoutWithCompletedFirstSet(),
-      { now: 6000 },
-    );
+    const finishedWorkout = finishWorkout(createWorkoutWithAllSetsCompleted(), {
+      now: 8000,
+      skipUnfinishedSets: false,
+    });
 
     expect(finishedWorkout.workout.status).toBe("completed");
-    expect(finishedWorkout.workout.finishedAt).toBe(6000);
-    expect(finishedWorkout.workout.updatedAt).toBe(6000);
+    expect(finishedWorkout.workout.finishedAt).toBe(8000);
+    expect(finishedWorkout.workout.updatedAt).toBe(8000);
   });
 
   it("throws when finishing an already completed workout", () => {
-    const finishedWorkout = finishWorkout(
-      createWorkoutWithCompletedFirstSet(),
-      { now: 6000 },
-    );
+    const finishedWorkout = finishWorkout(createWorkoutWithAllSetsCompleted(), {
+      now: 8000,
+      skipUnfinishedSets: false,
+    });
 
-    expect(() => finishWorkout(finishedWorkout, { now: 7000 })).toThrow(
-      "Workout must be active",
-    );
+    expect(() =>
+      finishWorkout(finishedWorkout, {
+        now: 9000,
+        skipUnfinishedSets: false,
+      }),
+    ).toThrow("Workout must be active");
+  });
+
+  it("throws when the workout is empty", () => {
+    expect(() =>
+      finishWorkout(createEmptyWorkout({ id: "workout_1", now: 1000 }), {
+        now: 2000,
+        skipUnfinishedSets: true,
+      }),
+    ).toThrow("Workout must have at least one completed set");
   });
 
   it("throws when the workout has no completed sets", () => {
     expect(() =>
-      finishWorkout(createWorkoutWithCompetitionBench(), { now: 3000 }),
+      finishWorkout(createWorkoutWithCompetitionBench(), {
+        now: 3000,
+        skipUnfinishedSets: true,
+      }),
     ).toThrow("Workout must have at least one completed set");
   });
 
-  it("allows finishing a workout when some sets are unfinished", () => {
+  it("requires explicit permission to skip unfinished sets", () => {
+    expect(() =>
+      finishWorkout(createWorkoutWithCompletedFirstSet(), {
+        now: 6000,
+        skipUnfinishedSets: false,
+      }),
+    ).toThrow("Workout has unfinished sets");
+  });
+
+  it("keeps unfinished sets when their skip is confirmed", () => {
     const finishedWorkout = finishWorkout(
       createWorkoutWithCompletedFirstSet(),
-      { now: 6000 },
+      { now: 6000, skipUnfinishedSets: true },
     );
 
     expect(finishedWorkout.workout.status).toBe("completed");
     expect(finishedWorkout.exercises[0].sets[0].finishedAt).toBe(5000);
     expect(finishedWorkout.exercises[0].sets[1].finishedAt).toBeNull();
+  });
+
+  it("clears the rest timer without mutating the active workout", () => {
+    const workout = startWorkoutRestTimer(
+      createWorkoutWithCompletedFirstSet(),
+      {
+        setId: "set_1",
+        now: 5500,
+      },
+    );
+    const originalWorkout = structuredClone(workout);
+
+    const finishedWorkout = finishWorkout(workout, {
+      now: 6000,
+      skipUnfinishedSets: true,
+    });
+
+    expect(finishedWorkout.workout.restTimer).toBeNull();
+    expect(workout).toEqual(originalWorkout);
+  });
+
+  it("finishes a workout with a dangling template ID without changing its structure", () => {
+    const workout = createWorkoutWithCompletedFirstSet();
+    const workoutFromDeletedTemplate = {
+      ...workout,
+      workout: {
+        ...workout.workout,
+        sourceTemplateId: "deleted_template",
+      },
+    };
+
+    const finishedWorkout = finishWorkout(workoutFromDeletedTemplate, {
+      now: 6000,
+      skipUnfinishedSets: true,
+    });
+
+    expect(finishedWorkout.workout.sourceTemplateId).toBe("deleted_template");
+    expect(finishedWorkout.exercises).toBe(
+      workoutFromDeletedTemplate.exercises,
+    );
   });
 });
 
@@ -952,7 +1017,7 @@ describe("cancelWorkout", () => {
   it("throws when cancelling a completed workout", () => {
     const completedWorkout = finishWorkout(
       createWorkoutWithCompletedFirstSet(),
-      { now: 6_000 },
+      { now: 6_000, skipUnfinishedSets: true },
     );
 
     expect(() => cancelWorkout(completedWorkout)).toThrow(
@@ -1343,7 +1408,10 @@ describe("workout rest timer", () => {
         now: 6000,
       },
     );
-    const finishedWorkout = finishWorkout(withTimer, { now: 7000 });
+    const finishedWorkout = finishWorkout(withTimer, {
+      now: 7000,
+      skipUnfinishedSets: true,
+    });
 
     expect(finishedWorkout.workout.restTimer).toBeNull();
   });

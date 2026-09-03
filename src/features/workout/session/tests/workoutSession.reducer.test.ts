@@ -185,6 +185,32 @@ describe("workoutSessionReducer", () => {
       });
     });
 
+    it("tracks finishing the workout as an active operation", () => {
+      const workout = createEmptyWorkout({
+        id: "workout_1",
+        now: 1_000,
+      });
+      const state: WorkoutSessionState = {
+        status: "active",
+        workout,
+        operation: { status: "idle" },
+      };
+
+      const nextState = workoutSessionReducer(state, {
+        type: "activeOperationStarted",
+        operation: { type: "finishWorkout" },
+      });
+
+      expect(nextState).toEqual({
+        status: "active",
+        workout,
+        operation: {
+          status: "pending",
+          operation: { type: "finishWorkout" },
+        },
+      });
+    });
+
     it("ignores an active operation when there is not an active workout", () => {
       const state: WorkoutSessionState = {
         status: "noActiveWorkout",
@@ -379,6 +405,31 @@ describe("workoutSessionReducer", () => {
         operation: {
           status: "pending",
           operation: { type: "cancelWorkout" },
+        },
+      };
+
+      const nextState = workoutSessionReducer(state, {
+        type: "workoutCleared",
+      });
+
+      expect(nextState).toEqual({
+        status: "noActiveWorkout",
+        operation: { status: "idle" },
+      });
+    });
+
+    it("removes the active aggregate after finishing", () => {
+      const workout = createEmptyWorkout({
+        id: "workout_1",
+        now: 1_000,
+      });
+
+      const state: WorkoutSessionState = {
+        status: "active",
+        workout,
+        operation: {
+          status: "pending",
+          operation: { type: "finishWorkout" },
         },
       };
 

@@ -7,6 +7,10 @@ import type {
   WorkoutSetId,
 } from "./workout.types";
 
+export type WorkoutFinishEligibility =
+  | { status: "blocked"; reason: "noCompletedSets" }
+  | { status: "eligible"; unfinishedSetCount: number };
+
 export function getAllWorkoutSets(
   workoutAggregate: WorkoutAggregate,
 ): WorkoutSet[] {
@@ -169,4 +173,26 @@ export function getActiveWorkoutSetIndex(
   );
 
   return activeSetIndex === -1 ? undefined : activeSetIndex;
+}
+
+export function getWorkoutFinishEligibility(
+  workoutAggregate: WorkoutAggregate,
+): WorkoutFinishEligibility {
+  const sets = getAllWorkoutSets(workoutAggregate);
+
+  const completedSetCount = sets.filter(
+    ({ finishedAt }) => finishedAt !== null,
+  ).length;
+
+  if (completedSetCount === 0) {
+    return {
+      status: "blocked",
+      reason: "noCompletedSets",
+    };
+  }
+
+  return {
+    status: "eligible",
+    unfinishedSetCount: sets.length - completedSetCount,
+  };
 }

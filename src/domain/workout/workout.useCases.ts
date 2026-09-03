@@ -15,6 +15,7 @@ import {
   getRestTimerAfterRemoval,
   getWorkoutExerciseById,
   getWorkoutExerciseBySetId,
+  getWorkoutFinishEligibility,
   getWorkoutSetById,
   isWorkoutRestTimerExpired,
 } from "./workout.selectors";
@@ -106,6 +107,7 @@ type SelectWorkoutSetInput = {
 
 type FinishWorkoutInput = {
   now: number;
+  skipUnfinishedSets: boolean;
 };
 
 export function createEmptyWorkout({
@@ -783,12 +785,14 @@ export function finishWorkout(
 ): WorkoutAggregate {
   assertWorkoutIsActive(workoutAggregate);
 
-  const hasCompletedSet = getAllWorkoutSets(workoutAggregate).some(
-    (set) => set.finishedAt !== null,
-  );
+  const eligibility = getWorkoutFinishEligibility(workoutAggregate);
 
-  if (!hasCompletedSet) {
+  if (eligibility.status === "blocked") {
     throw new Error("Workout must have at least one completed set");
+  }
+
+  if (eligibility.unfinishedSetCount > 0 && !input.skipUnfinishedSets) {
+    throw new Error("Workout has unfinished sets");
   }
 
   const nextWorkoutAggregate: WorkoutAggregate = {
@@ -807,9 +811,7 @@ export function finishWorkout(
   return nextWorkoutAggregate;
 }
 
-export function cancelWorkout(
-  workoutAggregate: WorkoutAggregate,
-): WorkoutId {
+export function cancelWorkout(workoutAggregate: WorkoutAggregate): WorkoutId {
   assertWorkoutIsActive(workoutAggregate);
 
   return workoutAggregate.workout.id;
