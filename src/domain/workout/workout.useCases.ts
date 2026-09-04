@@ -52,6 +52,12 @@ type UpdateWorkoutExerciseRestSecondsInput = {
   now: number;
 };
 
+type UpdateWorkoutExerciseOrderInput = {
+  workoutExerciseId: WorkoutExerciseId;
+  orderIndex: number;
+  now: number;
+};
+
 type AddWorkoutSetInput = {
   workoutExerciseId: WorkoutExerciseId;
   setId: WorkoutSetId;
@@ -267,6 +273,61 @@ export function updateWorkoutExerciseRestSeconds(
             },
           }
         : exerciseAggregate,
+    ),
+  };
+
+  assertWorkoutAggregateInvariants(nextWorkoutAggregate);
+
+  return nextWorkoutAggregate;
+}
+
+export function updateWorkoutExerciseOrder(
+  workoutAggregate: WorkoutAggregate,
+  input: UpdateWorkoutExerciseOrderInput,
+): WorkoutAggregate {
+  assertWorkoutIsActive(workoutAggregate);
+
+  const exerciseToMove = getWorkoutExerciseById(
+    workoutAggregate,
+    input.workoutExerciseId,
+  );
+
+  assertWorkoutExerciseExists(exerciseToMove);
+
+  if (
+    !Number.isInteger(input.orderIndex) ||
+    input.orderIndex < 0 ||
+    input.orderIndex >= workoutAggregate.exercises.length
+  ) {
+    throw new Error("Workout exercise order index is invalid");
+  }
+
+  const currentOrderIndex = workoutAggregate.exercises.indexOf(exerciseToMove);
+
+  if (currentOrderIndex === input.orderIndex) {
+    return workoutAggregate;
+  }
+
+  const reorderedExercises = [...workoutAggregate.exercises];
+  reorderedExercises.splice(currentOrderIndex, 1);
+  reorderedExercises.splice(input.orderIndex, 0, exerciseToMove);
+
+  const nextWorkoutAggregate: WorkoutAggregate = {
+    workout: {
+      ...workoutAggregate.workout,
+      updatedAt: input.now,
+    },
+    exercises: reorderedExercises.map((exerciseAggregate, orderIndex) =>
+      exerciseAggregate.workoutExercise.orderIndex === orderIndex
+        ? exerciseAggregate
+        : {
+            ...exerciseAggregate,
+            workoutExercise: {
+              ...exerciseAggregate.workoutExercise,
+              orderIndex,
+              updatedAt: input.now,
+            },
+          },
     ),
   };
 

@@ -45,6 +45,9 @@ function getOperationErrorMessage(operation: ActiveWorkoutOperation): string {
     case "removeExercise":
       return "Couldn't remove exercise. Try again.";
 
+    case "updateExerciseOrder":
+      return "Couldn't update exercise order. Try again.";
+
     case "removeSet":
       return "Couldn't remove set. Try again.";
 

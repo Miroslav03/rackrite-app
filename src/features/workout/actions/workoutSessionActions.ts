@@ -37,6 +37,10 @@ import {
   undoCompletedSet,
   type UndoSetCompletionCommand,
 } from "./undoCompletedSet";
+import {
+  updateExerciseOrder,
+  type UpdateExerciseOrderCommand,
+} from "./updateExerciseOrder";
 import { updateSet, type UpdateSetCommand } from "./updateSet";
 
 export type WorkoutSessionActions = {
@@ -54,6 +58,10 @@ export type WorkoutSessionActions = {
   removeExercise: (
     workout: WorkoutAggregate,
     command: RemoveExerciseCommand,
+  ) => Promise<WorkoutAggregate>;
+  updateExerciseOrder: (
+    workout: WorkoutAggregate,
+    command: UpdateExerciseOrderCommand,
   ) => Promise<WorkoutAggregate>;
   removeSet: (
     workout: WorkoutAggregate,
@@ -147,6 +155,16 @@ export function createWorkoutSessionActions(
 
     removeExercise: (workout, command) =>
       removeExercise(
+        {
+          repository: dependencies.repository,
+          now: dependencies.now,
+        },
+        workout,
+        command,
+      ),
+
+    updateExerciseOrder: (workout, command) =>
+      updateExerciseOrder(
         {
           repository: dependencies.repository,
           now: dependencies.now,

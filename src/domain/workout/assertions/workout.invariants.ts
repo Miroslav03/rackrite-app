@@ -90,6 +90,16 @@ export function assertWorkoutSetIndexesAreValid(
   }
 }
 
+export function assertWorkoutExerciseIndexesAreValid(
+  workoutAggregate: WorkoutAggregate,
+): void {
+  workoutAggregate.exercises.forEach((exerciseAggregate, index) => {
+    if (exerciseAggregate.workoutExercise.orderIndex !== index) {
+      throw new Error("Workout exercise indexes must match their order");
+    }
+  });
+}
+
 export function assertWorkoutSetValuesAreValid(
   workoutAggregate: WorkoutAggregate,
 ): void {
@@ -184,6 +194,7 @@ export function assertWorkoutAggregateInvariants(
   assertActiveSetExistsIfWorkoutHasSets(workoutAggregate);
   assertFinishedSetsHaveWeightAndReps(workoutAggregate);
   assertWorkoutAggregateOwnership(workoutAggregate);
+  assertWorkoutExerciseIndexesAreValid(workoutAggregate);
   assertWorkoutExerciseRestSecondsAreValid(workoutAggregate);
   assertWorkoutRestTimerIsValid(workoutAggregate);
   assertWorkoutSetIndexesAreValid(workoutAggregate);

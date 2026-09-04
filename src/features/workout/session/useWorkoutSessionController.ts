@@ -10,6 +10,7 @@ import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExe
 import type { RemoveSetCommand } from "@/features/workout/actions/removeSet";
 import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
 import type { UndoSetCompletionCommand } from "@/features/workout/actions/undoCompletedSet";
+import type { UpdateExerciseOrderCommand } from "@/features/workout/actions/updateExerciseOrder";
 import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
 import type { WorkoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
 
@@ -40,6 +41,9 @@ export type WorkoutSessionController = {
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   removeExercise: (
     command: RemoveExerciseCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  updateExerciseOrder: (
+    command: UpdateExerciseOrderCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   removeSet: (
     command: RemoveSetCommand,
@@ -347,6 +351,22 @@ export function useWorkoutSessionController(
     [actions, runActiveWorkoutOperation],
   );
 
+  const updateExerciseOrder = useCallback(
+    (command: UpdateExerciseOrderCommand) =>
+      runActiveWorkoutOperation({
+        operation: {
+          type: "updateExerciseOrder",
+          workoutExerciseId: command.workoutExerciseId,
+          orderIndex: command.orderIndex,
+        },
+        invalidStateMessage:
+          "Exercise order cannot be updated without an active workout",
+        failureMessage: "Failed to update the exercise order",
+        run: (workout) => actions.updateExerciseOrder(workout, command),
+      }),
+    [actions, runActiveWorkoutOperation],
+  );
+
   const removeSet = useCallback(
     (command: RemoveSetCommand) =>
       runActiveWorkoutOperation({
@@ -497,6 +517,7 @@ export function useWorkoutSessionController(
     finishWorkout,
     addExercise,
     removeExercise,
+    updateExerciseOrder,
     removeSet,
     addSet,
     copyPreviousSet,

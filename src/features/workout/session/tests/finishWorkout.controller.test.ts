@@ -2,10 +2,14 @@ import { createElement, type ReactElement } from "react";
 
 import {
   createWorkoutWithAllSetsCompleted,
+  createWorkoutWithTwoExercises,
   createWorkoutWithTwoSets,
 } from "@/domain/workout/tests/workout.test.helpers";
 import type { WorkoutAggregate } from "@/domain/workout/workout.types";
-import { addWorkoutSet } from "@/domain/workout/workout.useCases";
+import {
+  addWorkoutSet,
+  updateWorkoutExerciseOrder,
+} from "@/domain/workout/workout.useCases";
 import type { WorkoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
 
 import {
@@ -37,6 +41,7 @@ function createActions(
     finishWorkout: async () => undefined,
     addExercise: async (currentWorkout) => currentWorkout,
     removeExercise: async (currentWorkout) => currentWorkout,
+    updateExerciseOrder: async (currentWorkout) => currentWorkout,
     removeSet: async (currentWorkout) => currentWorkout,
     addSet: async (currentWorkout) => currentWorkout,
     copyPreviousSet: async (currentWorkout) => currentWorkout,
@@ -203,6 +208,63 @@ describe("copy previous set workout session controller", () => {
     expect(rendered.getController().state).toEqual({
       status: "active",
       workout: copiedWorkout,
+      operation: { status: "idle" },
+    });
+
+    await rendered.unmount();
+  });
+});
+
+describe("update exercise order workout session controller", () => {
+  it("tracks the move, forwards it, and commits the reordered workout", async () => {
+    const workout = createWorkoutWithTwoExercises();
+    const reorderedWorkout = updateWorkoutExerciseOrder(workout, {
+      workoutExerciseId: "workout_exercise_2",
+      orderIndex: 0,
+      now: 4_000,
+    });
+    let resolveUpdate: (workout: WorkoutAggregate) => void = () => undefined;
+    const updatePromise = new Promise<WorkoutAggregate>((resolve) => {
+      resolveUpdate = resolve;
+    });
+    const updateExerciseOrder = jest.fn(() => updatePromise);
+    const rendered = await renderController(
+      createActions(workout, { updateExerciseOrder }),
+    );
+    const command = {
+      workoutExerciseId: "workout_exercise_2",
+      orderIndex: 0,
+    };
+    let operationPromise:
+      ReturnType<WorkoutSessionController["updateExerciseOrder"]> | undefined;
+
+    await act(async () => {
+      operationPromise = rendered.getController().updateExerciseOrder(command);
+      await Promise.resolve();
+    });
+
+    expect(rendered.getController().state).toMatchObject({
+      status: "active",
+      workout,
+      operation: {
+        status: "pending",
+        operation: {
+          type: "updateExerciseOrder",
+          workoutExerciseId: "workout_exercise_2",
+          orderIndex: 0,
+        },
+      },
+    });
+
+    await act(async () => {
+      resolveUpdate(reorderedWorkout);
+      await operationPromise;
+    });
+
+    expect(updateExerciseOrder).toHaveBeenCalledWith(workout, command);
+    expect(rendered.getController().state).toEqual({
+      status: "active",
+      workout: reorderedWorkout,
       operation: { status: "idle" },
     });
 

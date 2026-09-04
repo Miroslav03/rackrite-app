@@ -27,6 +27,7 @@ import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExe
 import type { RemoveSetCommand } from "@/features/workout/actions/removeSet";
 import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
 import type { UndoSetCompletionCommand } from "@/features/workout/actions/undoCompletedSet";
+import type { UpdateExerciseOrderCommand } from "@/features/workout/actions/updateExerciseOrder";
 import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
 import { isOperationPending } from "@/features/workout/session/workoutSession.selectors";
 import type {
@@ -58,6 +59,7 @@ import { ActiveSetEditorDock } from "./components/ActiveWorkoutDock/ActiveSetEdi
 import { RestTimerDock } from "./components/ActiveWorkoutDock/RestTimerDock";
 import { useActiveWorkoutDockEditor } from "./components/ActiveWorkoutDock/useActiveWorkoutDockEditor";
 import { ActiveWorkoutOperationErrorNotifier } from "./components/ActiveWorkoutOperationErrorNotifier";
+import { ExerciseOrderEditor } from "./components/ExerciseOrderEditor/ExerciseOrderEditor";
 import { RestTimerCard } from "./components/RestTimerCard";
 import {
   WorkoutExerciseOptionsSheet,
@@ -79,6 +81,9 @@ export type ActiveWorkoutScreenActions = {
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   removeExercise: (
     command: RemoveExerciseCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
+  updateExerciseOrder: (
+    command: UpdateExerciseOrderCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   addSet: (
     command: AddSetCommand,
@@ -127,6 +132,7 @@ export type ActiveWorkoutOverlay =
   | { type: "none" }
   | { type: "exercisePicker" }
   | { type: "exerciseOptions"; workoutExerciseId: WorkoutExerciseId }
+  | { type: "exerciseOrderEditor"; workoutExerciseId: WorkoutExerciseId }
   | { type: "confirmationModal"; confirmation: ConfirmationModal }
   | { type: "dangerModal"; confirmation: DangerModal };
 
@@ -148,7 +154,7 @@ export function ActiveWorkoutScreenView({
   const modalContent = getModalContent(workout, activeOverlay);
   const workoutEligibility = getWorkoutFinishEligibility(workout);
 
-  const { addSet, copyPreviousSet } = actions;
+  const { addSet, copyPreviousSet, updateExerciseOrder } = actions;
   const { savePendingKeypadUpdate } = activeDockEditor;
 
   const restTimer = workout.workout.restTimer;
@@ -162,6 +168,7 @@ export function ActiveWorkoutScreenView({
     activeDockEditor.panel.type === "restTimer" ? null : activeDockEditor.panel;
   const restTimerDockOpen =
     activeDockEditor.panel.type === "restTimer" && restTimer !== null;
+  const exerciseOrderEditorOpen = activeOverlay.type === "exerciseOrderEditor";
 
   const excludedExerciseIds = workout.exercises.map(
     ({ exercise }) => exercise.id,
@@ -196,6 +203,46 @@ export function ActiveWorkoutScreenView({
       setActiveOverlay({ type: "exerciseOptions", workoutExerciseId });
     },
     [],
+  );
+
+  const openExerciseOrderEditor = useCallback(
+    async (workoutExerciseId: WorkoutExerciseId) => {
+      if (operationPending || workout.exercises.length < 2) {
+        return;
+      }
+
+      if (!(await savePendingKeypadUpdate())) {
+        return;
+      }
+
+      setActiveOverlay({
+        type: "exerciseOrderEditor",
+        workoutExerciseId: workoutExerciseId,
+      });
+    },
+    [operationPending, savePendingKeypadUpdate, workout.exercises.length],
+  );
+
+  const closeExerciseOrderEditor = useCallback(() => {
+    if (operationPending) return;
+
+    setActiveOverlay((currentOverlay) =>
+      currentOverlay.type === "exerciseOrderEditor"
+        ? NO_ACTIVE_OVERLAY
+        : currentOverlay,
+    );
+  }, [operationPending]);
+
+  const handleExerciseOrderChange = useCallback(
+    async (workoutExerciseId: WorkoutExerciseId, orderIndex: number) => {
+      const result = await updateExerciseOrder({
+        workoutExerciseId,
+        orderIndex,
+      });
+
+      return result.success;
+    },
+    [updateExerciseOrder],
   );
 
   async function handleExerciseSelected(exercise: Exercise) {
@@ -350,9 +397,7 @@ export function ActiveWorkoutScreenView({
       case "confirmationModal":
         switch (activeOverlay.confirmation.action) {
           case "finishWorkout":
-            if (workoutEligibility.status === "blocked") {
-              return;
-            }
+            if (workoutEligibility.status === "blocked") return;
 
             void actions.finishWorkout({
               skipUnfinishedSets: workoutEligibility.unfinishedSetCount > 0,
@@ -365,12 +410,14 @@ export function ActiveWorkoutScreenView({
   const exerciseActions = useMemo<WorkoutExerciseSectionActions>(
     () => ({
       openOptions: openExerciseOptions,
+      openOrderEditor: openExerciseOrderEditor,
       addSet: handleAddSet,
       copyPreviousSet: handleCopyPreviousSet,
       openSetEditor: activeDockEditor.openSetEditor,
     }),
     [
       openExerciseOptions,
+      openExerciseOrderEditor,
       handleAddSet,
       handleCopyPreviousSet,
       activeDockEditor.openSetEditor,
@@ -439,7 +486,7 @@ export function ActiveWorkoutScreenView({
           restTimer ? (
             <CountdownTimer
               endsAt={restTimer.endsAt}
-              enabled={isFocused}
+              enabled={isFocused && !exerciseOrderEditorOpen}
               onExpire={() => {
                 void activeDockEditor.skipRestTimer();
               }}
@@ -624,6 +671,17 @@ export function ActiveWorkoutScreenView({
           onClose={closeOverlay}
         />
       )}
+
+      {activeOverlay.type === "exerciseOrderEditor" && (
+        <ExerciseOrderEditor
+          exercises={workout.exercises}
+          initialWorkoutExerciseId={activeOverlay.workoutExerciseId}
+          disabled={operationPending}
+          onMove={handleExerciseOrderChange}
+          onClose={closeExerciseOrderEditor}
+        />
+      )}
+
       {activeOverlay.type === "dangerModal" && modalContent !== null && (
         <DangerModalView
           open
@@ -635,6 +693,7 @@ export function ActiveWorkoutScreenView({
           onClose={closeOverlay}
         />
       )}
+
       {activeOverlay.type === "confirmationModal" && modalContent !== null && (
         <ConfirmationModalView
           open

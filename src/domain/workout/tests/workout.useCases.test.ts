@@ -15,6 +15,7 @@ import {
   skipWorkoutRestTimer,
   startWorkoutRestTimer,
   undoWorkoutSetCompletion,
+  updateWorkoutExerciseOrder,
   updateWorkoutExerciseRestSeconds,
   updateWorkoutSet,
 } from "../workout.useCases";
@@ -304,6 +305,99 @@ describe("updateWorkoutExerciseRestSeconds", () => {
         now: 3000,
       }),
     ).toThrow("Workout exercise rest duration must be a positive integer");
+  });
+});
+
+describe("updateWorkoutExerciseOrder", () => {
+  it("moves one exercise and reindexes every shifted exercise", () => {
+    const workout = addWorkoutExercise(createWorkoutWithTwoExercises(), {
+      workoutExerciseId: "workout_exercise_3",
+      setId: "set_3",
+      exercise: pausedBench,
+      restSeconds: pausedBench.defaultRestSeconds ?? 90,
+      now: 4_000,
+    });
+
+    const nextWorkout = updateWorkoutExerciseOrder(workout, {
+      workoutExerciseId: "workout_exercise_1",
+      orderIndex: 2,
+      now: 5_000,
+    });
+
+    expect(
+      nextWorkout.exercises.map(({ workoutExercise }) => ({
+        id: workoutExercise.id,
+        orderIndex: workoutExercise.orderIndex,
+        updatedAt: workoutExercise.updatedAt,
+      })),
+    ).toEqual([
+      { id: "workout_exercise_2", orderIndex: 0, updatedAt: 5_000 },
+      { id: "workout_exercise_3", orderIndex: 1, updatedAt: 5_000 },
+      { id: "workout_exercise_1", orderIndex: 2, updatedAt: 5_000 },
+    ]);
+    expect(nextWorkout.workout.updatedAt).toBe(5_000);
+    expect(
+      workout.exercises.map(({ workoutExercise }) => ({
+        id: workoutExercise.id,
+        orderIndex: workoutExercise.orderIndex,
+      })),
+    ).toEqual([
+      { id: "workout_exercise_1", orderIndex: 0 },
+      { id: "workout_exercise_2", orderIndex: 1 },
+      { id: "workout_exercise_3", orderIndex: 2 },
+    ]);
+  });
+
+  it("returns the same aggregate when the exercise is already at that index", () => {
+    const workout = createWorkoutWithTwoExercises();
+
+    expect(
+      updateWorkoutExerciseOrder(workout, {
+        workoutExerciseId: "workout_exercise_2",
+        orderIndex: 1,
+        now: 4_000,
+      }),
+    ).toBe(workout);
+  });
+
+  it("throws when the workout exercise does not exist", () => {
+    expect(() =>
+      updateWorkoutExerciseOrder(createWorkoutWithTwoExercises(), {
+        workoutExerciseId: "missing_exercise",
+        orderIndex: 0,
+        now: 4_000,
+      }),
+    ).toThrow("Workout exercise not found");
+  });
+
+  it.each([-1, 2, 0.5])(
+    "rejects an invalid target order index (%s)",
+    (orderIndex) => {
+      expect(() =>
+        updateWorkoutExerciseOrder(createWorkoutWithTwoExercises(), {
+          workoutExerciseId: "workout_exercise_1",
+          orderIndex,
+          now: 4_000,
+        }),
+      ).toThrow("Workout exercise order index is invalid");
+    },
+  );
+
+  it("rejects an aggregate whose exercise indexes do not match array order", () => {
+    const workout = createWorkoutWithTwoExercises();
+
+    expect(() =>
+      assertWorkoutAggregateInvariants({
+        ...workout,
+        exercises: workout.exercises.map((exerciseAggregate) => ({
+          ...exerciseAggregate,
+          workoutExercise: {
+            ...exerciseAggregate.workoutExercise,
+            orderIndex: 0,
+          },
+        })),
+      }),
+    ).toThrow("Workout exercise indexes must match their order");
   });
 });
 

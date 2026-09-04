@@ -14,6 +14,11 @@ export type StartWorkoutOperation =
 export type ActiveWorkoutOperation =
   | { type: "addExercise"; exerciseId: ExerciseId }
   | { type: "removeExercise"; workoutExerciseId: WorkoutExerciseId }
+  | {
+      type: "updateExerciseOrder";
+      workoutExerciseId: WorkoutExerciseId;
+      orderIndex: number;
+    }
   | { type: "removeSet"; workoutSetId: WorkoutSetId }
   | { type: "addSet"; workoutExerciseId: WorkoutExerciseId }
   | { type: "copyPreviousSet"; workoutExerciseId: WorkoutExerciseId }

@@ -31,6 +31,7 @@ import { WorkoutSetCard } from "./WorkoutSetCard";
 
 export type WorkoutExerciseSectionActions = {
   openOptions: (workoutExerciseId: WorkoutExerciseId) => void;
+  openOrderEditor: (workoutExerciseId: WorkoutExerciseId) => void;
   addSet: (workoutExerciseId: WorkoutExerciseId) => void;
   copyPreviousSet: (workoutExerciseId: WorkoutExerciseId) => void;
   openSetEditor: (
@@ -73,7 +74,17 @@ export function WorkoutExerciseSection({
   return (
     <ScreenSection className={className}>
       <View className="flex-row items-start justify-between gap-md">
-        <View className="flex-1">
+        <Pressable
+          className="flex-1"
+          accessibilityRole="button"
+          accessibilityLabel={exercise.name}
+          accessibilityHint="Opens exercise reordering"
+          delayLongPress={300}
+          onAccessibilityTap={() =>
+            exerciseActions.openOrderEditor(workoutExerciseId)
+          }
+          onLongPress={() => exerciseActions.openOrderEditor(workoutExerciseId)}
+        >
           <AppText variant="title" className="text-[22px]">
             {exercise.name}
           </AppText>
@@ -81,7 +92,7 @@ export function WorkoutExerciseSection({
           <AppText variant="subtitle">
             {formatExerciseKind(exercise.kind)}
           </AppText>
-        </View>
+        </Pressable>
 
         <Pressable
           accessibilityRole="button"
