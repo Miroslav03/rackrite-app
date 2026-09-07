@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "expo-router";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, type ListRenderItemInfo } from "react-native";
 
 import type { Exercise, ExerciseKind } from "@/domain/exercises/exercise.types";
@@ -48,6 +48,7 @@ import { DangerModal as DangerModalView } from "@/shared/components/ui/DangerMod
 import { ElapsedTimer } from "@/shared/components/ui/ElapsedTimer";
 import { colors, spacing } from "@/shared/theme/tokens";
 
+import { useScrollVisibility } from "@/shared/context/ScrollVisibilityContext";
 import {
   getAddExerciseOperation,
   getModalContent,
@@ -147,10 +148,14 @@ export function ActiveWorkoutScreenView({
   const [activeOverlay, setActiveOverlay] =
     useState<ActiveWorkoutOverlay>(NO_ACTIVE_OVERLAY);
 
-  const isFocused = useIsFocused();
-  const operationPending = isOperationPending(operation);
-  const activeDockEditor = useActiveWorkoutDockEditor(workout, actions);
+  const listRef = useRef<FlatList<WorkoutExerciseAggregate>>(null);
+  const scrollOffsetRef = useRef(0);
 
+  const isFocused = useIsFocused();
+  const activeDockEditor = useActiveWorkoutDockEditor(workout, actions);
+  const { registerScroller, ensureVisible } = useScrollVisibility();
+
+  const operationPending = isOperationPending(operation);
   const modalContent = getModalContent(workout, activeOverlay);
   const workoutEligibility = getWorkoutFinishEligibility(workout);
 
@@ -424,6 +429,15 @@ export function ActiveWorkoutScreenView({
     ],
   );
 
+  useEffect(() => {
+    return registerScroller((delta) => {
+      listRef.current?.scrollToOffset({
+        offset: scrollOffsetRef.current + delta,
+        animated: true,
+      });
+    });
+  }, [registerScroller]);
+
   const activeSetField = activeSetPanel?.type;
   const weightDraft = activeDockEditor.weightDraft;
   const repsDraft = activeDockEditor.repsDraft;
@@ -505,12 +519,17 @@ export function ActiveWorkoutScreenView({
         }
       >
         <FlatList
+          ref={listRef}
           className="flex-1"
           data={workout.exercises}
           extraData={exerciseListExtraData}
           keyExtractor={(exerciseAggregate) =>
             exerciseAggregate.workoutExercise.id
           }
+          onScroll={(event) => {
+            scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+          }}
+          onContentSizeChange={ensureVisible}
           renderItem={renderExercise}
           initialNumToRender={3}
           maxToRenderPerBatch={3}

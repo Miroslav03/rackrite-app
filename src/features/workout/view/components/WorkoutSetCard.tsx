@@ -10,9 +10,13 @@ import type { ActiveSetEditorPanelType } from "@/features/workout/view/component
 import { WorkoutSetId } from "@/domain/workout/workout.types";
 import { AppText } from "@/shared/components/ui/AppText";
 import { SurfaceCard } from "@/shared/components/ui/SurfaceCard";
+import {
+  measureView,
+  useScrollVisibility,
+} from "@/shared/context/ScrollVisibilityContext";
 import { colors } from "@/shared/theme/tokens";
 import { cn } from "@/shared/utils/cn";
-import { memo } from "react";
+import { memo, useEffect, useRef } from "react";
 
 type WorkoutSetStatus = "completed" | "active" | "pending";
 
@@ -52,10 +56,29 @@ export const WorkoutSetCard = memo(function WorkoutSetCard({
   disabled,
   onOpenEditor,
 }: WorkoutSetCardProps) {
+  const setCardRef = useRef<View>(null);
+
+  const { registerTarget, ensureVisible } = useScrollVisibility();
+
   const isCompleted = status === "completed";
   const isSelected = status === "active" || selected;
   const isPending = status === "pending";
   const setTypeConfig = SET_TYPE_CONFIG[setType];
+
+  useEffect(() => {
+    if (!isSelected) return;
+
+    const unregister = registerTarget(() => measureView(setCardRef.current));
+
+    const frame = requestAnimationFrame(() => {
+      void ensureVisible();
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+      unregister();
+    };
+  }, [isSelected, registerTarget, ensureVisible]);
 
   const handleSelect = () => {
     onOpenEditor(workoutSetId, "weight");
@@ -67,6 +90,7 @@ export const WorkoutSetCard = memo(function WorkoutSetCard({
 
   return (
     <Pressable
+      ref={setCardRef}
       accessibilityRole="button"
       accessibilityLabel={`Select set ${setIndex}`}
       accessibilityState={{ disabled, selected: isSelected }}

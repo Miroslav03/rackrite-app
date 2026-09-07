@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { usePreventRemove } from "@react-navigation/native";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   BackHandler,
   Platform,
@@ -21,6 +21,10 @@ import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
 import { CountdownTimer } from "@/shared/components/ui/CountdownTimer";
 import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
+import {
+  measureView,
+  useScrollVisibility,
+} from "@/shared/context/ScrollVisibilityContext";
 import { colors, spacing } from "@/shared/theme/tokens";
 
 type RestTimerDockProps = {
@@ -44,7 +48,10 @@ export function RestTimerDock({
   onDismiss,
   onHeightChange,
 }: RestTimerDockProps) {
+  const dockRef = useRef<View>(null);
+
   const insets = useSafeAreaInsets();
+
   const operationPending = isOperationPending(operation);
   const skipPending =
     operation.status === "pending" &&
@@ -53,6 +60,7 @@ export function RestTimerDock({
   function handleLayout(event: LayoutChangeEvent) {
     onHeightChange(event.nativeEvent.layout.height);
   }
+  const { registerOccluder } = useScrollVisibility();
 
   usePreventRemove(true, onDismiss);
 
@@ -72,8 +80,13 @@ export function RestTimerDock({
     return () => subscription.remove();
   }, [onDismiss]);
 
+  useEffect(() => {
+    return registerOccluder(() => measureView(dockRef.current));
+  }, [registerOccluder]);
+
   return (
     <View
+      ref={dockRef}
       accessibilityLabel="Rest timer controls"
       className="absolute inset-x-0 bottom-0 z-20 border-t border-outline bg-surface px-screenX pt-md"
       style={{

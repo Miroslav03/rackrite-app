@@ -5,6 +5,7 @@ import { ActiveWorkoutScreenView } from "@/features/workout/view/ActiveWorkoutSc
 import { WorkoutScreenLoadError } from "@/features/workout/view/WorkoutScreenLoadError";
 
 import { FullScreenLoader } from "@/shared/components/feedback/FullScreenLoader";
+import { ScrollVisibilityProvider } from "@/shared/context/ScrollVisibilityContext";
 
 export default function WorkoutScreen() {
   const {
@@ -44,28 +45,30 @@ export default function WorkoutScreen() {
 
     case "active":
       return (
-        <ActiveWorkoutScreenView
-          workout={state.workout}
-          operation={state.operation}
-          actions={{
-            cancelWorkout,
-            finishWorkout,
-            addExercise,
-            removeExercise,
-            updateExerciseOrder,
-            removeSet,
-            addSet,
-            copyPreviousSet,
-            updateSet,
-            selectSet,
-            completeSet,
-            adjustRestTimer,
-            resetRestTimer,
-            skipRestTimer,
-            undoCompletedSet,
-            dismissOperationError,
-          }}
-        />
+        <ScrollVisibilityProvider>
+          <ActiveWorkoutScreenView
+            workout={state.workout}
+            operation={state.operation}
+            actions={{
+              cancelWorkout,
+              finishWorkout,
+              addExercise,
+              removeExercise,
+              updateExerciseOrder,
+              removeSet,
+              addSet,
+              copyPreviousSet,
+              updateSet,
+              selectSet,
+              completeSet,
+              adjustRestTimer,
+              resetRestTimer,
+              skipRestTimer,
+              undoCompletedSet,
+              dismissOperationError,
+            }}
+          />
+        </ScrollVisibilityProvider>
       );
   }
 }

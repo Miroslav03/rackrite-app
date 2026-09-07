@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 
-import type { AdjustRestTimerCommand } from "@/features/workout/actions/adjustRestTimer";
 import type { AddExerciseCommand } from "@/features/workout/actions/addExercise";
 import type { AddSetCommand } from "@/features/workout/actions/addSet";
+import type { AdjustRestTimerCommand } from "@/features/workout/actions/adjustRestTimer";
 import type { CompleteSetCommand } from "@/features/workout/actions/completeSet";
 import type { CopyPreviousSetCommand } from "@/features/workout/actions/copyPreviousSet";
 import type { FinishWorkoutCommand } from "@/features/workout/actions/finishWorkout";

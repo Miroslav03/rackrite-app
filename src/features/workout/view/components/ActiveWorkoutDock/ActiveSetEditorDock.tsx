@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { usePreventRemove } from "@react-navigation/native";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   BackHandler,
   Platform,
@@ -34,6 +34,10 @@ import { colors, spacing } from "@/shared/theme/tokens";
 
 import { getPanelLabel } from "../../activeWorkout.viewState.utils";
 
+import {
+  measureView,
+  useScrollVisibility,
+} from "@/shared/context/ScrollVisibilityContext";
 import type { ActiveSetEditorPanel } from "./activeWorkoutDock.types";
 import {
   isActiveSetEditorKeypadPanel,
@@ -79,7 +83,10 @@ export function ActiveSetEditorDock({
   onDelete,
   onHeightChange,
 }: ActiveSetEditorDockProps) {
+  const dockRef = useRef<View>(null);
+
   const insets = useSafeAreaInsets();
+  const { registerOccluder, ensureVisible } = useScrollVisibility();
 
   const operationPending = isOperationPending(operation);
   const weightKeypadOpen = isWeightKeypadPanel(panel);
@@ -97,11 +104,19 @@ export function ActiveSetEditorDock({
 
   function handleLayout(event: LayoutChangeEvent) {
     onHeightChange(event.nativeEvent.layout.height);
+
+    requestAnimationFrame(() => {
+      void ensureVisible();
+    });
   }
 
   usePreventRemove(keypadOpen, () => {
     void onToggleKeypad();
   });
+
+  useEffect(() => {
+    return registerOccluder(() => measureView(dockRef.current));
+  }, [registerOccluder]);
 
   useEffect(() => {
     if (!keypadOpen || Platform.OS !== "android") {
@@ -121,6 +136,7 @@ export function ActiveSetEditorDock({
 
   return (
     <View
+      ref={dockRef}
       accessibilityLabel={`Set editor for ${exerciseName}, set ${activeSet.setIndex + 1}`}
       className="absolute inset-x-0 bottom-0 z-20 border-t border-outline bg-surface px-screenX pt-md"
       style={{
