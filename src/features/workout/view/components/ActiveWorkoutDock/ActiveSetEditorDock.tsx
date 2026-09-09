@@ -18,10 +18,8 @@ import type {
   ActiveWorkoutOperation,
   OperationState,
 } from "@/features/workout/session/workoutSession.types";
-import {
-  SET_TYPE_CONFIG,
-  type RpePickerValue,
-} from "@/features/workout/view/activeWorkout.config";
+import type { RpePickerValue } from "@/features/workout/view/activeWorkout.config";
+import { SET_TYPE_CONFIG } from "@/shared/theme/setTypes";
 
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";

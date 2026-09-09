@@ -49,7 +49,6 @@ export function TemplateSurfaceCard({
       <SurfaceCard
         accent={surfaceAccent}
         className={surfaceClassName}
-        contentClassName="p-0"
         variant={surfaceVariant}
       >
         <View className={cn("px-sm pt-sm pb-xl", contentClassName)}>

@@ -65,3 +65,5 @@ CREATE TABLE `workouts` (
         )
       )
 );
+--> statement-breakpoint
+CREATE INDEX `idx_workouts_history` ON `workouts` (`status`,`finished_at`,`id`);

@@ -38,6 +38,9 @@ This document covers:
 4. Empty states
 5. Repeat Workout behavior
 
+The History list is implemented. Workout details and repeat behavior below are
+future specifications.
+
 ---
 
 ## Mental Model
@@ -54,156 +57,91 @@ That means:
 
 ---
 
-## 1. History List Screen
+## 1. History List Screen — Implemented
 
-### Purpose
+The list follows the Stitch screen **History - Badged Ledger with Top Sets**.
+It is read-only. Opening details and repeating a workout are future features;
+there are no inactive action buttons on these cards.
 
-The History List Screen shows all completed workouts in a simple, scannable list.
+### Header and cards
 
-The user should be able to open the screen and recognize recent training sessions immediately.
+The standard app header and History screen heading display the global completed
+workout count, queried separately from the loaded page.
 
----
+Each shared `TemplateSurfaceCard` displays:
 
-### High-Level Structure
+- The existing Quick Workout / Template Workout name and whole elapsed minutes.
+  Names and descriptions are not currently persisted, so descriptions are omitted.
+- Shared badges for lift families with completed sets, including variations,
+  deduplicated in exercise order. Accessories have no lift-family badge.
+- Every exercise with completed sets in workout order: name, completed-set count,
+  heaviest completed non-warm-up set, and nonzero counts by set type.
+- Relative local calendar day, total lifted weight, and local start date/time
+  (24-hour clock). There are no separate date-group headers.
 
-The screen contains:
+All counts and metrics exclude skipped sets, which may remain in a completed
+workout. Top-set ties use reps and then earliest set order; sessions with only
+warm-ups use the heaviest completed warm-up. The explicit Top set type does not
+take precedence over heavier non-warm-up sets.
 
-- Header
-- Grouped workout list
-- Empty state (if no workouts exist)
+Total lifted weight is the sum of `weight × reps` for every completed set,
+including warm-ups. Duration is `max(0, floor((finishedAt - startedAt) / 60000))`.
+Relative days use local calendar dates, so midnight and daylight-saving changes
+are handled independently of elapsed hours. Labels update on focus, foreground,
+and local midnight. Zero weights remain valid values.
 
----
+Badges reuse shared set-type presentation colors from the Workout screen and
+always include text. Card content wraps for narrow screens and enlarged text.
 
-### Header
+### Data flow and pagination
 
-Example:
+`route -> History controller -> actions`
 
-History
+Actions coordinate the two independent responsibilities, following the workout
+action pattern:
 
----
+- `historyRepository` queries SQLite and maps rows to workout aggregates. It owns
+  filtering, ordering, cursor pagination, batched hydration, and the global count.
+- Pure domain selectors take completed workout aggregates and derive summaries:
+  completed-set counts, total lifted weight, top sets, lift families, and duration.
 
-### Data Source
+`loadHistoryPage` validates the page request, fetches aggregates from the repository,
+and passes them to the domain selector. `loadHistoryOverview` combines the first
+page with the global count. These are feature actions; the domain has no repository
+dependency or asynchronous loading use case. Page-size and cursor validation belong
+to the loading action, while completed-workout requirements belong to the domain.
 
-History list items are derived from:
+History has screen-local state; it does not share active-workout session state
+or create another persisted source of truth. Only derived summaries are retained
+in the controller after each page is loaded.
 
-- completed Workouts
-- their WorkoutSections
-- their WorkoutSets
+- Fetch 50 completed workouts with non-null finish timestamps, ordered by
+  `finishedAt DESC, id DESC`.
+- Use a `(finishedAt, workoutId)` cursor and a 51st parent row to detect another
+  page. Hydrate only the returned 50 workouts using three batched child queries.
+- Support the query with `idx_workouts_history` on `(status, finished_at, id)`,
+  included in `0000_init` and its snapshot while the app is preproduction.
+  Existing development databases require recreation to receive this init change.
+- Place FlatList in `Screen scroll={false}`; render three items initially and
+  three per batch with `windowSize={5}`. This is not a three-mounted-card limit.
+- Load another page at `onEndReachedThreshold={0.5}`. Prevent duplicate requests,
+  deduplicate appended IDs, and stop when there is no next cursor.
+- Reload the first page and global count on focus, foreground, or pull-to-refresh.
+  Replace pages and reset scrolling only after successful refresh.
+- Ignore stale responses after refresh, blur, backgrounding, or unmount.
 
-Only workouts with status = completed are shown here.
+### Loading, errors, and empty history
 
----
+Initial loading uses the shared full-screen loader. Initial failure offers Retry.
+Refresh and pagination failures preserve existing cards and offer explicit retries;
+a failed pagination request does not restart automatically on repeated end events.
 
-### Grouping
-
-History items should be grouped by date.
-
-Recommended grouping:
-
-- TODAY
-- YESTERDAY
-- older calendar dates (e.g. APR 10)
-
-This makes the list easier to scan and closer to the user's mental model.
-
----
-
-### Workout List Item
-
-Each item should be compact and easy to scan.
-
-A history item should show:
-
-- workout date (implicit via grouping)
-- optional workout name
-- lift summary
-- optional highlight (top set / best notable set)
-
----
-
-### Example Item
-
-Bench · Squat · Deadlift  
-Top: Bench 90 x 3
-
----
-
-### Alternative Item
-
-Bench Volume Day  
-Bench · Squat  
-Top: Paused Bench 85 x 5
-
----
-
-### Rules for List Items
-
-- maximum 2 lines of core content
-- do not overload with too much data
-- quick scan is more important than completeness
-- list should remain lightweight even with many entries
+The empty state reads “No workouts yet” and “Finish your first session to build
+your history.” Its “Go to Start” button returns to the Start tab.
 
 ---
 
-### Tap Behavior
-
-Tap on a history item:
-
-→ opens Workout Details Screen
-
----
-
-### Optional Long Press (Future)
-
-Optional later actions:
-
-- Delete workout
-- Save as template
-- Duplicate
-
-These are not required for V1.
-
----
-
-## Empty State — No History
-
-### When it appears
-
-Shown when the user has no completed workouts yet.
-
----
-
-### UI Example
-
-No workouts yet  
-Start your first session to build your history
-
-[ Start Workout ]
-
----
-
-### Goal
-
-The empty state should:
-
-- explain why the screen is empty
-- point the user back to the core action
-- avoid feeling dead or broken
-
----
-
-## Scroll / Performance Rules
-
-History can grow over time, so:
-
-- use vertical scrolling
-- use list virtualization (e.g. FlatList)
-- avoid rendering the full history eagerly
-- keep list items lightweight
-
----
-
-## 2. Workout Details Screen
+## 2. Workout Details Screen — Future
 
 ### Purpose
 
@@ -342,7 +280,7 @@ This is recommended for convenience.
 
 ---
 
-## 3. Repeat Workout Behavior
+## 3. Repeat Workout Behavior — Future
 
 ### Purpose
 
@@ -417,7 +355,7 @@ Workout = action
 History is derived from:
 
 - Workout
-- WorkoutSection
+- WorkoutExercise
 - WorkoutSet
 
 Where:

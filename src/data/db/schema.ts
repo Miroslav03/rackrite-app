@@ -40,6 +40,7 @@ export const workoutsTable = sqliteTable(
     updatedAt: integer("updated_at").notNull(),
   },
   (table) => [
+    index("idx_workouts_history").on(table.status, table.finishedAt, table.id),
     check(
       "workouts_rest_timer_is_valid",
       sql`

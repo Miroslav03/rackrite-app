@@ -8,6 +8,7 @@ import type {
   WorkoutAggregate,
   WorkoutSet,
 } from "@/domain/workout/workout.types";
+import { getWorkoutDisplayName } from "@/shared/utils/getWorkoutDisplayName";
 
 export type ActiveWorkoutTemplateCardViewModel =
   | {
@@ -32,12 +33,6 @@ export type ActiveWorkoutTemplateCardViewModel =
       activeSetPosition: number;
       totalSets: number;
     };
-
-function getWorkoutDisplayName(workoutAggregate: WorkoutAggregate): string {
-  return workoutAggregate.workout.sourceTemplateId === null
-    ? "Quick Workout"
-    : "Template Workout";
-}
 
 export function getActiveWorkoutFooterContent(
   viewModel: ActiveWorkoutTemplateCardViewModel,
@@ -75,7 +70,9 @@ export function getActiveWorkoutFooterContent(
 export function createActiveWorkoutTemplateCardViewModel(
   workoutAggregate: WorkoutAggregate,
 ): ActiveWorkoutTemplateCardViewModel {
-  const workoutName = getWorkoutDisplayName(workoutAggregate);
+  const workoutName = getWorkoutDisplayName(
+    workoutAggregate.workout.sourceTemplateId,
+  );
   const allSets = getAllWorkoutSets(workoutAggregate);
   const activeSet = getActiveWorkoutSet(workoutAggregate);
   const activeExercise = getActiveWorkoutExercise(workoutAggregate);

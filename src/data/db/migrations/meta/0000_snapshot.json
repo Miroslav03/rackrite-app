@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "57d1324f-dce7-4ddd-9277-6868c63be74e",
+  "id": "78bef7ed-e63e-4ded-9715-87a230b82a90",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "exercises": {
@@ -340,7 +340,17 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_workouts_history": {
+          "name": "idx_workouts_history",
+          "columns": [
+            "status",
+            "finished_at",
+            "id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

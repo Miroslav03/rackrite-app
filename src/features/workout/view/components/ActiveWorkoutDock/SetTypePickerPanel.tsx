@@ -2,10 +2,7 @@ import { View } from "react-native";
 
 import type { SetType } from "@/domain/domain.types";
 
-import {
-  SET_TYPE_CONFIG,
-  SET_TYPE_OPTIONS,
-} from "@/features/workout/view/activeWorkout.config";
+import { SET_TYPE_CONFIG, SET_TYPE_OPTIONS } from "@/shared/theme/setTypes";
 
 import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
 import { colors } from "@/shared/theme/tokens";

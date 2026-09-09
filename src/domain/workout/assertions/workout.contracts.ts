@@ -13,6 +13,17 @@ export function assertWorkoutIsActive(
   }
 }
 
+export function assertWorkoutIsCompleted(
+  workoutAggregate: WorkoutAggregate,
+): asserts workoutAggregate is WorkoutAggregate & {
+  workout: { status: "completed"; finishedAt: number };
+} {
+  const { workout } = workoutAggregate;
+  if (workout.status !== "completed" || workout.finishedAt === null) {
+    throw new Error("History requires a completed workout with a finish time");
+  }
+}
+
 export function assertWorkoutExerciseExists(
   exercise: WorkoutExerciseAggregate | undefined,
 ): asserts exercise is WorkoutExerciseAggregate {

@@ -1,4 +1,9 @@
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import {
+  asc,
+  desc,
+  eq,
+  inArray
+} from "drizzle-orm";
 
 import { db } from "@/data/db/client";
 import {
@@ -31,7 +36,6 @@ export type WorkoutRepository = {
     workoutId: WorkoutId,
   ) => Promise<WorkoutAggregate | null>;
   getActiveWorkoutAggregate: () => Promise<WorkoutAggregate | null>;
-  getCompletedWorkoutAggregates: () => Promise<WorkoutAggregate[]>;
 };
 
 export const insertWorkoutAggregate: WorkoutRepository["insertWorkoutAggregate"] =
@@ -260,30 +264,10 @@ export const getActiveWorkoutAggregate: WorkoutRepository["getActiveWorkoutAggre
     return getWorkoutAggregateById(activeWorkoutRow.id);
   };
 
-export const getCompletedWorkoutAggregates: WorkoutRepository["getCompletedWorkoutAggregates"] =
-  async () => {
-    const completedWorkoutRows = await db
-      .select()
-      .from(workoutsTable)
-      .where(eq(workoutsTable.status, "completed"))
-      .orderBy(desc(workoutsTable.finishedAt));
-    const workoutAggregates = await Promise.all(
-      completedWorkoutRows.map((workoutRow) =>
-        getWorkoutAggregateById(workoutRow.id),
-      ),
-    );
-
-    return workoutAggregates.filter(
-      (workoutAggregate): workoutAggregate is WorkoutAggregate =>
-        workoutAggregate !== null,
-    );
-  };
-
 export const workoutRepository: WorkoutRepository = {
   insertWorkoutAggregate,
   deleteWorkoutAggregate,
   updateWorkoutAggregate,
   getWorkoutAggregateById,
   getActiveWorkoutAggregate,
-  getCompletedWorkoutAggregates,
 };
