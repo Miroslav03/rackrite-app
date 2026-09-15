@@ -45,3 +45,8 @@ app-example
 
 # IDE
 /.vscode/
+
+*storybook.log
+storybook-static
+
+.rnstorybook/storybook.requires.ts

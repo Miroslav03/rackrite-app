@@ -23,8 +23,6 @@ export const HistoryWorkoutCard = memo(function HistoryWorkoutCard({
     [workout, dateReference],
   );
 
-  console.log(card.workoutName);
-
   return (
     <TemplateSurfaceCard
       testID={`history-workout-${workout.id}`}
