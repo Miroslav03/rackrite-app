@@ -6,7 +6,7 @@ import type {
 } from "@/domain/history/history.types";
 import { summarizeCompletedWorkout } from "@/domain/history/history.utils";
 
-export const HISTORY_PAGE_SIZE = 3;
+export const HISTORY_PAGE_SIZE = 50;
 
 export type LoadHistoryPageDependencies = {
   repository: Pick<WorkoutHistoryRepository, "getCompletedWorkoutPage">;

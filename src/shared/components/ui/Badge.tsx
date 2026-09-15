@@ -1,6 +1,10 @@
-import { View } from "react-native";
+import type { ReactNode } from "react";
+import { View, type StyleProp, type ViewStyle } from "react-native";
+
+import { cn } from "@/shared/utils/cn";
 
 import type { SetType } from "@/domain/domain.types";
+
 import { SET_TYPE_CONFIG } from "@/shared/theme/setTypes";
 import { colors } from "@/shared/theme/tokens";
 
@@ -13,6 +17,10 @@ type BadgeProps = {
   tone?: BadgeTone;
   accentColor?: string;
   tintColor?: string;
+  className?: string;
+  textClassName?: string;
+  leadingAccessory?: ReactNode;
+  style?: StyleProp<ViewStyle>;
 };
 
 export function Badge({
@@ -20,6 +28,10 @@ export function Badge({
   tone = "neutral",
   accentColor,
   tintColor,
+  className,
+  textClassName,
+  leadingAccessory,
+  style,
 }: BadgeProps) {
   const appearance =
     tone === "neutral" || tone === "highlight"
@@ -31,13 +43,21 @@ export function Badge({
 
   return (
     <View
-      className="max-w-full self-start rounded px-sm"
-      style={{
-        backgroundColor: tintColor ?? appearance.tintColor,
-      }}
+      className={cn(
+        "max-w-full self-start rounded px-sm",
+        leadingAccessory && "flex-row items-center gap-1",
+        className,
+      )}
+      style={[
+        {
+          backgroundColor: tintColor ?? appearance.tintColor,
+        },
+        style,
+      ]}
     >
+      {leadingAccessory}
       <AppText
-        className="text-sm font-bold"
+        className={cn("text-sm font-bold", textClassName)}
         style={{
           color: accentColor ?? appearance.accentColor,
           fontVariant: ["tabular-nums"],
