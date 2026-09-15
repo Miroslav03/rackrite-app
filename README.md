@@ -1,5 +1,11 @@
 # Welcome to your Expo app 👋
 
+## Native component previews
+
+Run `npm run storybook:android` to browse Progress scenarios in the Android
+development app. See [Native Storybook](.rnstorybook/README.md) for initial native
+builds, iOS, controls, and adding stories.
+
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 ## Get started

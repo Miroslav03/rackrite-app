@@ -1,3 +1,4 @@
+const { withStorybook } = require("@storybook/react-native/withStorybook");
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
 
@@ -9,6 +10,6 @@ config.resolver.sourceExts.push("sql");
 // Needed for expo-sqlite on web
 config.resolver.assetExts.push("wasm");
 
-module.exports = withNativeWind(config, {
-  input: "./src/global.css",
-});
+module.exports = withStorybook(
+  withNativeWind(config, { input: "./src/global.css" }),
+);
