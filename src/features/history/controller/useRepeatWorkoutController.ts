@@ -66,11 +66,6 @@ export function useRepeatWorkoutController(
           onStarted();
         } else if (result.error.code === "invalidSessionState") {
           setOverlay({ type: "none" });
-
-          showToast({
-            message: result.error.message,
-            onDismiss: () => dismissOperationError(result.error),
-          });
         }
       } finally {
         runningRef.current = false;
