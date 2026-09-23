@@ -96,7 +96,7 @@ export function HistoryScreenView({
   }, [state.revision]);
 
   return (
-    <Screen scroll={false} className="pt-0">
+    <Screen scroll={false} className="pt-0 pb-0">
       {(session.state.status === "active" ||
         session.state.status === "noActiveWorkout") && (
         <ActiveWorkoutOperationErrorNotifier
