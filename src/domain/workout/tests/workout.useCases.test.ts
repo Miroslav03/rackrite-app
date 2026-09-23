@@ -7,6 +7,7 @@ import {
   clearWorkoutRestTimer,
   completeWorkoutSet,
   createEmptyWorkout,
+  createRepeatedWorkout,
   finishWorkout,
   removeWorkoutExercise,
   removeWorkoutSet,
@@ -29,6 +30,7 @@ import {
   pausedBench,
 } from "./workout.test.constants";
 import {
+  createCompletedWorkoutWithMixedSets,
   createWorkoutWithAllSetsCompleted,
   createWorkoutWithCompetitionBench,
   createWorkoutWithCompletedFirstSet,
@@ -1530,5 +1532,87 @@ describe("workout rest timer", () => {
     });
 
     expect(finishedWorkout.workout.restTimer).toBeNull();
+  });
+});
+
+describe("Repeat Workout", () => {
+  function input() {
+    let id = 0;
+    return {
+      id: "repeated",
+      now: 200000,
+      createWorkoutExerciseId: () => `exercise_${++id}`,
+      createWorkoutSetId: () => `set_${++id}`,
+    };
+  }
+
+  it("repeats performed sets with fresh identities and preserves the original", () => {
+    const source = createCompletedWorkoutWithMixedSets();
+    const snapshot = JSON.parse(JSON.stringify(source));
+    const repeated = createRepeatedWorkout(source, input());
+
+    expect(source).toEqual(snapshot);
+    expect(repeated.workout).toEqual({
+      id: "repeated",
+      sourceTemplateId: "template_1",
+      status: "active",
+      activeSetId: "set_2",
+      restTimer: null,
+      startedAt: 200000,
+      finishedAt: null,
+      createdAt: 200000,
+      updatedAt: 200000,
+    });
+    expect(repeated.exercises).toHaveLength(1);
+    expect(repeated.exercises[0].workoutExercise).toMatchObject({
+      id: "exercise_1",
+      workoutId: "repeated",
+      notes: "Pause each rep",
+      restSeconds: 240,
+      orderIndex: 0,
+      createdAt: 200000,
+      updatedAt: 200000,
+    });
+    const sets = repeated.exercises[0].sets;
+    expect(
+      sets.map(({ type, weight, reps, rpe }) => ({
+        type,
+        weight,
+        reps,
+        rpe,
+      })),
+    ).toEqual([
+      { type: "warmup", weight: 0, reps: 5, rpe: 10 },
+      { type: "working", weight: 80, reps: 5, rpe: 8 },
+      { type: "top", weight: 100, reps: 3, rpe: 9 },
+      { type: "backoff", weight: 70, reps: 5, rpe: null },
+    ]);
+    sets.forEach((set, index) =>
+      expect(set).toMatchObject({
+        id: `set_${index + 2}`,
+        workoutExerciseId: "exercise_1",
+        setIndex: index,
+        finishedAt: null,
+        createdAt: 200000,
+        updatedAt: 200000,
+      }),
+    );
+    repeated.exercises[0].sets[0].weight = 99;
+    expect(source).toEqual(snapshot);
+  });
+
+  it("rejects an active source and a completed source without performed sets", () => {
+    expect(() =>
+      createRepeatedWorkout(createWorkoutWithTwoSets(), input()),
+    ).toThrow("completed workout");
+    const source = createCompletedWorkoutWithMixedSets();
+    source.exercises.forEach(({ sets }) =>
+      sets.forEach((set) => {
+        set.finishedAt = null;
+      }),
+    );
+    expect(() => createRepeatedWorkout(source, input())).toThrow(
+      "requires a completed set",
+    );
   });
 });

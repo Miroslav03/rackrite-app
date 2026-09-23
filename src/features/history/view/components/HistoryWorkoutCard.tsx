@@ -1,7 +1,15 @@
-import { memo, useMemo } from "react";
-import { View } from "react-native";
+import { memo, useCallback, useMemo } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  View,
+  type GestureResponderEvent,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "@/shared/theme/tokens";
 
 import type { HistoryWorkoutSummary } from "@/domain/history/history.types";
+import type { WorkoutId } from "@/domain/workout/workout.types";
 
 import { AppText } from "@/shared/components/ui/AppText";
 import { Badge } from "@/shared/components/ui/Badge";
@@ -12,45 +20,94 @@ import { createHistoryCardViewModel } from "../historyCard.viewModel";
 type HistoryWorkoutCardProps = {
   workout: HistoryWorkoutSummary;
   dateReference: number;
+  onOpen?: (workoutId: WorkoutId) => void;
+  onRepeat?: (workoutId: WorkoutId) => void;
+  repeatDisabled?: boolean;
+  repeatPending?: boolean;
 };
 
 export const HistoryWorkoutCard = memo(function HistoryWorkoutCard({
   workout,
   dateReference,
+  onOpen,
+  onRepeat,
+  repeatDisabled,
+  repeatPending,
 }: HistoryWorkoutCardProps) {
   const card = useMemo(
     () => createHistoryCardViewModel(workout, dateReference),
     [workout, dateReference],
   );
+  const handleOpen = useCallback(() => onOpen?.(workout.id), [onOpen, workout.id]);
+  const handleRepeat = useCallback(
+    (event: GestureResponderEvent) => {
+      event.stopPropagation();
+      onRepeat?.(workout.id);
+    },
+    [onRepeat, workout.id],
+  );
 
   return (
     <TemplateSurfaceCard
       testID={`history-workout-${workout.id}`}
+      onPress={onOpen ? handleOpen : undefined}
+      accessibilityLabel={`View ${card.workoutName}, ${card.performedAt}`}
       surfaceAccent="primary"
       surfaceClassName="bg-surfaceLow rounded-2xl"
       contentClassName="px-sm pb-0 pt-sm"
       footerClassName="px-sm pt-sm pb-sm"
       dividerClassName="mx-lg bg-outline/20"
       footer={
-        <View className="gap-xs">
-          <View className="flex-row flex-wrap items-center gap-x-sm gap-y-xs">
-            <AppText className="text-md font-bold uppercase tracking-wide">
-              {card.relativeDay}
-            </AppText>
-            <AppText
-              className="text-md font-bold uppercase tracking-wide"
-              style={{ fontVariant: ["tabular-nums"] }}
-            >
-              {card.totalWeight}
-            </AppText>
+        <View className="flex-row items-end justify-between gap-sm">
+          <View className="flex-1 gap-xs">
+            <View className="flex-row flex-wrap items-center gap-x-sm gap-y-xs">
+              <AppText className="text-md font-bold uppercase tracking-wide">
+                {card.relativeDay}
+              </AppText>
+              <AppText
+                className="text-md font-bold uppercase tracking-wide"
+                style={{ fontVariant: ["tabular-nums"] }}
+              >
+                {card.totalWeight}
+              </AppText>
+            </View>
+            <AppText className="text-sm">{card.performedAt}</AppText>
           </View>
-          <AppText className="text-sm">{card.performedAt}</AppText>
+          {onRepeat && (
+            <Pressable
+              testID={`repeat-workout-${workout.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Repeat ${card.workoutName}, ${card.performedAt}`}
+              accessibilityState={{
+                disabled: repeatDisabled,
+                busy: repeatPending,
+              }}
+              disabled={repeatDisabled}
+              className="h-11 w-11 items-center justify-center"
+              onPress={handleRepeat}
+            >
+              {repeatPending ? (
+                <ActivityIndicator color={colors.primarySoft} />
+              ) : (
+                <Ionicons
+                  name="refresh"
+                  size={24}
+                  color={
+                    repeatDisabled ? colors.outline : colors.primarySoft
+                  }
+                />
+              )}
+            </Pressable>
+          )}
         </View>
       }
     >
       <View className="gap-sm pb-md">
         <View className="flex-row items-center justify-between gap-x-sm gap-y-xs">
-          <AppText variant="logo" className="flex-1 text-2xl tracking-wide">
+          <AppText
+            variant="logo"
+            className="flex-1 text-2xl tracking-wide"
+          >
             {card.workoutName}
           </AppText>
           <AppText

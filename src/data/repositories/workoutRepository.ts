@@ -1,9 +1,4 @@
-import {
-  asc,
-  desc,
-  eq,
-  inArray
-} from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/data/db/client";
 import {
@@ -23,9 +18,18 @@ import type {
   WorkoutAggregate,
   WorkoutId,
 } from "@/domain/workout/workout.types";
-import { diffRowsById, haveSamePersistedRowValues } from "../utils";
+
+import {
+  diffRowsById,
+  haveSamePersistedRowValues,
+  insertWorkoutAggregateTx,
+} from "../utils";
 
 export type WorkoutRepository = {
+  startWorkoutAggregate: (
+    workout: WorkoutAggregate,
+    expectedActiveWorkoutId: WorkoutId | null,
+  ) => Promise<void>;
   insertWorkoutAggregate: (workout: WorkoutAggregate) => Promise<void>;
   deleteWorkoutAggregate: (workoutId: WorkoutId) => Promise<void>;
   updateWorkoutAggregate: (
@@ -38,28 +42,38 @@ export type WorkoutRepository = {
   getActiveWorkoutAggregate: () => Promise<WorkoutAggregate | null>;
 };
 
+export const startWorkoutAggregate: WorkoutRepository["startWorkoutAggregate"] =
+  async (aggregate, expectedActiveWorkoutId) => {
+    // The Expo driver commits as soon as this callback returns; keep every statement synchronous.
+    db.transaction((tx) => {
+      const active = tx
+        .select({ id: workoutsTable.id })
+        .from(workoutsTable)
+        .where(eq(workoutsTable.status, "active"))
+        .all();
+
+      if (
+        expectedActiveWorkoutId === null
+          ? active.length !== 0
+          : active.length !== 1 || active[0].id !== expectedActiveWorkoutId
+      ) {
+        throw new Error("The active workout changed. Please try again.");
+      }
+
+      if (expectedActiveWorkoutId !== null) {
+        tx.delete(workoutsTable)
+          .where(eq(workoutsTable.id, expectedActiveWorkoutId))
+          .run();
+      }
+
+      insertWorkoutAggregateTx(tx, aggregate);
+    });
+  };
+
 export const insertWorkoutAggregate: WorkoutRepository["insertWorkoutAggregate"] =
   async (workoutAggregate) => {
-    const workoutExerciseRows = workoutAggregate.exercises.map(
-      ({ workoutExercise }) => workoutExerciseToRow(workoutExercise),
-    );
-
-    const workoutSetRows = workoutAggregate.exercises.flatMap(({ sets }) =>
-      sets.map(workoutSetToRow),
-    );
-
-    await db.transaction(async (tx) => {
-      await tx
-        .insert(workoutsTable)
-        .values(workoutToRow(workoutAggregate.workout));
-
-      if (workoutExerciseRows.length > 0) {
-        await tx.insert(workoutExercisesTable).values(workoutExerciseRows);
-      }
-
-      if (workoutSetRows.length > 0) {
-        await tx.insert(workoutSetsTable).values(workoutSetRows);
-      }
+    db.transaction((tx) => {
+      insertWorkoutAggregateTx(tx, workoutAggregate);
     });
   };
 
@@ -265,6 +279,7 @@ export const getActiveWorkoutAggregate: WorkoutRepository["getActiveWorkoutAggre
   };
 
 export const workoutRepository: WorkoutRepository = {
+  startWorkoutAggregate,
   insertWorkoutAggregate,
   deleteWorkoutAggregate,
   updateWorkoutAggregate,

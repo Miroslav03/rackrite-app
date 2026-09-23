@@ -10,6 +10,7 @@ type ScreenProps = {
   children: ReactNode;
   scroll?: boolean;
   withHeader?: boolean;
+  showBackButton?: boolean;
   headerRightAccessory?: ReactNode;
   className?: string;
 };
@@ -18,6 +19,7 @@ export function Screen({
   children,
   scroll = true,
   withHeader = true,
+  showBackButton = false,
   headerRightAccessory,
   className,
 }: ScreenProps) {
@@ -32,7 +34,12 @@ export function Screen({
       className="flex-1 bg-background"
       edges={["top", "left", "right"]}
     >
-      {withHeader ? <AppHeader rightAccessory={headerRightAccessory} /> : null}
+      {withHeader ? (
+        <AppHeader
+          showBackButton={showBackButton}
+          rightAccessory={headerRightAccessory}
+        />
+      ) : null}
 
       {scroll ? (
         <ScrollView

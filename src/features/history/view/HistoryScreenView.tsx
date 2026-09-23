@@ -1,3 +1,5 @@
+import { useIsFocused, useRouter } from "expo-router";
+
 import { useCallback, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
@@ -7,8 +9,11 @@ import {
 } from "react-native";
 
 import type { HistoryWorkoutSummary } from "@/domain/history/history.types";
+import type { WorkoutId } from "@/domain/workout/workout.types";
 
 import type { HistoryState } from "@/features/history/controller/history.types";
+import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
+import { ActiveWorkoutOperationErrorNotifier } from "@/features/workout/view/components/ActiveWorkoutOperationErrorNotifier";
 
 import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
 import { Screen } from "@/shared/components/layout/Screen";
@@ -17,33 +22,73 @@ import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
 import { colors, spacing } from "@/shared/theme/tokens";
 
+import { useRepeatWorkoutController } from "../controller/useRepeatWorkoutController";
+
 import { HistoryErrorNotice } from "./components/HistoryErrorNotice";
 import { HistoryWorkoutCard } from "./components/HistoryWorkoutCard";
+import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
 
 type HistoryScreenViewProps = {
   state: Extract<HistoryState, { status: "ready" }>;
+  session: WorkoutSessionController;
   dateReference: number;
   onRefresh: () => void;
   onLoadNextPage: () => void;
   onRetryNextPage: () => void;
-  onOpenStart: () => void;
 };
 
 export function HistoryScreenView({
   state,
+  session,
   dateReference,
   onRefresh,
   onLoadNextPage,
   onRetryNextPage,
-  onOpenStart,
 }: HistoryScreenViewProps) {
+  const router = useRouter();
+  const isFocused = useIsFocused();
+
   const listRef = useRef<FlatList<HistoryWorkoutSummary>>(null);
+
+  const openActiveWorkout = useCallback(
+    () => router.push("/workout"),
+    [router],
+  );
+
+  const openWorkout = useCallback(
+    (workoutId: WorkoutId) =>
+      router.push({
+        pathname: "/history/[workoutId]",
+        params: { workoutId },
+      }),
+    [router],
+  );
+
+  const repeat = useRepeatWorkoutController(
+    session,
+    openActiveWorkout,
+    isFocused,
+  );
+  const { requestRepeat, disabled: repeatDisabled, pendingWorkoutId } = repeat;
 
   const renderWorkout = useCallback(
     ({ item }: ListRenderItemInfo<HistoryWorkoutSummary>) => (
-      <HistoryWorkoutCard workout={item} dateReference={dateReference} />
+      <HistoryWorkoutCard
+        workout={item}
+        dateReference={dateReference}
+        onOpen={openWorkout}
+        onRepeat={requestRepeat}
+        repeatDisabled={repeatDisabled}
+        repeatPending={pendingWorkoutId === item.id}
+      />
     ),
-    [dateReference],
+    [
+      dateReference,
+      openWorkout,
+      requestRepeat,
+      repeatDisabled,
+      pendingWorkoutId,
+    ],
   );
 
   useEffect(() => {
@@ -52,6 +97,14 @@ export function HistoryScreenView({
 
   return (
     <Screen scroll={false} className="pt-0">
+      {(session.state.status === "active" ||
+        session.state.status === "noActiveWorkout") && (
+        <ActiveWorkoutOperationErrorNotifier
+          operation={session.state.operation}
+          isFocused={isFocused}
+          onErrorDismissed={session.dismissOperationError}
+        />
+      )}
       <FlatList
         ref={listRef}
         testID="history-list"
@@ -106,7 +159,7 @@ export function HistoryScreenView({
             <Button
               title="Go to Start"
               accessibilityRole="button"
-              onPress={onOpenStart}
+              onPress={() => router.navigate("/")}
             />
           </View>
         }
@@ -125,6 +178,12 @@ export function HistoryScreenView({
             />
           ) : null
         }
+      />
+      <RepeatWorkoutModal
+        overlay={repeat.overlay}
+        pending={pendingWorkoutId !== null}
+        onConfirm={repeat.confirm}
+        onClose={repeat.close}
       />
     </Screen>
   );

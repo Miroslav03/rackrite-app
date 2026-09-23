@@ -3,6 +3,7 @@ import type { Exercise } from "@/domain/exercises/exercise.types";
 import {
   assertWorkoutExerciseExists,
   assertWorkoutIsActive,
+  assertWorkoutIsCompleted,
   assertWorkoutSetExists,
 } from "./assertions/workout.contracts";
 import { assertWorkoutAggregateInvariants } from "./assertions/workout.invariants";
@@ -27,6 +28,14 @@ import type {
   WorkoutSetId,
   WorkoutSetValues,
 } from "./workout.types";
+import { isCompletedSet } from "./workout.utils";
+
+type CreateRepeatedWorkoutInput = {
+  id: WorkoutId;
+  now: number;
+  createWorkoutExerciseId: () => WorkoutExerciseId;
+  createWorkoutSetId: () => WorkoutSetId;
+};
 
 type CreateEmptyWorkoutInput = {
   id: WorkoutId;
@@ -115,6 +124,66 @@ type FinishWorkoutInput = {
   now: number;
   skipUnfinishedSets: boolean;
 };
+
+export function createRepeatedWorkout(
+  source: WorkoutAggregate,
+  input: CreateRepeatedWorkoutInput,
+): WorkoutAggregate {
+  assertWorkoutIsCompleted(source);
+  assertWorkoutAggregateInvariants(source);
+
+  const exercises = source.exercises
+    .flatMap(({ workoutExercise, exercise, sets }) => {
+      const completedSets = sets.filter(isCompletedSet);
+
+      if (completedSets.length === 0) return [];
+
+      const id = input.createWorkoutExerciseId();
+
+      return [
+        {
+          exercise: { ...exercise },
+          workoutExercise: {
+            ...workoutExercise,
+            id,
+            workoutId: input.id,
+            createdAt: input.now,
+            updatedAt: input.now,
+          },
+          sets: completedSets.map((set, setIndex) => ({
+            ...set,
+            id: input.createWorkoutSetId(),
+            workoutExerciseId: id,
+            setIndex,
+            finishedAt: null,
+            createdAt: input.now,
+            updatedAt: input.now,
+          })),
+        },
+      ];
+    })
+    .map((exercise, orderIndex) => ({
+      ...exercise,
+      workoutExercise: { ...exercise.workoutExercise, orderIndex },
+    }));
+
+  const firstSet = exercises[0]?.sets[0];
+
+  if (!firstSet) throw new Error("A repeated workout requires a completed set");
+
+  const repeated: WorkoutAggregate = {
+    workout: {
+      ...createEmptyWorkout(input).workout,
+      sourceTemplateId: source.workout.sourceTemplateId,
+      activeSetId: firstSet.id,
+    },
+    exercises,
+  };
+
+  assertWorkoutAggregateInvariants(repeated);
+
+  return repeated;
+}
 
 export function createEmptyWorkout({
   id,

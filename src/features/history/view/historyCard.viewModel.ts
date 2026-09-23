@@ -7,6 +7,7 @@ import { getWorkoutDisplayName } from "@/shared/utils/getWorkoutDisplayName";
 import {
   formatHistoryPerformedAt,
   formatHistoryRelativeDay,
+  weightFormatter,
 } from "./historyDate.utils";
 
 const liftLabels: Record<LiftFamily, string> = {
@@ -14,9 +15,6 @@ const liftLabels: Record<LiftFamily, string> = {
   squat: "Squat",
   deadlift: "Deadlift",
 };
-const weightFormatter = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 2,
-});
 
 export function createHistoryCardViewModel(
   summary: HistoryWorkoutSummary,

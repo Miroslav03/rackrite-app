@@ -1,17 +1,24 @@
 import type { ExerciseId } from "@/domain/exercises/exercise.types";
-import type { RestTimerAdjustmentSeconds } from "@/features/workout/actions/adjustRestTimer";
 import type {
   WorkoutAggregate,
   WorkoutExerciseId,
+  WorkoutId,
   WorkoutSetId,
 } from "@/domain/workout/workout.types";
+
+import type { RestTimerAdjustmentSeconds } from "@/features/workout/actions/adjustRestTimer";
+
 import type { Result } from "@/shared/types/result";
+
 import type { WorkoutSessionError } from "./workoutSession.errors";
 
 export type StartWorkoutOperation =
-  "startEmptyWorkout" | "startWorkoutFromTemplate";
+  | "startEmptyWorkout"
+  | "startWorkoutFromTemplate"
+  | Extract<ActiveWorkoutOperation, { type: "repeatWorkout" }>;
 
 export type ActiveWorkoutOperation =
+  | { type: "repeatWorkout"; sourceWorkoutId: WorkoutId }
   | { type: "addExercise"; exerciseId: ExerciseId }
   | { type: "removeExercise"; workoutExerciseId: WorkoutExerciseId }
   | {

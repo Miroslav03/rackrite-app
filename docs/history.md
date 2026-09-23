@@ -38,8 +38,7 @@ This document covers:
 4. Empty states
 5. Repeat Workout behavior
 
-The History list is implemented. Workout details and repeat behavior below are
-future specifications.
+The history list, read-only workout details, and repeat flow are implemented.
 
 ---
 
@@ -60,8 +59,8 @@ That means:
 ## 1. History List Screen — Implemented
 
 The list follows the Stitch screen **History - Badged Ledger with Top Sets**.
-It is read-only. Opening details and repeating a workout are future features;
-there are no inactive action buttons on these cards.
+Tap a card to open its workout details. The bottom-right repeat icon starts the
+repeat flow independently of card navigation.
 
 ### Header and cards
 
@@ -141,177 +140,67 @@ your history.” Its “Go to Start” button returns to the Start tab.
 
 ---
 
-## 2. Workout Details Screen — Future
-
-### Purpose
-
-The Workout Details Screen shows the full details of a single completed workout.
-
-It is a read-only screen that helps the user inspect:
-
-- variation used
-- sets performed
-- reps and weight
-- structure of the session
-
----
-
-### Core Rule
-
-Workout Details is **read-only**.
-
-The user should not edit a completed workout from this screen.
-
----
-
-### High-Level Structure
-
-The screen contains:
-
-- Header
-- One section per completed workout section
-- Set list per section
-- Optional footer actions
-
----
-
-### Header
-
-Recommended fields:
-
-- Date
-- Optional workout name
-- Optional duration
-
----
-
-### Example Header
-
-Apr 10  
-Bench Volume Day  
-45 min
-
----
-
-## Section Layout
-
-Each completed workout section should display:
-
-- Lift family
-- Selected variation
-- Completed set list
-
----
-
-### Example Section
-
-BENCH — Paused Bench
-
-Set 1   80 kg   5  
-Set 2   85 kg   5  
-Set 3   90 kg   3
-
----
-
-### Important Rule
-
-The details screen should visually resemble the Workout Screen enough to feel familiar, but without interactive controls.
-
-That means:
-
-- same basic section logic
-- similar reading structure
-- but no sticky action bar
-- no editing actions
-- no inline mutations
-
----
-
-## Set Display
-
-Each set row should display:
-
-- set index
-- optional set type label
-- weight
-- reps
-
----
-
-### Example
-
-Set 1   Warm-up   60 kg   5  
-Set 2   Top Set   90 kg   3  
-Set 3   Backoff   80 kg   5
-
----
-
-### Rules
-
-- show completed values only
-- keep rows simple
-- no edit affordances
-- no selected/active state
-
----
-
-## Optional Highlighting
-
-The details screen may highlight:
-
-- Top Set
-- Best notable set in this workout
-
-Example:
-
-Top Set → 90 x 3
-
-This is optional, but useful.
-
----
-
-## Optional Footer
-
-The footer may contain lightweight actions such as:
-
-[ Repeat Workout ]
-
-This is recommended for convenience.
-
----
-
-## 3. Repeat Workout Behavior — Future
-
-### Purpose
-
-Allow the user to quickly start a new workout based on a previous completed workout.
-
----
-
-### Trigger
-
-From Workout Details:
-
-[ Repeat Workout ]
-
----
-
-### Behavior
-
-When the user chooses Repeat Workout:
-
-- create a new active workout
-- copy workout structure into a new workout instance
-- open Workout Screen
-- treat this as a new workout, not a reopened history entry
-
----
-
-### Important Rule
-
-Repeat Workout does NOT modify the original completed workout.
-
-The original history item remains immutable.
+## 2. Workout Details Screen — Implemented
+
+The root stack route `/history/[workoutId]` follows Stitch **Workout History
+Details - Tinted Set Cards** (`3f600e8279b9486a8690af9b8688b0cf`). The shared header
+shows a back icon to the left of the RackRite logo, separated by the `md` gap.
+
+- Show the existing Quick Workout / Template Workout name, local date
+  (`SEP 7, 2026`), and whole elapsed minutes.
+- Summary cards show total volume, total completed sets (including warm-ups),
+  and average recorded RPE across completed non-warm-up sets. Missing RPE is
+  excluded from the denominator; no qualifying values displays `—`.
+- Each exercise card shows its name and kind: Competition Lift, Lift Variation,
+  or Accessory. Exercises without completed sets are omitted.
+- Completed sets appear in saved order with consecutive display numbers, set
+  type, weight in kg, reps, and RPE. Set-type tints come from shared theme tokens;
+  RPE labels and values are white. Large text uses a wrapping labeled layout.
+- Reuse SurfaceCard and shared typography; rows have no editing or action controls.
+  There is no intensity metric, exercise icon, or device-verification label.
+- The shared primary Repeat Workout button stays above the bottom safe area;
+  the exercise list scrolls independently above it.
+
+A screen-local controller calls the history details action, which loads the
+aggregate through `getWorkoutAggregateById` and passes it to the pure history
+selector. Loading, retryable errors, and unavailable-workout states keep back
+navigation available. Responses from earlier routes, blurred screens, or unmounted
+controllers are ignored.
+
+## 3. Repeat Workout — Implemented
+
+Both entry points use the same history repeat controller and confirmation view.
+The history action loads the source by ID, calls the workout domain's
+`createRepeatedWorkout`, and persists through the workout repository. The shared
+workout session controller owns operation guards and commits React state only
+after persistence succeeds.
+
+The new session copies completed sets only (including warm-ups), with their types,
+weights, reps, and RPE. Exercises with no completed sets are omitted. Exercise
+notes, rest durations, order, and template association are preserved. Workout,
+workout-exercise, and set IDs are new; indexes are consecutive; timestamps start
+now; every set is unfinished; the rest timer is cleared and the first set is active.
+The completed source remains unchanged. A source without completed sets cannot be
+repeated.
+
+If a workout is active, the shared DangerModal asks **Discard current workout?**
+with Cancel and Discard & Repeat actions. Cancel, backdrop dismissal, and Android
+Back do nothing to workout data. Pending confirmation cannot be dismissed.
+
+The repository rechecks the expected active workout ID and atomically deletes
+only that confirmed workout and inserts the replacement. The Expo SQLite driver
+requires a synchronous transaction callback and synchronous statements. Failures
+roll back all changes, retain the active session, and allow retry with toast
+feedback. Stale confirmation never deletes a different workout.
+
+Duplicate repeat requests and overlapping session mutations are blocked. Callbacks
+from a previous workout cannot mutate its replacement, and the active editor
+remounts when the workout ID changes to cancel pending debounced edits.
+
+After success, the history list pushes `/workout`; details replaces its route with
+`/workout`. If the initiating screen has lost focus, the session still persists
+but does not trigger late navigation. Repeated workouts enter history only when
+finished. No schema changes or additional persisted history source are required.
 
 ---
 

@@ -5,21 +5,24 @@ import { useToast } from "@/shared/components/feedback/ToastContext";
 import type {
   ActiveWorkoutOperation,
   OperationState,
+  StartWorkoutOperation,
 } from "../../session/workoutSession.types";
 
 type ActiveWorkoutOperationErrorNotifierProps = {
-  operation: OperationState<ActiveWorkoutOperation>;
+  operation: OperationState<ActiveWorkoutOperation | StartWorkoutOperation>;
+  isFocused: boolean;
   onErrorDismissed: (error: Error) => void;
 };
 
 export function ActiveWorkoutOperationErrorNotifier({
   operation,
+  isFocused,
   onErrorDismissed,
 }: ActiveWorkoutOperationErrorNotifierProps) {
   const { hideToast, showToast } = useToast();
 
   useEffect(() => {
-    if (operation.status !== "error") {
+    if (!isFocused || operation.status !== "error") {
       return;
     }
 
@@ -32,13 +35,27 @@ export function ActiveWorkoutOperationErrorNotifier({
     return () => {
       hideToast(toastId);
     };
-  }, [hideToast, onErrorDismissed, operation, showToast]);
+  }, [hideToast, isFocused, onErrorDismissed, operation, showToast]);
 
   return null;
 }
 
-function getOperationErrorMessage(operation: ActiveWorkoutOperation): string {
+function getOperationErrorMessage(
+  operation: ActiveWorkoutOperation | StartWorkoutOperation,
+): string {
+  if (typeof operation === "string") {
+    switch (operation) {
+      case "startEmptyWorkout":
+        return "Couldn't start workout. Try again.";
+      case "startWorkoutFromTemplate":
+        return "Couldn't start workout from template. Try again.";
+    }
+  }
+
   switch (operation.type) {
+    case "repeatWorkout":
+      return "Couldn't repeat workout. Try again.";
+
     case "addExercise":
       return "Couldn't add exercise. Try again.";
 

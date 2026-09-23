@@ -1,4 +1,9 @@
 import {
+  repeatWorkout,
+  type RepeatWorkoutCommand,
+} from "@/features/history/actions/repeatWorkout";
+
+import {
   workoutRepository,
   type WorkoutRepository,
 } from "@/data/repositories/workoutRepository";
@@ -44,6 +49,9 @@ import {
 import { updateSet, type UpdateSetCommand } from "./updateSet";
 
 export type WorkoutSessionActions = {
+  repeatWorkout: (
+    command: RepeatWorkoutCommand,
+  ) => Promise<WorkoutAggregate>;
   loadActiveWorkout: () => Promise<WorkoutAggregate | null>;
   startEmptyWorkout: () => Promise<WorkoutAggregate>;
   cancelWorkout: (workout: WorkoutAggregate) => Promise<void>;
@@ -112,6 +120,7 @@ export function createWorkoutSessionActions(
   dependencies: CreateWorkoutSessionActionsDependencies,
 ): WorkoutSessionActions {
   return {
+    repeatWorkout: (command) => repeatWorkout(dependencies, command),
     loadActiveWorkout: () =>
       dependencies.repository.getActiveWorkoutAggregate(),
 

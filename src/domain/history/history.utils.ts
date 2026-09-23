@@ -9,8 +9,57 @@ import {
 
 import type {
   HistoryExerciseSummary,
+  HistoryWorkoutDetails,
   HistoryWorkoutSummary,
 } from "./history.types";
+
+export function selectHistoryWorkoutDetails(
+  aggregate: WorkoutAggregate,
+): HistoryWorkoutDetails {
+  const summary = summarizeCompletedWorkout(aggregate);
+
+  const exercises = aggregate.exercises.flatMap(
+    ({ workoutExercise, exercise, sets }) => {
+      const completedSets = sets.filter(isCompletedSet);
+      return completedSets.length === 0
+        ? []
+        : [
+            {
+              id: workoutExercise.id,
+              name: exercise.name,
+              kind: exercise.kind,
+              sets: completedSets.map(({ id, type, weight, reps, rpe }) => ({
+                id,
+                type,
+                weight,
+                reps,
+                rpe,
+              })),
+            },
+          ];
+    },
+  );
+
+  const sets = exercises.flatMap((exercise) => exercise.sets);
+  const ratedSets = sets.filter(
+    (set) => set.type !== "warmup" && set.rpe !== null,
+  );
+
+  return {
+    id: summary.id,
+    sourceTemplateId: summary.sourceTemplateId,
+    startedAt: summary.startedAt,
+    durationMinutes: summary.durationMinutes,
+    totalWeight: summary.totalWeight,
+    totalSets: sets.length,
+    averageRpe:
+      ratedSets.length === 0
+        ? null
+        : ratedSets.reduce((total, set) => total + (set.rpe ?? 0), 0) /
+          ratedSets.length,
+    exercises,
+  };
+}
 
 export function summarizeCompletedWorkout(
   aggregate: WorkoutAggregate,

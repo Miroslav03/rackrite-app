@@ -1,8 +1,10 @@
 import type { LiftFamily, SetType } from "@/domain/domain.types";
+import type { ExerciseKind } from "@/domain/exercises/exercise.types";
 import type {
   WorkoutAggregate,
   WorkoutExerciseId,
   WorkoutId,
+  WorkoutSet,
 } from "@/domain/workout/workout.types";
 
 export type HistoryCursor = {
@@ -41,4 +43,21 @@ export type HistoryWorkoutSummary = {
 export type HistoryPage = {
   items: HistoryWorkoutSummary[];
   nextCursor: HistoryCursor | null;
+};
+
+export type HistoryWorkoutDetails = Pick<
+  HistoryWorkoutSummary,
+  "id" | "sourceTemplateId" | "startedAt" | "durationMinutes" | "totalWeight"
+> & {
+  totalSets: number;
+  averageRpe: number | null;
+  exercises: {
+    id: WorkoutExerciseId;
+    name: string;
+    kind: ExerciseKind;
+    sets: (Pick<WorkoutSet, "id" | "type" | "rpe"> & {
+      weight: number;
+      reps: number;
+    })[];
+  }[];
 };

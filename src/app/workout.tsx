@@ -47,6 +47,7 @@ export default function WorkoutScreen() {
       return (
         <ScrollVisibilityProvider>
           <ActiveWorkoutScreenView
+            key={state.workout.workout.id}
             workout={state.workout}
             operation={state.operation}
             actions={{

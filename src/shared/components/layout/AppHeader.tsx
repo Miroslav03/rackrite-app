@@ -10,6 +10,7 @@ import { cn } from "@/shared/utils/cn";
 
 type AppHeaderProps = {
   title?: string;
+  showBackButton?: boolean;
   showSettings?: boolean;
   rightAccessory?: ReactNode;
   className?: string;
@@ -17,10 +18,16 @@ type AppHeaderProps = {
 
 export function AppHeader({
   title = "RackRite",
+  showBackButton = false,
   showSettings = true,
   rightAccessory,
   className,
 }: AppHeaderProps) {
+  function goBack() {
+    if (router.canGoBack()) router.back();
+    else router.replace("/");
+  }
+
   return (
     <View
       className={cn(
@@ -28,6 +35,17 @@ export function AppHeader({
         className,
       )}
     >
+      {showBackButton ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={12}
+          onPress={goBack}
+          className="mr-sm h-9 w-9 items-center justify-center"
+        >
+          <Ionicons name="chevron-back" size={20} color={colors.foreground} />
+        </Pressable>
+      ) : null}
       <AppText variant="logo" className="flex-1" numberOfLines={1}>
         {title}
       </AppText>

@@ -1,3 +1,17 @@
+import { WorkoutAggregate } from "@/domain/workout/workout.types";
+
+import { db } from "./db/client";
+import {
+  workoutExercisesTable,
+  workoutSetsTable,
+  workoutsTable,
+} from "./db/schema";
+import {
+  workoutExerciseToRow,
+  workoutSetToRow,
+  workoutToRow,
+} from "./mappers/workoutMappers";
+
 type RowWithId = {
   id: string;
 };
@@ -63,4 +77,27 @@ export function diffRowsById<TRow extends RowWithId>(
     updated,
     deleted,
   };
+}
+
+type WorkoutTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export function insertWorkoutAggregateTx(
+  tx: WorkoutTransaction,
+  aggregate: WorkoutAggregate,
+) {
+  const workoutExerciseRows = aggregate.exercises.map(({ workoutExercise }) =>
+    workoutExerciseToRow(workoutExercise),
+  );
+  const workoutSetRows = aggregate.exercises.flatMap(({ sets }) =>
+    sets.map(workoutSetToRow),
+  );
+
+  tx.insert(workoutsTable).values(workoutToRow(aggregate.workout)).run();
+
+  if (workoutExerciseRows.length > 0) {
+    tx.insert(workoutExercisesTable).values(workoutExerciseRows).run();
+  }
+  if (workoutSetRows.length > 0) {
+    tx.insert(workoutSetsTable).values(workoutSetRows).run();
+  }
 }

@@ -495,6 +495,7 @@ export function ActiveWorkoutScreenView({
     <>
       <Screen
         scroll={false}
+        showBackButton
         className="pt-0"
         headerRightAccessory={
           restTimer ? (
@@ -669,6 +670,7 @@ export function ActiveWorkoutScreenView({
 
       <ActiveWorkoutOperationErrorNotifier
         operation={operation}
+        isFocused={isFocused}
         onErrorDismissed={actions.dismissOperationError}
       />
 

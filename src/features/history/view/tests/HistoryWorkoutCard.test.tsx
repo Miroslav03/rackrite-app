@@ -1,5 +1,5 @@
 import { createElement, type ReactElement } from "react";
-import { Text } from "react-native";
+import { Text, type GestureResponderEvent } from "react-native";
 
 import type { HistoryWorkoutSummary } from "@/domain/history/history.types";
 import { HistoryWorkoutCard } from "../components/HistoryWorkoutCard";
@@ -7,6 +7,13 @@ import { HistoryWorkoutCard } from "../components/HistoryWorkoutCard";
 type Renderer = {
   root: {
     findAllByType: (type: unknown) => { props: { children?: unknown } }[];
+    findByProps: (props: { testID: string }) => {
+      props: {
+        onPress: (
+          event: Pick<GestureResponderEvent, "stopPropagation">,
+        ) => void;
+      };
+    };
   };
   update: (element: ReactElement) => void;
   unmount: () => void;
@@ -76,5 +83,56 @@ it("renders a read-only ledger and updates its relative date with the same worko
     await act(async () => {
       renderer.unmount();
     });
+  }
+});
+
+it("opens and repeats the current workout after the card's workout changes", async () => {
+  const workout: HistoryWorkoutSummary = {
+    id: "workout_1",
+    sourceTemplateId: null,
+    startedAt: new Date(2026, 8, 5).getTime(),
+    durationMinutes: 30,
+    totalWeight: 0,
+    liftFamilies: [],
+    exercises: [],
+  };
+  const onOpen = jest.fn();
+  const onRepeat = jest.fn();
+  const stopPropagation = jest.fn();
+  const rendererRef: { current?: Renderer } = {};
+  const props = { workout, dateReference: workout.startedAt, onOpen, onRepeat };
+
+  await act(async () => {
+    rendererRef.current = create(createElement(HistoryWorkoutCard, props));
+  });
+  const renderer = rendererRef.current;
+  if (!renderer) throw new Error("Card not rendered");
+
+  try {
+    for (const id of ["workout_1", "workout_2"]) {
+      await act(async () => {
+        renderer.update(
+          createElement(HistoryWorkoutCard, {
+            ...props,
+            workout: { ...workout, id },
+          }),
+        );
+      });
+      await act(async () => {
+        renderer.root
+          .findByProps({ testID: `history-workout-${id}` })
+          .props.onPress({ stopPropagation });
+        renderer.root
+          .findByProps({ testID: `repeat-workout-${id}` })
+          .props.onPress({ stopPropagation });
+      });
+      expect(onOpen).toHaveBeenLastCalledWith(id);
+      expect(onRepeat).toHaveBeenLastCalledWith(id);
+    }
+    expect(onOpen).toHaveBeenCalledTimes(2);
+    expect(onRepeat).toHaveBeenCalledTimes(2);
+    expect(stopPropagation).toHaveBeenCalledTimes(2);
+  } finally {
+    await act(async () => renderer.unmount());
   }
 });

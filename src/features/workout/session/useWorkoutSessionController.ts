@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 
+import type { RepeatWorkoutCommand } from "@/features/history/actions/repeatWorkout";
 import type { AddExerciseCommand } from "@/features/workout/actions/addExercise";
 import type { AddSetCommand } from "@/features/workout/actions/addSet";
 import type { AdjustRestTimerCommand } from "@/features/workout/actions/adjustRestTimer";
@@ -29,6 +30,9 @@ import type {
 } from "./workoutSession.types";
 
 export type WorkoutSessionController = {
+  repeatWorkout: (
+    command: RepeatWorkoutCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   state: WorkoutSessionState;
   dismissOperationError: (error: Error) => void;
   startEmptyWorkout: () => Promise<WorkoutSessionResult<WorkoutAggregate>>;
@@ -108,12 +112,15 @@ export function useWorkoutSessionController(
   const activeWorkoutRef = useRef<WorkoutAggregate | null>(null);
 
   useEffect(() => {
-    if (isActiveOperationRunningRef.current) {
+    if (isActiveOperationRunningRef.current || isStartingRef.current) {
       return;
     }
 
     activeWorkoutRef.current = state.status === "active" ? state.workout : null;
   }, [state]);
+
+  const renderedWorkoutId =
+    state.status === "active" ? state.workout.workout.id : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -160,7 +167,10 @@ export function useWorkoutSessionController(
     > => {
       const activeWorkout = activeWorkoutRef.current;
 
-      if (state.status !== "active" || activeWorkout === null) {
+      if (
+        activeWorkout === null ||
+        activeWorkout.workout.id !== renderedWorkoutId
+      ) {
         return failure(
           new WorkoutSessionError({
             code: "invalidSessionState",
@@ -169,7 +179,7 @@ export function useWorkoutSessionController(
         );
       }
 
-      if (isActiveOperationRunningRef.current) {
+      if (isActiveOperationRunningRef.current || isStartingRef.current) {
         return failure(
           new WorkoutSessionError({
             code: "operationAlreadyRunning",
@@ -205,7 +215,7 @@ export function useWorkoutSessionController(
         isActiveOperationRunningRef.current = false;
       }
     },
-    [state.status],
+    [renderedWorkoutId],
   );
 
   const runActiveWorkoutOperation = useCallback(
@@ -242,7 +252,10 @@ export function useWorkoutSessionController(
   const startEmptyWorkout = useCallback(async (): Promise<
     WorkoutSessionResult<WorkoutAggregate>
   > => {
-    if (state.status !== "noActiveWorkout") {
+    if (
+      state.status !== "noActiveWorkout" ||
+      activeWorkoutRef.current !== null
+    ) {
       return {
         success: false,
         error: new WorkoutSessionError({
@@ -252,7 +265,7 @@ export function useWorkoutSessionController(
       };
     }
 
-    if (isStartingRef.current) {
+    if (isStartingRef.current || isActiveOperationRunningRef.current) {
       return {
         success: false,
         error: new WorkoutSessionError({
@@ -271,6 +284,7 @@ export function useWorkoutSessionController(
 
     try {
       const workout = await actions.startEmptyWorkout();
+      activeWorkoutRef.current = workout;
 
       dispatch({
         type: "workoutCommitted",
@@ -296,6 +310,93 @@ export function useWorkoutSessionController(
       isStartingRef.current = false;
     }
   }, [actions, state.status]);
+
+  const repeatWorkout = useCallback(
+    async (
+      command: RepeatWorkoutCommand,
+    ): Promise<WorkoutSessionResult<WorkoutAggregate>> => {
+      const activeId = activeWorkoutRef.current?.workout.id ?? null;
+
+      if (activeId !== command.expectedActiveWorkoutId) {
+        return failure(
+          new WorkoutSessionError({
+            code: "invalidSessionState",
+            message:
+              "The active workout changed. Please select Repeat Workout again.",
+          }),
+        );
+      }
+
+      if (command.expectedActiveWorkoutId !== null) {
+        return runActiveWorkoutOperation({
+          operation: {
+            type: "repeatWorkout",
+            sourceWorkoutId: command.sourceWorkoutId,
+          },
+          invalidStateMessage:
+            "The active workout changed. Please select Repeat Workout again.",
+          failureMessage: "Failed to repeat the workout",
+          run: () => actions.repeatWorkout(command),
+        });
+      }
+
+      if (state.status !== "noActiveWorkout") {
+        return failure(
+          new WorkoutSessionError({
+            code: "invalidSessionState",
+            message: "A workout cannot be repeated in this state",
+          }),
+        );
+      }
+
+      if (isStartingRef.current || isActiveOperationRunningRef.current) {
+        return failure(
+          new WorkoutSessionError({
+            code: "operationAlreadyRunning",
+            message: "Another workout operation is already running",
+          }),
+        );
+      }
+
+      isStartingRef.current = true;
+      dispatch({
+        type: "startOperationStarted",
+        operation: {
+          type: "repeatWorkout",
+          sourceWorkoutId: command.sourceWorkoutId,
+        },
+      });
+
+      try {
+        const workout = await actions.repeatWorkout(command);
+        activeWorkoutRef.current = workout;
+
+        dispatch({ type: "workoutCommitted", workout });
+
+        return success(workout);
+      } catch (error) {
+        const sessionError = new WorkoutSessionError({
+          code: "operationFailed",
+          message: "Failed to repeat the workout",
+          cause: toError(error),
+        });
+
+        dispatch({
+          type: "startOperationFailed",
+          operation: {
+            type: "repeatWorkout",
+            sourceWorkoutId: command.sourceWorkoutId,
+          },
+          error: sessionError,
+        });
+
+        return failure(sessionError);
+      } finally {
+        isStartingRef.current = false;
+      }
+    },
+    [actions, runActiveWorkoutOperation, state.status],
+  );
 
   const addExercise = useCallback(
     (command: AddExerciseCommand) =>
@@ -513,6 +614,7 @@ export function useWorkoutSessionController(
   return {
     state,
     startEmptyWorkout,
+    repeatWorkout,
     cancelWorkout,
     finishWorkout,
     addExercise,

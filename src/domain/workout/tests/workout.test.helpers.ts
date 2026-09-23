@@ -3,6 +3,7 @@ import {
   addWorkoutSet,
   completeWorkoutSet,
   createEmptyWorkout,
+  finishWorkout,
   updateWorkoutSet,
 } from "../workout.useCases";
 
@@ -70,4 +71,77 @@ export function createWorkoutWithAllSetsCompleted() {
     setId: "set_2",
     now: 7000,
   });
+}
+
+export function createCompletedWorkoutWithMixedSets() {
+  const source = createWorkoutWithTwoExercises();
+  const first = source.exercises[0];
+  const base = first.sets[0];
+  source.workout.sourceTemplateId = "template_1";
+  source.exercises[0] = {
+    ...first,
+    workoutExercise: {
+      ...first.workoutExercise,
+      notes: "Pause each rep",
+      restSeconds: 240,
+    },
+    sets: [
+      {
+        ...base,
+        id: "warmup",
+        setIndex: 0,
+        type: "warmup",
+        weight: 0,
+        reps: 5,
+        rpe: 10,
+        finishedAt: 4000,
+      },
+      {
+        ...base,
+        id: "skipped",
+        setIndex: 1,
+        type: "working",
+        weight: 200,
+        reps: 10,
+        rpe: 10,
+      },
+      {
+        ...base,
+        id: "working",
+        setIndex: 2,
+        type: "working",
+        weight: 80,
+        reps: 5,
+        rpe: 8,
+        finishedAt: 5000,
+      },
+      {
+        ...base,
+        id: "top",
+        setIndex: 3,
+        type: "top",
+        weight: 100,
+        reps: 3,
+        rpe: 9,
+        finishedAt: 6000,
+      },
+      {
+        ...base,
+        id: "backoff",
+        setIndex: 4,
+        type: "backoff",
+        weight: 70,
+        reps: 5,
+        rpe: null,
+        finishedAt: 7000,
+      },
+    ],
+  };
+  source.exercises = source.exercises
+    .reverse()
+    .map((exercise, orderIndex) => ({
+      ...exercise,
+      workoutExercise: { ...exercise.workoutExercise, orderIndex },
+    }));
+  return finishWorkout(source, { now: 181000, skipUnfinishedSets: true });
 }
