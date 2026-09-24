@@ -14,11 +14,9 @@ import type {
 
 import type { RestTimerAdjustmentSeconds } from "@/features/workout/actions/adjustRestTimer";
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
-import {
-  SET_VALUE_UPDATE_DEBOUNCE_MS,
-  type RpePickerValue,
-} from "@/features/workout/view/activeWorkout.config";
+import { SET_VALUE_UPDATE_DEBOUNCE_MS } from "@/features/workout/view/activeWorkout.config";
 
+import type { RpePickerValue } from "@/shared/components/exercise-editor/RpePickerPanel";
 import type { InteractiveKeypadKey } from "@/shared/components/ui/InteractiveKeypad";
 import { useDebouncedCallback } from "@/shared/hooks/useDebouncedCallback";
 
