@@ -3,8 +3,8 @@ Workout
 WorkoutSection - active sections
 WorkoutSet - active sets 
 Template
-TemplateSection - predefined sections
-TemplateSetDefinition - predefined sets
+TemplateExercise - planned exercises
+TemplateSet - individual planned sets
 
 ## Reference Entities
 Variation
@@ -34,8 +34,8 @@ WorkoutSection has many WorkoutSet
 WorkoutSet belongs to WorkoutSection
 WorkoutSection refrences one Variation
 
-Template has many TemplateSection
-TemplateSection belongs to Template
-TemplateSection has many TemplateSetDefinition
-TemplateSetDefinition belongs to TemplateSection
-TemplateSection refrences one Variation
+Template has many TemplateExercise
+TemplateExercise belongs to Template
+TemplateExercise has many TemplateSet
+TemplateSet belongs to TemplateExercise
+TemplateExercise references one Exercise definition

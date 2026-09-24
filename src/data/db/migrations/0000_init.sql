@@ -7,6 +7,41 @@ CREATE TABLE `exercises` (
 	`default_rest_seconds` integer
 );
 --> statement-breakpoint
+CREATE TABLE `template_exercises` (
+	`id` text PRIMARY KEY NOT NULL,
+	`template_id` text NOT NULL,
+	`exercise_id` text NOT NULL,
+	`notes` text,
+	`rest_seconds` integer NOT NULL,
+	`order_index` integer NOT NULL,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`template_id`) REFERENCES `templates`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`exercise_id`) REFERENCES `exercises`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE INDEX `idx_template_exercises_template_id` ON `template_exercises` (`template_id`);--> statement-breakpoint
+CREATE TABLE `template_sets` (
+	`id` text PRIMARY KEY NOT NULL,
+	`template_exercise_id` text NOT NULL,
+	`set_index` integer NOT NULL,
+	`type` text NOT NULL,
+	`reps` integer NOT NULL,
+	`rpe` real,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`template_exercise_id`) REFERENCES `template_exercises`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `idx_template_sets_exercise_id` ON `template_sets` (`template_exercise_id`);--> statement-breakpoint
+CREATE TABLE `templates` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`description` text,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `workout_exercises` (
 	`id` text PRIMARY KEY NOT NULL,
 	`workout_id` text NOT NULL,

@@ -37,25 +37,32 @@
 - Weight must be non-negative when defined.
 - RPE must be a whole number from 1 through 10 when defined.
 
-## Template 
- - always has a name
- - has at most 3 sections
- - has at least 1 section
- - has at most 1 section per LiftFamily
- - can be used for starting a workout only if it has at least 1 valid TemplateSection
+## Template
 
-## TemplateSection
- - belongs to exactly 1 Template
- - has exactly 1 Variation
- - Variation family must match Section LiftFamily
- - must have at least 1 TemplateSetDefinition
+- An in-memory draft may have a blank name or no exercises.
+- Saving requires a nonblank name and at least one exercise with valid sets.
+- Names are trimmed; duplicate names are allowed. Blank descriptions become null.
+- Competition lifts are unique per LiftFamily; variations and accessories are unrestricted.
+- Exercise IDs and set IDs are unique within their respective aggregate collections.
+- Exercise and set indexes are contiguous, zero-based, and match their array order.
+- Domain mutations preserve the input aggregate, record IDs, and creation times.
+- Deleting a saved template leaves workouts and their sourceTemplateId untouched.
 
-## TemplateSetDefinition
- - belongs to exactly 1 TemplateSection
- - has a SetType
- - has a valid setIndex (order in section)
- - has a positive number of sets
- - has a positive number of reps
+## TemplateExercise
+
+- Belongs to exactly one Template and references its aggregate Exercise definition.
+- Has a positive integer rest-duration snapshot and at least one valid TemplateSet.
+- Optional notes are trimmed; blank notes become null.
+- Replacing its exercise definition preserves sets, notes, and rest unless explicitly edited.
+- Removing its last set removes the exercise. Remaining records are reindexed.
+
+## TemplateSet
+
+- Belongs to exactly one TemplateExercise.
+- Represents one planned set, with no weight, completion state, or set-count field.
+- Has a supported SetType and positive whole-number reps.
+- Optional RPE is null or a whole number from 1 through 10.
+- Can be reordered only within its parent exercise.
 
 ## UserSettings
 belongs to app/device context

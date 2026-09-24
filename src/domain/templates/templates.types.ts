@@ -1,9 +1,9 @@
-import { SetType } from "@/domain/domain.types";
-import { VariationId } from "@/domain/variations/variation.types";
+import type { SetType } from "@/domain/domain.types";
+import type { Exercise, ExerciseId } from "@/domain/exercises/exercise.types";
 
 export type TemplateId = string;
-export type TemplateSectionId = string;
-export type TemplateSetDefinitionId = string;
+export type TemplateExerciseId = string;
+export type TemplateSetId = string;
 
 export interface Template {
   id: TemplateId;
@@ -13,23 +13,37 @@ export interface Template {
   updatedAt: number;
 }
 
-export interface TemplateSection {
-  id: TemplateSectionId;
+export interface TemplateExercise {
+  id: TemplateExerciseId;
   templateId: TemplateId;
-  variationId: VariationId;
+  exerciseId: ExerciseId;
   notes: string | null;
+  restSeconds: number;
   orderIndex: number;
   createdAt: number;
   updatedAt: number;
 }
 
-export interface TemplateSetDefinition {
-  id: TemplateSetDefinitionId;
-  templateSectionId: TemplateSectionId;
+export interface TemplateSet {
+  id: TemplateSetId;
+  templateExerciseId: TemplateExerciseId;
   setIndex: number;
   type: SetType;
-  sets: number;
   reps: number;
+  rpe: number | null;
   createdAt: number;
   updatedAt: number;
+}
+
+export type TemplateSetValues = Pick<TemplateSet, "type" | "reps" | "rpe">;
+
+export interface TemplateAggregate {
+  template: Template;
+  exercises: TemplateExerciseAggregate[];
+}
+
+export interface TemplateExerciseAggregate {
+  templateExercise: TemplateExercise;
+  exercise: Exercise;
+  sets: TemplateSet[];
 }

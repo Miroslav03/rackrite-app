@@ -149,13 +149,15 @@ export function HistoryScreenView({
           </View>
         }
         ListEmptyComponent={
-          <View className="flex-1 justify-center gap-lg py-2xl">
-            <AppText className="text-center text-xl font-bold text-foreground">
-              No workouts yet
-            </AppText>
-            <AppText className="text-center">
-              Finish your first session to build your history.
-            </AppText>
+          <View className="flex-1">
+            <View className="flex-1 justify-center align-middle">
+              <AppText className="text-center text-xl font-bold text-foreground">
+                No workouts yet
+              </AppText>
+              <AppText className="text-center">
+                Finish your first session to build your history.
+              </AppText>
+            </View>
             <Button
               title="Go to Start"
               accessibilityRole="button"
