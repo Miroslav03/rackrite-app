@@ -1,6 +1,6 @@
 import type { SetType } from "@/domain/domain.types";
 import type { Exercise, ExerciseId } from "@/domain/exercises/exercise.types";
-import type { TemplateId } from "@/domain/templates/templates.types";
+import type { TemplateId } from "@/domain/templates/editor/templates.types";
 
 export type WorkoutId = string;
 export type WorkoutExerciseId = string;

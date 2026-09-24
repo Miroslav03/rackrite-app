@@ -1,21 +1,21 @@
 import type {
-  ExerciseRow,
-  NewTemplateExerciseRow,
-  NewTemplateRow,
-  NewTemplateSetRow,
-  TemplateExerciseRow,
-  TemplateRow,
-  TemplateSetRow,
+    ExerciseRow,
+    NewTemplateExerciseRow,
+    NewTemplateRow,
+    NewTemplateSetRow,
+    TemplateExerciseRow,
+    TemplateRow,
+    TemplateSetRow,
 } from "@/data/db/schema";
 import { exerciseRowToExercise } from "@/data/mappers/exerciseMappers";
 
-import { assertTemplateCanBeSaved } from "@/domain/templates/assertions/templates.contracts";
+import { assertTemplateCanBeSaved } from "@/domain/templates/editor/assertions/templates.contracts";
 import type {
-  Template,
-  TemplateAggregate,
-  TemplateExercise,
-  TemplateSet,
-} from "@/domain/templates/templates.types";
+    Template,
+    TemplateAggregate,
+    TemplateExercise,
+    TemplateSet,
+} from "@/domain/templates/editor/templates.types";
 
 export function templateToRow(template: Template): NewTemplateRow {
   return {

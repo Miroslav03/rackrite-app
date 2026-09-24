@@ -1,5 +1,37 @@
-import { Text } from "react-native";
+import { useIsFocused } from "expo-router";
 
-export default function Templates() {
-  return <Text>Templates</Text>;
+import { templatesActions } from "@/features/templates/list/actions/templatesActions";
+import { useTemplatesController } from "@/features/templates/list/controller/useTemplatesController";
+import { TemplatesScreenLoadError } from "@/features/templates/list/view/TemplatesScreenLoadError";
+import { TemplatesScreenView } from "@/features/templates/list/view/TemplatesScreenView";
+
+import { FullScreenLoader } from "@/shared/components/feedback/FullScreenLoader";
+
+export default function TemplatesScreen() {
+  const isFocused = useIsFocused();
+
+  const { state, dateReference, refresh } = useTemplatesController(
+    templatesActions,
+    isFocused,
+  );
+
+  switch (state.status) {
+    case "loading":
+      return (
+        <FullScreenLoader
+          accessibilityLabel="Loading templates"
+          testID="templates-screen-loading"
+        />
+      );
+    case "loadError":
+      return <TemplatesScreenLoadError error={state.error} onRetry={refresh} />;
+    case "ready":
+      return (
+        <TemplatesScreenView
+          state={state}
+          dateReference={dateReference}
+          onRefresh={refresh}
+        />
+      );
+  }
 }

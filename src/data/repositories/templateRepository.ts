@@ -1,4 +1,4 @@
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "@/data/db/client";
 import {
@@ -6,7 +6,9 @@ import {
   templateExercisesTable,
   templateSetsTable,
   templatesTable,
+  workoutsTable,
 } from "@/data/db/schema";
+import { exerciseRowToExercise } from "@/data/mappers/exerciseMappers";
 import {
   rowsToTemplateAggregate,
   templateExerciseToRow,
@@ -16,12 +18,16 @@ import {
 } from "@/data/mappers/templateMappers";
 import { diffRowsById, haveSamePersistedRowValues } from "@/data/utils";
 
-import { assertTemplateCanBeSaved } from "@/domain/templates/assertions/templates.contracts";
+import { assertTemplateCanBeSaved } from "@/domain/templates/editor/assertions/templates.contracts";
 import {
   Template,
   TemplateAggregate,
   TemplateId,
-} from "@/domain/templates/templates.types";
+} from "@/domain/templates/editor/templates.types";
+import type {
+  TemplateCompetitionLift,
+  TemplateListRecord,
+} from "@/domain/templates/list/templates.types";
 
 export type TemplateRepository = {
   getTemplates: () => Promise<Template[]>;
@@ -34,7 +40,96 @@ export type TemplateRepository = {
     next: TemplateAggregate,
   ) => Promise<void>;
   deleteTemplateAggregate: (id: TemplateId) => Promise<void>;
+  getTemplateList: () => Promise<TemplateListRecord[]>;
 };
+
+export const getTemplateList: TemplateRepository["getTemplateList"] =
+  async () =>
+    db.transaction((tx) => {
+      const executions = tx
+        .select({
+          templateId: workoutsTable.sourceTemplateId,
+          startedAt: workoutsTable.startedAt,
+          finishedAt: workoutsTable.finishedAt,
+          rank: sql<number>`row_number() over (
+          partition by ${workoutsTable.sourceTemplateId}
+          order by ${workoutsTable.finishedAt} desc, ${workoutsTable.id} desc
+        )`.as("execution_rank"),
+        })
+        .from(workoutsTable)
+        .where(
+          and(
+            eq(workoutsTable.status, "completed"),
+            isNotNull(workoutsTable.finishedAt),
+            isNotNull(workoutsTable.sourceTemplateId),
+          ),
+        )
+        .as("executions");
+
+      const templates = tx
+        .select({
+          id: templatesTable.id,
+          name: templatesTable.name,
+          description: templatesTable.description,
+          startedAt: executions.startedAt,
+          finishedAt: executions.finishedAt,
+        })
+        .from(templatesTable)
+        .leftJoin(
+          executions,
+          and(
+            eq(templatesTable.id, executions.templateId),
+            eq(executions.rank, 1),
+          ),
+        )
+        .orderBy(desc(templatesTable.updatedAt), desc(templatesTable.id))
+        .all();
+
+      if (templates.length === 0) return [];
+
+      const exerciseRows = tx
+        .select({
+          templateId: templateExercisesTable.templateId,
+          exercise: exercisesTable,
+        })
+        .from(templateExercisesTable)
+        .innerJoin(
+          exercisesTable,
+          eq(templateExercisesTable.exerciseId, exercisesTable.id),
+        )
+        .where(eq(exercisesTable.kind, "competition_lift"))
+        .orderBy(asc(templateExercisesTable.orderIndex))
+        .all();
+
+      const liftsByTemplate = new Map<TemplateId, TemplateCompetitionLift[]>();
+
+      for (const row of exerciseRows) {
+        const exercise = exerciseRowToExercise(row.exercise);
+
+        if (exercise.kind !== "competition_lift") continue;
+
+        const lifts = liftsByTemplate.get(row.templateId) ?? [];
+        lifts.push({
+          id: exercise.id,
+          name: exercise.name,
+          liftFamily: exercise.liftFamily,
+        });
+        liftsByTemplate.set(row.templateId, lifts);
+      }
+
+      return templates.map(
+        ({ id, name, description, startedAt, finishedAt }) => ({
+          id,
+          name,
+          description,
+          competitionLifts: liftsByTemplate.get(id) ?? [],
+          lastExecution:
+            startedAt !== null && finishedAt !== null
+              ? { startedAt, finishedAt }
+              : null,
+        }),
+      );
+    });
 
 export const getTemplates: TemplateRepository["getTemplates"] = async () => {
   return db
@@ -242,6 +337,7 @@ export const deleteTemplateAggregate: TemplateRepository["deleteTemplateAggregat
   };
 
 export const templateRepository: TemplateRepository = {
+  getTemplateList,
   getTemplates,
   getTemplateAggregateById,
   insertTemplateAggregate,

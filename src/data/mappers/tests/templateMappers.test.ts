@@ -17,7 +17,7 @@ import {
 import {
   createTemplate,
   freezeTemplate,
-} from "@/domain/templates/tests/templates.test.helpers";
+} from "@/domain/templates/editor/tests/templates.test.helpers";
 
 function createRows() {
   const aggregate = createTemplate();

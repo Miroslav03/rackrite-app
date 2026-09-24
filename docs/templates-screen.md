@@ -2,8 +2,32 @@
 
 A template describes a reusable training day. The current implementation covers
 its domain model, editing rules, validation, mappers, and local persistence.
-The Templates screen, feature controllers, duplication, starting a workout from
-a template, and saving a workout as a template are later work.
+The Templates tab also provides an unpaginated, read-only library. Template
+details, the editor UI, duplication, starting a workout from a template, and
+saving a workout as a template are later work.
+
+## Template list
+
+The list follows Stitch's **Templates - Refined Ledger Cards** design. It shows
+the saved-routine count, template names/descriptions, and tags for competition
+lifts only, in template exercise order. Variations and accessories have no tags.
+Cards and the disabled floating create button do not navigate or write data.
+
+Execution statistics come from the latest completed workout referencing the
+template, ordered by finish time and then workout ID descending. Relative dates
+use the local completion day; durations use whole elapsed minutes from that same
+workout. Templates without completed executions keep an empty footer with the
+same spacing. Missing descriptions and tags keep their minimum layout space.
+
+The repository reads list metadata, competition exercises, and execution times
+without loading sets or full aggregates. The domain list contract and summary
+mapping live under `src/domain/templates/list`; actions, controller, and view live
+under `src/features/templates/list`. The full-list count is derived from its length.
+
+Like History, the list refreshes on focus, foreground return, and pull to refresh.
+Failed refreshes retain loaded cards; initial failures offer retry. Stale requests
+are ignored after replacement, blur, backgrounding, or unmount. Relative labels
+update at local midnight without another query. There is no pagination.
 
 ## Model
 
@@ -19,7 +43,7 @@ Four sets of five reps are four `TemplateSet` records. They can be summarized as
 4×5 in a future UI without introducing a separate set-count field.
 
 The runtime source of truth is
-[`templates.types.ts`](../src/domain/templates/templates.types.ts). The older
+[`templates.types.ts`](../src/domain/templates/editor/templates.types.ts). The older
 `docs/types/template/` interfaces describe an earlier UI exploration with sections
 and grouped set definitions; they are not contracts for this implementation.
 
@@ -68,7 +92,7 @@ SQLite stores `templates`, `template_exercises`, and `template_sets`. Child rows
 cascade on parent deletion; referenced exercise definitions remain intact.
 Deleting a template does not delete workouts or clear their `sourceTemplateId`.
 
-The domain owns the `TemplateRepository` contract. Its object implementation offers
+The domain owns the list read contract. The repository object implementation offers
 metadata listing, complete aggregate lookup, insertion, differential updates, and
 deletion. Lists sort by `updatedAt` descending, then ID descending. Missing lookup
 returns `null`; deleting a missing template is a no-op.
@@ -91,8 +115,11 @@ No application data is cleared automatically by this change.
 
 Domain tests cover editing, immutability, ownership, ordering, values, and save
 eligibility. Mapper tests cover complete round trips and invalid stored rows.
-Repository tests apply `0000_init.sql` to temporary SQLite storage and exercise the
-real Drizzle Expo driver, adapting its synchronous native client calls to Node's
-built-in SQLite API. These tests require Node 24 or newer, add no dependency, and
-cover CRUD, foreign keys, cascades, workout preservation, and injected-failure rollback.
-They do not substitute for native-device integration checks when the feature UI is wired.
+List repository tests apply `0000_init.sql` to in-memory SQLite storage and exercise
+the real Drizzle Expo driver, adapting its synchronous native client calls to Node's
+built-in SQLite API. These tests require Node 24 or newer and add no dependency.
+They cover ordering, unpaginated reads, competition-only tags, and latest-execution
+selection. Controller tests cover refresh recovery, request races, lifecycle cleanup,
+and midnight updates; view tests cover the ledger and inactive controls. Native
+Storybook scenarios under **Templates/List** cover populated, empty, and refresh-error
+states without changing the application database.

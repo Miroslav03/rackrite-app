@@ -149,20 +149,24 @@ export function HistoryScreenView({
           </View>
         }
         ListEmptyComponent={
-          <View className="flex-1">
-            <View className="flex-1 justify-center align-middle">
+          <View className="flex-1 justify-center">
+            <View>
               <AppText className="text-center text-xl font-bold text-foreground">
                 No workouts yet
               </AppText>
+
               <AppText className="text-center">
                 Finish your first session to build your history.
               </AppText>
             </View>
-            <Button
-              title="Go to Start"
-              accessibilityRole="button"
-              onPress={() => router.navigate("/")}
-            />
+
+            <View className="absolute bottom-0 left-0 right-0">
+              <Button
+                title="Go to Start"
+                accessibilityRole="button"
+                onPress={() => router.navigate("/")}
+              />
+            </View>
           </View>
         }
         ListFooterComponent={
