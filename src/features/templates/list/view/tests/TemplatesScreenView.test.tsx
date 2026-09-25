@@ -122,7 +122,8 @@ it("keeps a footer for a fresh template without inventing statistics or tags", a
   ).toBeDefined();
 });
 
-it("shows an empty library with zero count and a disabled, unwired create button", async () => {
+it("shows an empty library and opens creation when the add button is pressed", async () => {
+  const onCreateTemplate = jest.fn();
   const renderer = await render(
     createElement(TemplatesScreenView, {
       state: {
@@ -133,6 +134,7 @@ it("shows an empty library with zero count and a disabled, unwired create button
       },
       dateReference,
       onRefresh: jest.fn(),
+      onCreateTemplate,
     }),
   );
   expect(labels(renderer)).toEqual(
@@ -140,7 +142,7 @@ it("shows an empty library with zero count and a disabled, unwired create button
       "Library",
       "Templates",
       "0",
-      "Saved Routines",
+      "Saved Workouts",
       "No templates yet",
       "Your saved workout templates will appear here.",
     ]),
@@ -148,9 +150,9 @@ it("shows an empty library with zero count and a disabled, unwired create button
   const button = renderer.root.findByProps({
     testID: "create-template-button",
   });
-  expect(button.props.disabled).toBe(true);
-  expect(button.props.accessibilityState).toEqual({ disabled: true });
-  expect(button.props.onPress).toBeUndefined();
+  expect(button.props.disabled).not.toBe(true);
+  await act(async () => button.props.onPress?.());
+  expect(onCreateTemplate).toHaveBeenCalledTimes(1);
   expect(labels(renderer)).not.toContain("Import from Coach");
 });
 
@@ -166,6 +168,7 @@ it("keeps loaded cards visible on refresh error and connects the list refresh ca
       },
       dateReference,
       onRefresh,
+      onCreateTemplate: jest.fn(),
     }),
   );
   expect(labels(renderer)).toEqual(

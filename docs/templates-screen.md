@@ -2,16 +2,24 @@
 
 A template describes a reusable training day. The current implementation covers
 its domain model, editing rules, validation, mappers, and local persistence.
-The Templates tab also provides an unpaginated, read-only library. Template
-details, the editor UI, duplication, starting a workout from a template, and
-saving a workout as a template are later work.
+The Templates tab also provides an unpaginated library and an entry point to
+template creation. Template details, editing controls, saving, duplication,
+starting a workout from a template, and saving a workout as a template are later
+work.
 
 ## Template list
 
 The list follows Stitch's **Templates - Refined Ledger Cards** design. It shows
 the saved-routine count, template names/descriptions, and tags for competition
 lifts only, in template exercise order. Variations and accessories have no tags.
-Cards and the disabled floating create button do not navigate or write data.
+Cards are read-only. The floating create button initializes an empty in-memory
+draft in the shared template session, then opens `/template-editor` outside the
+tabs. The provider sits above the root stack, so navigation preserves the session.
+Each press of the create button starts a fresh draft. The editor renders from
+`TemplateSessionState`; opening it without an active session returns to the
+library. Initialization failures offer retry. Nothing is persisted yet. Editing
+will use the same route once loading an existing template into the session is
+implemented.
 
 Execution statistics come from the latest completed workout referencing the
 template, ordered by finish time and then workout ID descending. Relative dates

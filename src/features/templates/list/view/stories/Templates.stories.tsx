@@ -64,6 +64,7 @@ const meta = {
     state: { status: "ready", items, refresh: { status: "idle" }, revision: 1 },
     dateReference,
     onRefresh: () => {},
+    onCreateTemplate: () => {},
   },
 } satisfies Meta<typeof TemplatesScreenView>;
 

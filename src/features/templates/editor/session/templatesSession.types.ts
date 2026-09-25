@@ -2,34 +2,44 @@ import { ExerciseId } from "@/domain/exercises/exercise.types";
 import {
   TemplateAggregate,
   TemplateExerciseId,
-  TemplateId,
   TemplateSetId,
 } from "@/domain/templates/editor/templates.types";
 
+import { OperationState } from "@/shared/state/operationState";
+
+export type CommonTemplateOperations =
+  | {
+      type: "updateMetadata";
+    }
+  | {
+      type: "addExercise";
+      exerciseId: ExerciseId;
+    }
+  | {
+      type: "removeExercise";
+      templateExerciseId: TemplateExerciseId;
+    }
+  | {
+      type: "discardTemplate";
+    };
+
 export type CreateTemplateOperations =
-  "createEmptyTemplate" | EditTemplateOperations;
+  | CommonTemplateOperations
+  | {
+      type: "createEmptyTemplate";
+    }
+  | {
+      type: "createTemplate";
+    };
 
 export type EditTemplateOperations =
+  | CommonTemplateOperations
   | {
-      type: "updateMetada";
-      templateId: TemplateId;
-    }
-  | { type: "addExercise"; exerciseId: ExerciseId }
-  | { type: "removeExercise"; templateExerciseId: TemplateExerciseId };
-
-export type OperationState<TOperation> =
-  | { status: "idle" }
-  | {
-      status: "pending";
-      operation: TOperation;
-    }
-  | {
-      status: "error";
-      operation: TOperation;
-      error: Error;
+      type: "editTemplate";
     };
 
 export type TemplateSessionState =
+  | { status: "noActiveTemplate" }
   | { status: "loading" }
   | {
       status: "loadError";

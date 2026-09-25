@@ -25,6 +25,7 @@ type TemplatesScreenViewProps = {
   state: Extract<TemplatesState, { status: "ready" }>;
   dateReference: number;
   onRefresh: () => void;
+  onCreateTemplate: () => void;
 };
 
 const CREATE_BUTTON_SIZE = 56;
@@ -33,6 +34,7 @@ export function TemplatesScreenView({
   state,
   dateReference,
   onRefresh,
+  onCreateTemplate,
 }: TemplatesScreenViewProps) {
   const listRef = useRef<FlatList<TemplateListItem>>(null);
 
@@ -110,8 +112,7 @@ export function TemplatesScreenView({
         testID="create-template-button"
         accessibilityRole="button"
         accessibilityLabel="Create template"
-        accessibilityState={{ disabled: true }}
-        disabled
+        onPress={onCreateTemplate}
         className="absolute items-center justify-center rounded-full border border-outline/30 bg-surfaceHigh/80"
         style={{
           width: CREATE_BUTTON_SIZE,

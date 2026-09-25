@@ -1,5 +1,6 @@
-import { useIsFocused } from "expo-router";
+import { useIsFocused, useRouter } from "expo-router";
 
+import { useTemplateSession } from "@/features/templates/editor/session/TemplateSessionContext";
 import { templatesActions } from "@/features/templates/list/actions/templatesActions";
 import { useTemplatesController } from "@/features/templates/list/controller/useTemplatesController";
 import { TemplatesScreenLoadError } from "@/features/templates/list/view/TemplatesScreenLoadError";
@@ -8,12 +9,20 @@ import { TemplatesScreenView } from "@/features/templates/list/view/TemplatesScr
 import { FullScreenLoader } from "@/shared/components/feedback/FullScreenLoader";
 
 export default function TemplatesScreen() {
+  const router = useRouter();
   const isFocused = useIsFocused();
+
+  const { createEmptyTemplate } = useTemplateSession();
 
   const { state, dateReference, refresh } = useTemplatesController(
     templatesActions,
     isFocused,
   );
+
+  function openNewTemplate() {
+    createEmptyTemplate();
+    router.navigate("/template-editor");
+  }
 
   switch (state.status) {
     case "loading":
@@ -31,6 +40,7 @@ export default function TemplatesScreen() {
           state={state}
           dateReference={dateReference}
           onRefresh={refresh}
+          onCreateTemplate={openNewTemplate}
         />
       );
   }

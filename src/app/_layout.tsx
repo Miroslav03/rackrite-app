@@ -6,6 +6,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { DatabaseBootstrap } from "@/bootstrap/DatabaseBootstrap";
 
+import { templateSessionActions } from "@/features/templates/editor/actions/templateSessionActions";
+import { TemplateSessionProvider } from "@/features/templates/editor/session/TemplateSessionProvider";
 import { workoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
 import { WorkoutSessionProvider } from "@/features/workout/session/WorkoutSessionProvider";
 
@@ -28,21 +30,27 @@ export default function RootLayout() {
             }}
           >
             <WorkoutSessionProvider actions={workoutSessionActions}>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: {
-                    backgroundColor: colors.background,
-                  },
-                }}
-              >
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="history/[workoutId]"
-                  options={{ title: "Workout Details" }}
-                />
-                <Stack.Screen name="workout" options={{ title: "Workout" }} />
-              </Stack>
+              <TemplateSessionProvider actions={templateSessionActions}>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: {
+                      backgroundColor: colors.background,
+                    },
+                  }}
+                >
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="history/[workoutId]"
+                    options={{ title: "Workout Details" }}
+                  />
+                  <Stack.Screen name="workout" options={{ title: "Workout" }} />
+                  <Stack.Screen
+                    name="template-editor"
+                    options={{ title: "Template" }}
+                  />
+                </Stack>
+              </TemplateSessionProvider>
             </WorkoutSessionProvider>
           </DatabaseBootstrap>
         </ToastProvider>
