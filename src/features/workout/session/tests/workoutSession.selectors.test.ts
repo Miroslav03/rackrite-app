@@ -1,7 +1,6 @@
-import {
-  isCopyPreviousSetOperationPending,
-  isOperationPending,
-} from "../workoutSession.selectors";
+import { isOperationPending } from "@/shared/state/operationState";
+
+import { isCopyPreviousSetOperationPending } from "../workoutSession.selectors";
 import type {
   ActiveWorkoutOperation,
   OperationState,

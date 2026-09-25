@@ -29,7 +29,6 @@ import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
 import type { UndoSetCompletionCommand } from "@/features/workout/actions/undoCompletedSet";
 import type { UpdateExerciseOrderCommand } from "@/features/workout/actions/updateExerciseOrder";
 import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
-import { isOperationPending } from "@/features/workout/session/workoutSession.selectors";
 import type {
   ActiveWorkoutOperation,
   OperationState,
@@ -51,6 +50,8 @@ import { colors, spacing } from "@/shared/theme/tokens";
 import { ErrorNotifier } from "@/shared/components/feedback/ErrorNotifier/ErrorNotifier";
 import { getActiveWorkoutOperationErrorMessage } from "@/shared/components/feedback/ErrorNotifier/utils";
 import { useScrollVisibility } from "@/shared/context/ScrollVisibilityContext";
+import { isOperationPending } from "@/shared/state/operationState";
+
 import {
   getAddExerciseOperation,
   getModalContent,
@@ -575,7 +576,7 @@ export function ActiveWorkoutScreenView({
           ListFooterComponent={
             <ScreenSection className="relative z-30 mt-0 pt-8 pb-4">
               <Button
-                title="Add Exercise"
+                title={"Add Exercise"}
                 variant="ghost"
                 intent="neutral"
                 size="md"

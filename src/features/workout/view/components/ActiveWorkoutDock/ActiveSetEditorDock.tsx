@@ -7,7 +7,6 @@ import { BackHandler, Platform } from "react-native";
 import type { SetType } from "@/domain/domain.types";
 import type { WorkoutSet } from "@/domain/workout/workout.types";
 
-import { isOperationPending } from "@/features/workout/session/workoutSession.selectors";
 import type {
   ActiveWorkoutOperation,
   OperationState,
@@ -25,6 +24,7 @@ import {
   InteractiveKeypad,
   type InteractiveKeypadKey,
 } from "@/shared/components/ui/InteractiveKeypad";
+import { isOperationPending } from "@/shared/state/operationState";
 
 import { getPanelLabel } from "../../activeWorkout.viewState.utils";
 

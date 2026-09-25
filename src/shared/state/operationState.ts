@@ -10,8 +10,8 @@ export type OperationState<TOperation> =
       error: Error;
     };
 
-export function isOperationPending<TOperation>(
-  state: OperationState<TOperation>,
-): state is { status: "pending"; operation: TOperation } {
+export function isOperationPending<TState extends OperationState<unknown>>(
+  state: TState,
+): state is Extract<TState, { status: "pending" }> {
   return state.status === "pending";
 }

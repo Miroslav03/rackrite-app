@@ -12,7 +12,6 @@ import type {
 import {
   isAddSetOperationPending,
   isCopyPreviousSetOperationPending,
-  isOperationPending,
 } from "@/features/workout/session/workoutSession.selectors";
 import type {
   ActiveWorkoutOperation,
@@ -24,6 +23,7 @@ import { SetCard } from "@/shared/components/exercise-editor/SetCard";
 import { ScreenSection } from "@/shared/components/layout/ScreenSection";
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
+import { isOperationPending } from "@/shared/state/operationState";
 import { colors } from "@/shared/theme/tokens";
 
 import { formatExerciseKind } from "@/features/exercises/view/utils/formatExerciseKind";

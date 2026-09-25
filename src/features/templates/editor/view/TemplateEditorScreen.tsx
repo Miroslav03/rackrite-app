@@ -14,6 +14,7 @@ import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
 import { DangerModal as DangerModalView } from "@/shared/components/ui/DangerModal";
 import { useScrollVisibility } from "@/shared/context/ScrollVisibilityContext";
+import { isOperationPending } from "@/shared/state/operationState";
 import { colors, spacing } from "@/shared/theme/tokens";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused, usePreventRemove } from "@react-navigation/native";
@@ -29,9 +30,10 @@ import {
   getExercisePickerExclusions,
   getModalContent,
   getModalOperation,
+  TEMPLATE_EDITOR_VIEW,
 } from "./templateEditor.viewState.utils";
 
-type TemplateEditorScreenProps = {
+export type TemplateEditorScreenProps = {
   state: Extract<TemplateSessionState, { status: "create" | "edit" }>;
   actions: Pick<
     TemplateSessionController,
@@ -88,9 +90,11 @@ export function TemplateEditorScreen({
     actions,
   );
 
-  const pending = state.operation.status === "pending";
+  const pending = isOperationPending(state.operation);
   const modalContent = getModalContent(activeOverlay, template);
   const exclusions = getExercisePickerExclusions(template);
+
+  const view = TEMPLATE_EDITOR_VIEW[state.status];
 
   const dockOpen =
     editor.panel !== null &&
@@ -102,6 +106,13 @@ export function TemplateEditorScreen({
     [],
   );
 
+  const openDiscardTemplateConfirmation = () => {
+    setActiveOverlay({
+      type: "dangerModal",
+      confirmation: { action: "discardTemplate" },
+    });
+  };
+
   const handleBack = useCallback(() => {
     if (pending) return;
 
@@ -110,10 +121,7 @@ export function TemplateEditorScreen({
     } else if (dockOpen) {
       void editor.closeSetEditor();
     } else {
-      setActiveOverlay({
-        type: "dangerModal",
-        confirmation: { action: "discardTemplate" },
-      });
+      openDiscardTemplateConfirmation();
     }
   }, [
     activeOverlay.type,
@@ -236,12 +244,7 @@ export function TemplateEditorScreen({
             />
           )}
           ListHeaderComponent={
-            <ScreenHeader
-              title={
-                state.status === "create" ? "Create Template" : "Edit Template"
-              }
-              subtitle="Templates"
-            />
+            <ScreenHeader title={view.screenTitle} subtitle="Templates" />
           }
           ListHeaderComponentStyle={
             template.exercises.length > 0
@@ -272,9 +275,41 @@ export function TemplateEditorScreen({
                     color={colors.foreground}
                   />
                 }
-                onPress={() => {
-                  void openExercisePicker();
-                }}
+                onPress={openExercisePicker}
+              />
+              <Button
+                title={view.finishButtonTitle}
+                variant="ghost"
+                intent="primary"
+                size="lg"
+                disabled={pending}
+                dimWhenDisabled={true}
+                accessibilityRole="button"
+                leftIcon={
+                  <Ionicons
+                    name="checkmark-outline"
+                    size={18}
+                    color={colors.primarySoft}
+                  />
+                }
+                textClassName="color-primarySoft"
+              />
+              <Button
+                title={view.discardButtonTitle}
+                variant="ghost"
+                intent="danger"
+                size="md"
+                disabled={pending}
+                dimWhenDisabled={false}
+                accessibilityRole="button"
+                leftIcon={
+                  <Ionicons
+                    name="close-outline"
+                    size={18}
+                    color={colors.error}
+                  />
+                }
+                onPress={openDiscardTemplateConfirmation}
               />
             </ScreenSection>
           }

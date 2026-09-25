@@ -15,7 +15,32 @@ import type {
   EditTemplateOperations,
 } from "../session/templatesSession.types";
 
-import type { TemplateEditorOverlay } from "./TemplateEditorScreen";
+import type {
+  TemplateEditorOverlay,
+  TemplateEditorScreenProps,
+} from "./TemplateEditorScreen";
+
+type TemplateEditorMode = TemplateEditorScreenProps["state"]["status"];
+
+export const TEMPLATE_EDITOR_VIEW = {
+  create: {
+    discardButtonTitle: "Discard Template",
+    finishButtonTitle: "Create Template",
+    screenTitle: "Create Template",
+  },
+  edit: {
+    discardButtonTitle: "Cancel Editing",
+    finishButtonTitle: "Create Template",
+    screenTitle: "Edit Template",
+  },
+} satisfies Record<
+  TemplateEditorMode,
+  {
+    discardButtonTitle: string;
+    finishButtonTitle: string;
+    screenTitle: string;
+  }
+>;
 
 export function getModalContent(
   overlay: TemplateEditorOverlay,

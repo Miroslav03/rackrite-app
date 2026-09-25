@@ -11,7 +11,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { RestTimerAdjustmentSeconds } from "@/features/workout/actions/adjustRestTimer";
-import { isOperationPending } from "@/features/workout/session/workoutSession.selectors";
 import type {
   ActiveWorkoutOperation,
   OperationState,
@@ -25,6 +24,7 @@ import {
   measureView,
   useScrollVisibility,
 } from "@/shared/context/ScrollVisibilityContext";
+import { isOperationPending } from "@/shared/state/operationState";
 import { colors, spacing } from "@/shared/theme/tokens";
 
 type RestTimerDockProps = {
