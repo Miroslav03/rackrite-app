@@ -1,46 +1,13 @@
-import { useEffect } from "react";
-
-import { useToast } from "@/shared/components/feedback/ToastContext";
-
-import type {
+import {
+  CreateTemplateOperations,
+  EditTemplateOperations,
+} from "@/features/templates/editor/session/templatesSession.types";
+import {
   ActiveWorkoutOperation,
-  OperationState,
   StartWorkoutOperation,
-} from "../../session/workoutSession.types";
+} from "@/features/workout/session/workoutSession.types";
 
-type ActiveWorkoutOperationErrorNotifierProps = {
-  operation: OperationState<ActiveWorkoutOperation | StartWorkoutOperation>;
-  isFocused: boolean;
-  onErrorDismissed: (error: Error) => void;
-};
-
-export function ActiveWorkoutOperationErrorNotifier({
-  operation,
-  isFocused,
-  onErrorDismissed,
-}: ActiveWorkoutOperationErrorNotifierProps) {
-  const { hideToast, showToast } = useToast();
-
-  useEffect(() => {
-    if (!isFocused || operation.status !== "error") {
-      return;
-    }
-
-    const currentError = operation.error;
-    const toastId = showToast({
-      message: getOperationErrorMessage(operation.operation),
-      onDismiss: () => onErrorDismissed(currentError),
-    });
-
-    return () => {
-      hideToast(toastId);
-    };
-  }, [hideToast, isFocused, onErrorDismissed, operation, showToast]);
-
-  return null;
-}
-
-function getOperationErrorMessage(
+export function getActiveWorkoutOperationErrorMessage(
   operation: ActiveWorkoutOperation | StartWorkoutOperation,
 ): string {
   if (typeof operation === "string") {
@@ -100,5 +67,36 @@ function getOperationErrorMessage(
 
     case "finishWorkout":
       return "Couldn't finish workout. Try again.";
+  }
+}
+
+export function getTemplateEditorOperationErrorMessage(
+  operation: CreateTemplateOperations | EditTemplateOperations,
+): string {
+  switch (operation.type) {
+    case "createEmptyTemplate":
+    case "createTemplate":
+      return "Couldn't create template. Try again.";
+
+    case "editTemplate":
+      return "Couldn't edit template. Try again.";
+
+    case "discardTemplate":
+      return "Couldn't discard template. Try again.";
+
+    case "updateMetadata":
+      return "Couldn't update template details. Try again.";
+
+    case "addExercise":
+      return "Couldn't add exercise. Try again.";
+
+    case "removeExercise":
+      return "Couldn't remove exercise. Try again.";
+
+    case "removeSet":
+      return "Couldn't remove set. Try again.";
+
+    case "updateSet":
+      return "Couldn't update set. Try again.";
   }
 }

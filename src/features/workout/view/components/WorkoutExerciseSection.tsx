@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
 import type {
@@ -20,14 +20,13 @@ import type {
 } from "@/features/workout/session/workoutSession.types";
 import type { ActiveSetEditorPanelType } from "@/features/workout/view/components/ActiveWorkoutDock/activeWorkoutDock.types";
 
+import { SetCard } from "@/shared/components/exercise-editor/SetCard";
 import { ScreenSection } from "@/shared/components/layout/ScreenSection";
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
 import { colors } from "@/shared/theme/tokens";
 
 import { formatExerciseKind } from "@/features/exercises/view/utils/formatExerciseKind";
-
-import { WorkoutSetCard } from "./WorkoutSetCard";
 
 export type WorkoutExerciseSectionActions = {
   openOptions: (workoutExerciseId: WorkoutExerciseId) => void;
@@ -182,6 +181,11 @@ const WorkoutSetList = memo(function WorkoutSetList({
   repsDraft,
   onOpenEditor,
 }: WorkoutSetListProps) {
+  const selectSet = useCallback(
+    (setId: WorkoutSetId) => onOpenEditor(setId, "weight"),
+    [onOpenEditor],
+  );
+
   return sets.map((set) => {
     const isActiveSet = set.id === activeSetId;
     const status =
@@ -192,9 +196,9 @@ const WorkoutSetList = memo(function WorkoutSetList({
           : "pending";
 
     return (
-      <WorkoutSetCard
+      <SetCard
         key={set.id}
-        workoutSetId={set.id}
+        setId={set.id}
         setIndex={set.setIndex + 1}
         setType={set.type}
         weight={set.weight}
@@ -205,6 +209,7 @@ const WorkoutSetList = memo(function WorkoutSetList({
         status={status}
         selected={isActiveSet}
         activeField={isActiveSet ? activeSetField : undefined}
+        onPress={selectSet}
         onOpenEditor={onOpenEditor}
       />
     );

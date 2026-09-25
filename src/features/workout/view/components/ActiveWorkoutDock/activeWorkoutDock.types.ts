@@ -1,9 +1,9 @@
+import { CommonSetEditorPanel } from "@/shared/components/exercise-editor/setEditorPanel.types";
+
 export type ActiveSetEditorPanel =
+  | CommonSetEditorPanel
   | { type: "weight" }
-  | { type: "weightKeypad"; draft: string }
-  | { type: "repsKeypad"; draft: string }
-  | { type: "rpe" }
-  | { type: "setType" };
+  | { type: "weightKeypad"; draft: string };
 
 export type RestTimerPanel = {
   type: "restTimer";
@@ -22,11 +22,6 @@ export type ActiveSetEditorBasePanelType = Exclude<
 export type WeightKeypadPanel = Extract<
   ActiveSetEditorPanel,
   { type: "weightKeypad" }
->;
-
-export type RepsKeypadPanel = Extract<
-  ActiveSetEditorPanel,
-  { type: "repsKeypad" }
 >;
 
 export type ActiveSetEditorKeypadPanel = Extract<

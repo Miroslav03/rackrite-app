@@ -17,6 +17,7 @@ import {
   type RpePickerValue,
 } from "@/shared/components/exercise-editor/RpePickerPanel";
 import { SetEditorDock } from "@/shared/components/exercise-editor/SetEditorDock";
+import { isRepsKeypadPanel } from "@/shared/components/exercise-editor/setEditorPanel.types.utils";
 import { SetTypePickerPanel } from "@/shared/components/exercise-editor/SetTypePickerPanel";
 import { Button } from "@/shared/components/ui/Button";
 import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
@@ -30,7 +31,6 @@ import { getPanelLabel } from "../../activeWorkout.viewState.utils";
 import type { ActiveSetEditorPanel } from "./activeWorkoutDock.types";
 import {
   isActiveSetEditorKeypadPanel,
-  isRepsKeypadPanel,
   isWeightKeypadPanel,
 } from "./activeWorkoutDock.types.utils";
 import { WeightQuickAdjustPanel } from "./WeightQuickAdjustPanel";

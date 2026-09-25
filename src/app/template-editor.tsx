@@ -5,10 +5,11 @@ import { TemplateEditorScreen } from "@/features/templates/editor/view/TemplateE
 
 import { ErrorNotice } from "@/shared/components/feedback/ErrorNotice";
 import { FullScreenLoader } from "@/shared/components/feedback/FullScreenLoader";
+import { ScrollVisibilityProvider } from "@/shared/context/ScrollVisibilityContext";
 import { Screen } from "@/shared/components/layout/Screen";
 
 export default function TemplateEditor() {
-  const { state, createEmptyTemplate, discardTemplate } = useTemplateSession();
+  const { state, createEmptyTemplate, ...actions } = useTemplateSession();
 
   switch (state.status) {
     case "noActiveTemplate":
@@ -30,14 +31,15 @@ export default function TemplateEditor() {
         </Screen>
       );
     case "create":
-      return (
-        <TemplateEditorScreen
-          key={state.activeTemplate.template.id}
-          state={state}
-          actions={{ discardTemplate }}
-        />
-      );
     case "edit":
-      return <Redirect href="/templates" />;
+      return (
+        <ScrollVisibilityProvider key={state.activeTemplate.template.id}>
+          <TemplateEditorScreen
+            key={state.activeTemplate.template.id}
+            state={state}
+            actions={actions}
+          />
+        </ScrollVisibilityProvider>
+      );
   }
 }

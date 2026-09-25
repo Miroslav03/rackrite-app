@@ -1,7 +1,8 @@
+import { isRepsKeypadPanel } from "@/shared/components/exercise-editor/setEditorPanel.types.utils";
+
 import type {
   ActiveSetEditorKeypadPanel,
   ActiveWorkoutDockPanel,
-  RepsKeypadPanel,
   WeightKeypadPanel,
 } from "./activeWorkoutDock.types";
 
@@ -9,12 +10,6 @@ export function isWeightKeypadPanel(
   panel: ActiveWorkoutDockPanel,
 ): panel is WeightKeypadPanel {
   return panel.type === "weightKeypad";
-}
-
-export function isRepsKeypadPanel(
-  panel: ActiveWorkoutDockPanel,
-): panel is RepsKeypadPanel {
-  return panel.type === "repsKeypad";
 }
 
 export function isActiveSetEditorKeypadPanel(

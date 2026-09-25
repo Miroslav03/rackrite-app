@@ -4,6 +4,15 @@ import type {
   TemplateSetId,
 } from "./templates.types";
 
+export function getTemplateSetById(
+  template: TemplateAggregate,
+  templateSetId: TemplateSetId,
+) {
+  return getTemplateExerciseBySetId(template, templateSetId)?.sets.find(
+    (set) => set.id === templateSetId,
+  );
+}
+
 export function getTemplateExerciseById(
   aggregate: TemplateAggregate,
   id: TemplateExerciseId,

@@ -8,6 +8,8 @@ import {
 import { OperationState } from "@/shared/state/operationState";
 
 export type CommonTemplateOperations =
+  | { type: "updateSet"; templateSetId: TemplateSetId }
+  | { type: "removeSet"; templateSetId: TemplateSetId }
   | {
       type: "updateMetadata";
     }
@@ -60,6 +62,7 @@ export type TemplateSessionState =
     };
 
 export type TemplateSessionEvent =
+  | { type: "setSelected"; templateSetId: TemplateSetId | null }
   | { type: "creationStarted" }
   | { type: "editingStarted" }
   | {

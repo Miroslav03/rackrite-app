@@ -13,7 +13,6 @@ import type { WorkoutId } from "@/domain/workout/workout.types";
 
 import type { HistoryState } from "@/features/history/controller/history.types";
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
-import { ActiveWorkoutOperationErrorNotifier } from "@/features/workout/view/components/ActiveWorkoutOperationErrorNotifier";
 
 import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
 import { Screen } from "@/shared/components/layout/Screen";
@@ -24,6 +23,8 @@ import { colors, spacing } from "@/shared/theme/tokens";
 
 import { useRepeatWorkoutController } from "../controller/useRepeatWorkoutController";
 
+import { ErrorNotifier } from "@/shared/components/feedback/ErrorNotifier/ErrorNotifier";
+import { getActiveWorkoutOperationErrorMessage } from "@/shared/components/feedback/ErrorNotifier/utils";
 import { HistoryErrorNotice } from "./components/HistoryErrorNotice";
 import { HistoryWorkoutCard } from "./components/HistoryWorkoutCard";
 import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
@@ -99,10 +100,11 @@ export function HistoryScreenView({
     <Screen scroll={false} className="pt-0 pb-0">
       {(session.state.status === "active" ||
         session.state.status === "noActiveWorkout") && (
-        <ActiveWorkoutOperationErrorNotifier
+        <ErrorNotifier
           operation={session.state.operation}
           isFocused={isFocused}
           onErrorDismissed={session.dismissOperationError}
+          getErrorMessage={getActiveWorkoutOperationErrorMessage}
         />
       )}
       <FlatList

@@ -48,6 +48,8 @@ import { DangerModal as DangerModalView } from "@/shared/components/ui/DangerMod
 import { ElapsedTimer } from "@/shared/components/ui/ElapsedTimer";
 import { colors, spacing } from "@/shared/theme/tokens";
 
+import { ErrorNotifier } from "@/shared/components/feedback/ErrorNotifier/ErrorNotifier";
+import { getActiveWorkoutOperationErrorMessage } from "@/shared/components/feedback/ErrorNotifier/utils";
 import { useScrollVisibility } from "@/shared/context/ScrollVisibilityContext";
 import {
   getAddExerciseOperation,
@@ -59,7 +61,6 @@ import {
 import { ActiveSetEditorDock } from "./components/ActiveWorkoutDock/ActiveSetEditorDock";
 import { RestTimerDock } from "./components/ActiveWorkoutDock/RestTimerDock";
 import { useActiveWorkoutDockEditor } from "./components/ActiveWorkoutDock/useActiveWorkoutDockEditor";
-import { ActiveWorkoutOperationErrorNotifier } from "./components/ActiveWorkoutOperationErrorNotifier";
 import { ExerciseOrderEditor } from "./components/ExerciseOrderEditor/ExerciseOrderEditor";
 import { RestTimerCard } from "./components/RestTimerCard";
 import {
@@ -668,19 +669,18 @@ export function ActiveWorkoutScreenView({
         />
       ) : null}
 
-      <ActiveWorkoutOperationErrorNotifier
+      <ErrorNotifier
         operation={operation}
         isFocused={isFocused}
         onErrorDismissed={actions.dismissOperationError}
+        getErrorMessage={getActiveWorkoutOperationErrorMessage}
       />
 
       <ExercisePickerSheet
         open={activeOverlay.type === "exercisePicker"}
         excludedExerciseIds={excludedExerciseIds}
         selectionOperation={getAddExerciseOperation(activeOverlay, operation)}
-        onSelect={(exercise) => {
-          void handleExerciseSelected(exercise);
-        }}
+        onSelect={handleExerciseSelected}
         excludedKinds={excludedExerciseKinds}
         onClose={closeOverlay}
       />

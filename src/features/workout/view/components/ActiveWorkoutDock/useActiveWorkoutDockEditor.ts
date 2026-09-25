@@ -25,11 +25,11 @@ import {
   formatKeypadDraft,
   parseKeypadDraft,
   updateKeypadDraft,
-} from "./activeSetEditorKeypad.utils";
+} from "@/shared/components/exercise-editor/setEditorKeypad.utils";
+import { isRepsKeypadPanel } from "@/shared/components/exercise-editor/setEditorPanel.types.utils";
 import type { ActiveSetEditorPanelType } from "./activeWorkoutDock.types";
 import {
   isActiveSetEditorKeypadPanel,
-  isRepsKeypadPanel,
   isWeightKeypadPanel,
 } from "./activeWorkoutDock.types.utils";
 import { useActiveWorkoutDockController } from "./useActiveWorkoutDockController";

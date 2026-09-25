@@ -3,7 +3,7 @@ import {
   formatKeypadDraft,
   parseKeypadDraft,
   updateKeypadDraft,
-} from "../activeSetEditorKeypad.utils";
+} from "../setEditorKeypad.utils";
 
 describe("active set editor keypad utilities", () => {
   describe("shared behavior", () => {

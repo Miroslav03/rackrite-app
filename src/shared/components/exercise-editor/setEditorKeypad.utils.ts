@@ -1,6 +1,6 @@
 import type { InteractiveKeypadKey } from "@/shared/components/ui/InteractiveKeypad";
 
-export type ActiveSetEditorKeypadMode = "weight" | "reps";
+export type SetEditorKeypadMode = "weight" | "reps";
 
 type KeypadRules = {
   allowDecimal: boolean;
@@ -10,7 +10,7 @@ type KeypadRules = {
 
 const MAX_DRAFT_LENGTH = 6;
 
-const KEYPAD_RULES: Record<ActiveSetEditorKeypadMode, KeypadRules> = {
+const KEYPAD_RULES: Record<SetEditorKeypadMode, KeypadRules> = {
   weight: {
     allowDecimal: true,
     allowLeadingZero: true,
@@ -39,7 +39,7 @@ export function addWeightIncrement(
 export function updateKeypadDraft(
   currentDraft: string,
   key: InteractiveKeypadKey,
-  mode: ActiveSetEditorKeypadMode,
+  mode: SetEditorKeypadMode,
 ): string {
   const rules = KEYPAD_RULES[mode];
 
@@ -76,7 +76,7 @@ export function updateKeypadDraft(
 
 export function parseKeypadDraft(
   draft: string,
-  mode: ActiveSetEditorKeypadMode,
+  mode: SetEditorKeypadMode,
 ): number | null {
   if (draft === "") {
     return null;

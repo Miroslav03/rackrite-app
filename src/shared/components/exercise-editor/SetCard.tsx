@@ -5,9 +5,7 @@ import { Pressable, View } from "react-native";
 import type { SetType } from "@/domain/domain.types";
 
 import { SET_TYPE_CONFIG } from "@/shared/theme/setTypes";
-import type { ActiveSetEditorPanelType } from "@/features/workout/view/components/ActiveWorkoutDock/activeWorkoutDock.types";
 
-import { WorkoutSetId } from "@/domain/workout/workout.types";
 import { AppText } from "@/shared/components/ui/AppText";
 import { SurfaceCard } from "@/shared/components/ui/SurfaceCard";
 import {
@@ -18,33 +16,36 @@ import { colors } from "@/shared/theme/tokens";
 import { cn } from "@/shared/utils/cn";
 import { memo, useEffect, useRef } from "react";
 
-type WorkoutSetStatus = "completed" | "active" | "pending";
+export type SetCardField =
+  "weight" | "weightKeypad" | "repsKeypad" | "rpe" | "setType";
 
-type WorkoutSetCardProps = {
+type SetCardStatus = "completed" | "active" | "pending";
+
+type SetCardProps = {
   setIndex: number;
-  workoutSetId: WorkoutSetId;
+  setId: string;
   setType: SetType;
-  weight: number | null;
+  showWeight?: boolean;
+  weight?: number | null;
   weightDraft?: string;
   reps: number | null;
   repsDraft?: string;
   rpe: number | null;
-  status?: WorkoutSetStatus;
+  status?: SetCardStatus;
   selected?: boolean;
-  activeField?: ActiveSetEditorPanelType;
+  activeField?: SetCardField;
   disabled?: boolean;
   className?: string;
-  onOpenEditor: (
-    workoutSetId: WorkoutSetId,
-    field: ActiveSetEditorPanelType,
-  ) => void;
+  onPress?: (setId: string) => void;
+  onOpenEditor: (setId: string, field: SetCardField) => void;
 };
 
-export const WorkoutSetCard = memo(function WorkoutSetCard({
+export const SetCard = memo(function SetCard({
   setIndex,
-  workoutSetId,
+  setId,
   setType,
-  weight,
+  showWeight = true,
+  weight = null,
   weightDraft,
   reps,
   repsDraft,
@@ -55,7 +56,8 @@ export const WorkoutSetCard = memo(function WorkoutSetCard({
   className,
   disabled,
   onOpenEditor,
-}: WorkoutSetCardProps) {
+  onPress,
+}: SetCardProps) {
   const setCardRef = useRef<View>(null);
 
   const { registerTarget, ensureVisible } = useScrollVisibility();
@@ -81,22 +83,23 @@ export const WorkoutSetCard = memo(function WorkoutSetCard({
   }, [isSelected, registerTarget, ensureVisible]);
 
   const handleSelect = () => {
-    onOpenEditor(workoutSetId, "weight");
+    onPress?.(setId);
   };
 
-  const handleEditField = (field: ActiveSetEditorPanelType) => {
-    onOpenEditor(workoutSetId, field);
+  const handleEditField = (field: SetCardField) => {
+    onOpenEditor(setId, field);
   };
 
   return (
     <Pressable
       ref={setCardRef}
-      accessibilityRole="button"
-      accessibilityLabel={`Select set ${setIndex}`}
+      accessible={onPress ? undefined : false}
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={onPress ? `Select set ${setIndex}` : undefined}
       accessibilityState={{ disabled, selected: isSelected }}
       disabled={disabled}
       className={className}
-      onPress={handleSelect}
+      onPress={onPress ? handleSelect : undefined}
     >
       <SurfaceCard
         variant={isSelected ? "high" : "default"}
@@ -146,22 +149,26 @@ export const WorkoutSetCard = memo(function WorkoutSetCard({
           label="Type"
           value={setTypeConfig.label}
           valueColor={setTypeConfig.accentColor}
+          highlightColor={setTypeConfig.accentColor}
+          highlighted={isSelected && activeField === "setType"}
           disabled={disabled}
           className="flex-[1.4]"
           onPress={() => handleEditField("setType")}
         />
 
-        <SetFieldButton
-          label="Weight (KG)"
-          value={formatNumericSetValue(weight, weightDraft)}
-          highlightColor={setTypeConfig.accentColor}
-          highlighted={
-            isSelected &&
-            (activeField === "weight" || activeField === "weightKeypad")
-          }
-          disabled={disabled}
-          onPress={() => handleEditField("weightKeypad")}
-        />
+        {showWeight ? (
+          <SetFieldButton
+            label="Weight (KG)"
+            value={formatNumericSetValue(weight, weightDraft)}
+            highlightColor={setTypeConfig.accentColor}
+            highlighted={
+              isSelected &&
+              (activeField === "weight" || activeField === "weightKeypad")
+            }
+            disabled={disabled}
+            onPress={() => handleEditField("weightKeypad")}
+          />
+        ) : null}
 
         <SetFieldButton
           label="Reps"
