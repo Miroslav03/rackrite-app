@@ -1,9 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 
-import { AccessibilityActionEvent } from "react-native";
+import type { AccessibilityActionEvent } from "react-native";
 import Animated from "react-native-reanimated";
-
-import { WorkoutExerciseAggregate } from "@/domain/workout/workout.types";
 
 import { AppText } from "@/shared/components/ui/AppText";
 import { colors } from "@/shared/theme/tokens";
@@ -11,10 +9,11 @@ import { cn } from "@/shared/utils/cn";
 
 import { formatExerciseKind } from "@/features/exercises/view/utils/formatExerciseKind";
 
+import type { ExerciseOrderItem } from "./exerciseOrderEditor.types";
 import { EXERCISE_ORDER_ROW_HEIGHT } from "./exerciseOrderEditor.utils";
 
 type ExerciseOrderRowContentProps = {
-  exerciseAggregate: WorkoutExerciseAggregate;
+  item: ExerciseOrderItem;
   index: number;
   exerciseCount: number;
   disabled: boolean;
@@ -23,14 +22,14 @@ type ExerciseOrderRowContentProps = {
 };
 
 export function ExerciseOrderRowContent({
-  exerciseAggregate,
+  item,
   index,
   exerciseCount,
   disabled,
   selected = false,
   onAccessibilityAction,
 }: ExerciseOrderRowContentProps) {
-  const workoutExerciseId = exerciseAggregate.workoutExercise.id;
+  const exerciseId = item.id;
 
   const accessibilityActions = selected
     ? [
@@ -47,7 +46,7 @@ export function ExerciseOrderRowContent({
     <Animated.View
       accessible
       accessibilityRole={selected ? "adjustable" : "text"}
-      accessibilityLabel={exerciseAggregate.exercise.name}
+      accessibilityLabel={item.name}
       accessibilityHint={
         selected
           ? "Drag to move this exercise, or use the move up and move down accessibility actions"
@@ -71,7 +70,7 @@ export function ExerciseOrderRowContent({
           : "border-outline bg-surface",
       )}
       style={{ height: EXERCISE_ORDER_ROW_HEIGHT }}
-      testID={`exercise-order-row-${workoutExerciseId}`}
+      testID={`exercise-order-row-${exerciseId}`}
       onAccessibilityAction={selected ? onAccessibilityAction : undefined}
     >
       <AppText
@@ -83,11 +82,9 @@ export function ExerciseOrderRowContent({
 
       <Animated.View className="flex-1">
         <AppText variant="title" className="text-[20px]" numberOfLines={1}>
-          {exerciseAggregate.exercise.name}
+          {item.name}
         </AppText>
-        <AppText variant="subtitle">
-          {formatExerciseKind(exerciseAggregate.exercise.kind)}
-        </AppText>
+        <AppText variant="subtitle">{formatExerciseKind(item.kind)}</AppText>
       </Animated.View>
 
       {selected ? (

@@ -16,6 +16,7 @@ import { createTemplate } from "@/domain/templates/editor/tests/templates.test.h
 
 import {
   getTemplateList,
+  getTemplateAggregateById,
   insertTemplateAggregate,
 } from "../templateRepository";
 
@@ -79,6 +80,39 @@ beforeEach(() => {
 });
 
 afterAll(() => testDatabase.close());
+
+it("round-trips every exercise and set in the saved order", async () => {
+  const template = createTemplate("round-trip", [barbellRow, competitionBench]);
+  template.template.name = "New Template";
+  template.exercises[0].sets[1].reps = 8;
+  template.exercises[0].sets[1].rpe = 7;
+  template.exercises[0].sets[1].type = "backoff";
+
+  await insertTemplateAggregate(template);
+
+  await expect(getTemplateAggregateById(template.template.id)).resolves.toEqual(
+    template,
+  );
+});
+
+it("rolls back the whole insertion when a set conflicts with an existing set", async () => {
+  const existing = createTemplate("existing");
+  await insertTemplateAggregate(existing);
+  const next = createTemplate("failed");
+  next.exercises[0].sets[0].id = existing.exercises[0].sets[0].id;
+
+  await expect(insertTemplateAggregate(next)).rejects.toThrow();
+
+  await expect(getTemplateAggregateById("failed")).resolves.toBeNull();
+  expect(
+    testDatabase
+      .prepare(
+        "SELECT COUNT(*) AS count FROM template_exercises WHERE template_id = ?",
+      )
+      .get("failed"),
+  ).toMatchObject({ count: 0 });
+  await expect(getTemplateAggregateById("existing")).resolves.toEqual(existing);
+});
 
 it("returns an empty list when no templates have been saved", async () => {
   await expect(getTemplateList()).resolves.toEqual([]);

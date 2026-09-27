@@ -74,6 +74,11 @@ export function getTemplateEditorOperationErrorMessage(
   operation: CreateTemplateOperations | EditTemplateOperations,
 ): string {
   switch (operation.type) {
+    case "addSet":
+      return "Couldn't add set. Try again.";
+
+    case "updateExerciseOrder":
+      return "Couldn't reorder exercises. Try again.";
     case "createEmptyTemplate":
     case "createTemplate":
       return "Couldn't create template. Try again.";

@@ -26,17 +26,13 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { scheduleOnRN, scheduleOnUI } from "react-native-worklets";
 
-import type {
-  WorkoutExerciseAggregate,
-  WorkoutExerciseId,
-} from "@/domain/workout/workout.types";
-
 import { ToastViewport } from "@/shared/components/feedback/ToastViewport";
 import { AppHeader } from "@/shared/components/layout/AppHeader";
 import { AppText } from "@/shared/components/ui/AppText";
 import { colors, spacing } from "@/shared/theme/tokens";
 
 import { DraggableExerciseOrderRow } from "./DraggableExerciseOrderRow";
+import type { ExerciseOrderItem } from "./exerciseOrderEditor.types";
 import {
   EXERCISE_ORDER_ROW_STRIDE,
   getExerciseOrderAutoScrollOffset,
@@ -48,26 +44,21 @@ import {
 import { ExerciseOrderListRow } from "./ExerciseOrderListRow";
 
 export type ExerciseOrderEditorProps = {
-  exercises: readonly WorkoutExerciseAggregate[];
-  initialWorkoutExerciseId: WorkoutExerciseId;
+  exercises: readonly ExerciseOrderItem[];
+  initialExerciseId: string;
   disabled?: boolean;
-  onMove: (
-    workoutExerciseId: WorkoutExerciseId,
-    targetIndex: number,
-  ) => Promise<boolean>;
+  onMove: (exerciseId: string, targetIndex: number) => Promise<boolean>;
   onClose: () => void;
 };
 
 export function ExerciseOrderEditor({
   exercises,
-  initialWorkoutExerciseId,
+  initialExerciseId,
   disabled = false,
   onMove,
   onClose,
 }: ExerciseOrderEditorProps) {
-  const sourceIndex = exercises.findIndex(
-    ({ workoutExercise }) => workoutExercise.id === initialWorkoutExerciseId,
-  );
+  const sourceIndex = exercises.findIndex(({ id }) => id === initialExerciseId);
 
   const exerciseToMove = sourceIndex >= 0 ? exercises[sourceIndex] : undefined;
 
@@ -86,7 +77,7 @@ export function ExerciseOrderEditor({
   const pointerAbsoluteY = useSharedValue(0);
 
   // List references
-  const listRef = useAnimatedRef<FlatList<WorkoutExerciseAggregate>>();
+  const listRef = useAnimatedRef<FlatList<ExerciseOrderItem>>();
   const listViewportRef = useAnimatedRef<View>();
 
   // Scroll / layout
@@ -199,7 +190,7 @@ export function ExerciseOrderEditor({
       let moved = false;
 
       try {
-        moved = await onMove(initialWorkoutExerciseId, nextIndex);
+        moved = await onMove(initialExerciseId, nextIndex);
       } catch {
         moved = false;
       }
@@ -215,7 +206,7 @@ export function ExerciseOrderEditor({
       dragging.value = false;
 
       AccessibilityInfo.announceForAccessibility(
-        `${exerciseToMove?.exercise.name ?? "Exercise"} moved to position ${
+        `${exerciseToMove?.name ?? "Exercise"} moved to position ${
           nextIndex + 1
         } of ${exercises.length}`,
       );
@@ -225,9 +216,9 @@ export function ExerciseOrderEditor({
     [
       disabled,
       dragging,
-      exerciseToMove?.exercise.name,
+      exerciseToMove?.name,
       exercises.length,
-      initialWorkoutExerciseId,
+      initialExerciseId,
       onClose,
       onMove,
       resetDrag,
@@ -366,14 +357,14 @@ export function ExerciseOrderEditor({
           activeTranslationY.value = withSpring(0, ROW_SPRING_CONFIGURATION);
           dragging.value = false;
         })
-        .withTestId(`exercise-order-pan-${initialWorkoutExerciseId}`),
+        .withTestId(`exercise-order-pan-${initialExerciseId}`),
     [
       activeTranslationY,
       dragStartScrollOffset,
       dragging,
       exercises.length,
       gestureTranslationY,
-      initialWorkoutExerciseId,
+      initialExerciseId,
       interactionDisabled,
       listRef,
       listViewportRef,
@@ -388,9 +379,9 @@ export function ExerciseOrderEditor({
   );
 
   const renderExercise = useCallback(
-    ({ item, index }: ListRenderItemInfo<WorkoutExerciseAggregate>) => (
+    ({ item, index }: ListRenderItemInfo<ExerciseOrderItem>) => (
       <ExerciseOrderListRow
-        exerciseAggregate={item}
+        item={item}
         index={index}
         sourceIndex={sourceIndex}
         exerciseCount={exercises.length}
@@ -463,7 +454,7 @@ export function ExerciseOrderEditor({
               className="flex-1"
               data={exercises}
               extraData={interactionDisabled}
-              keyExtractor={({ workoutExercise }) => workoutExercise.id}
+              keyExtractor={({ id }) => id}
               renderItem={renderExercise}
               getItemLayout={(_, index) => ({
                 index,
@@ -491,7 +482,7 @@ export function ExerciseOrderEditor({
 
             {exerciseToMove ? (
               <DraggableExerciseOrderRow
-                exerciseAggregate={exerciseToMove}
+                item={exerciseToMove}
                 sourceIndex={sourceIndex}
                 exerciseCount={exercises.length}
                 disabled={interactionDisabled}

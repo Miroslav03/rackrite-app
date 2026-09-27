@@ -2,29 +2,29 @@ import { useCallback, useEffect, useRef } from "react";
 
 import type { SetType } from "@/domain/domain.types";
 import {
-  getTemplateExerciseBySetId,
-  getTemplateSetById,
+    getTemplateExerciseBySetId,
+    getTemplateSetById,
 } from "@/domain/templates/editor/templates.selectors";
 import type {
-  TemplateAggregate,
-  TemplateSetId,
+    TemplateAggregate,
+    TemplateSetId,
 } from "@/domain/templates/editor/templates.types";
 
-import type { RpePickerValue } from "@/shared/components/exercise-editor/RpePickerPanel";
+import type { RpePickerValue } from "@/shared/components/set-editor/RpePickerPanel";
 import {
-  formatKeypadDraft,
-  parseKeypadDraft,
-  updateKeypadDraft,
-} from "@/shared/components/exercise-editor/setEditorKeypad.utils";
-import { isRepsKeypadPanel } from "@/shared/components/exercise-editor/setEditorPanel.types.utils";
+    formatKeypadDraft,
+    parseKeypadDraft,
+    updateKeypadDraft,
+} from "@/shared/components/set-editor/setEditorKeypad.utils";
+import { isRepsKeypadPanel } from "@/shared/components/set-editor/setEditorPanel.types.utils";
 import type { InteractiveKeypadKey } from "@/shared/components/ui/InteractiveKeypad";
 import { useDebouncedCallback } from "@/shared/hooks/useDebouncedCallback";
 
 import type { TemplateSessionController } from "../../session/useTemplateSessionController";
 
 import {
-  TEMPLATE_REPS_UPDATE_DEBOUNCE_MS,
-  type TemplateEditorPanelType,
+    TEMPLATE_REPS_UPDATE_DEBOUNCE_MS,
+    type TemplateEditorPanelType,
 } from "./templateEditorDock.types";
 import { useTemplateEditorDockController } from "./useTemplateEditorDockController";
 

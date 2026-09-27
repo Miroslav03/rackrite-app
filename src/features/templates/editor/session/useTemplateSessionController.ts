@@ -6,13 +6,17 @@ import type {
   TemplateSetId,
 } from "@/domain/templates/editor/templates.types";
 
+import { isOperationPending } from "@/shared/state/operationState";
 import { failure, success, type Result } from "@/shared/types/result";
 import { toError } from "@/shared/utils/error";
 
 import type {
   AddTemplateExerciseCommand,
+  AddTemplateSetCommand,
+  RemoveTemplateExerciseCommand,
   RemoveTemplateSetCommand,
   TemplateSessionActions,
+  UpdateTemplateExerciseOrderCommand,
   UpdateTemplateSetCommand,
 } from "../actions/templateSessionActions";
 
@@ -26,7 +30,15 @@ import type {
 export type TemplateSessionController = {
   state: TemplateSessionState;
   createEmptyTemplate: () => void;
+  createTemplate: () => Promise<Result<void>>;
   discardTemplate: () => void;
+  removeExercise: (
+    command: RemoveTemplateExerciseCommand,
+  ) => Result<TemplateAggregate>;
+  addSet: (command: AddTemplateSetCommand) => Result<TemplateAggregate>;
+  updateExerciseOrder: (
+    command: UpdateTemplateExerciseOrderCommand,
+  ) => Result<TemplateAggregate>;
   addExercise: (
     command: AddTemplateExerciseCommand,
   ) => Result<TemplateAggregate>;
@@ -39,6 +51,13 @@ export type TemplateSessionController = {
 export const initialTemplateSessionState: TemplateSessionState = {
   status: "noActiveTemplate",
 };
+
+function isSessionPending(state: TemplateSessionState): boolean {
+  return (
+    (state.status === "create" || state.status === "edit") &&
+    isOperationPending(state.operation)
+  );
+}
 
 export function useTemplateSessionController(
   actions: TemplateSessionActions,
@@ -57,6 +76,8 @@ export function useTemplateSessionController(
   }, []);
 
   const createEmptyTemplate = useCallback(() => {
+    if (isSessionPending(stateRef.current)) return;
+
     send({ type: "creationStarted" });
 
     try {
@@ -69,10 +90,48 @@ export function useTemplateSessionController(
     }
   }, [actions, send]);
 
-  const discardTemplate = useCallback(
-    () => send({ type: "templateCleared" }),
-    [send],
-  );
+  const discardTemplate = useCallback(() => {
+    if (isSessionPending(stateRef.current)) return;
+
+    send({ type: "templateCleared" });
+  }, [send]);
+
+  const createTemplate = useCallback(async (): Promise<Result<void>> => {
+    const current = stateRef.current;
+
+    if (current.status !== "create")
+      return failure(new Error("No template creation in progress"));
+
+    if (isOperationPending(current.operation))
+      return failure(
+        new Error("Another template operation is already running"),
+      );
+
+    const template = current.activeTemplate;
+    const operation = { type: "createTemplate" } as const;
+
+    send({ type: "createOperationStarted", operation });
+
+    try {
+      await actions.createTemplate(template);
+
+      const latest = stateRef.current;
+      if (latest.status === "create" && latest.activeTemplate === template) {
+        send({ type: "templateCleared" });
+      }
+
+      return success(undefined);
+    } catch (cause) {
+      const error = toError(cause);
+      const latest = stateRef.current;
+
+      if (latest.status === "create" && latest.activeTemplate === template) {
+        send({ type: "createOperationFailed", operation, error });
+      }
+
+      return failure(error);
+    }
+  }, [actions, send]);
 
   const dismissOperationError = useCallback(
     (error: Error) => send({ type: "operationErrorDismissed", error }),
@@ -89,6 +148,11 @@ export function useTemplateSessionController(
       if (current.status !== "create" && current.status !== "edit") {
         return failure(new Error("No active template"));
       }
+
+      if (isOperationPending(current.operation))
+        return failure(
+          new Error("Another template operation is already running"),
+        );
 
       send({
         type:
@@ -130,6 +194,30 @@ export function useTemplateSessionController(
     [actions, mutateTemplate],
   );
 
+  const removeExercise = useCallback(
+    (command: RemoveTemplateExerciseCommand) =>
+      mutateTemplate({ type: "removeExercise", ...command }, (template) =>
+        actions.removeExercise(template, command),
+      ),
+    [actions, mutateTemplate],
+  );
+
+  const addSet = useCallback(
+    (command: AddTemplateSetCommand) =>
+      mutateTemplate({ type: "addSet", ...command }, (template) =>
+        actions.addSet(template, command),
+      ),
+    [actions, mutateTemplate],
+  );
+
+  const updateExerciseOrder = useCallback(
+    (command: UpdateTemplateExerciseOrderCommand) =>
+      mutateTemplate({ type: "updateExerciseOrder", ...command }, (template) =>
+        actions.updateExerciseOrder(template, command),
+      ),
+    [actions, mutateTemplate],
+  );
+
   const updateSet = useCallback(
     (command: UpdateTemplateSetCommand) =>
       mutateTemplate(
@@ -155,6 +243,11 @@ export function useTemplateSessionController(
       if (current.status !== "create" && current.status !== "edit")
         return failure(new Error("No active template"));
 
+      if (isOperationPending(current.operation))
+        return failure(
+          new Error("Another template operation is already running"),
+        );
+
       if (
         templateSetId !== null &&
         !getTemplateExerciseBySetId(current.activeTemplate, templateSetId)
@@ -172,8 +265,12 @@ export function useTemplateSessionController(
   return {
     state,
     createEmptyTemplate,
+    createTemplate,
     discardTemplate,
     addExercise,
+    removeExercise,
+    addSet,
+    updateExerciseOrder,
     updateSet,
     removeSet,
     selectSet,

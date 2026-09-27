@@ -11,6 +11,75 @@ import {
   getModalOperation,
 } from "../templateEditor.viewState.utils";
 
+it("describes exercise removal and matches progress to the selected exercise", () => {
+  const template = createTemplate();
+  const entry = template.exercises[0];
+  const overlay = {
+    type: "dangerModal",
+    confirmation: {
+      action: "removeExercise",
+      templateExerciseId: entry.templateExercise.id,
+    },
+  } as const;
+
+  expect(getModalContent(overlay, template)?.description).toContain(
+    `${entry.exercise.name} and all of its sets`,
+  );
+  expect(
+    getModalContent(
+      {
+        ...overlay,
+        confirmation: {
+          action: "removeExercise",
+          templateExerciseId: "missing",
+        },
+      },
+      template,
+    ),
+  ).toBeNull();
+  expect(
+    getModalOperation(overlay, {
+      status: "pending",
+      operation: {
+        type: "removeExercise",
+        templateExerciseId: entry.templateExercise.id,
+      },
+    }),
+  ).toEqual({ status: "pending", label: "REMOVING..." });
+  expect(
+    getModalOperation(overlay, {
+      status: "pending",
+      operation: { type: "removeExercise", templateExerciseId: "other" },
+    }),
+  ).toEqual({ status: "idle" });
+});
+
+it("describes creation and only shows progress for the creation operation", () => {
+  const overlay = {
+    type: "confirmationModal",
+    confirmation: { action: "createTemplate" },
+  } as const;
+  const template = createTemplate();
+
+  expect(getModalContent(overlay, template)).toEqual({
+    title: "CREATE TEMPLATE?",
+    description: `${template.template.name} will be saved to your template library.`,
+    confirmLabel: "CREATE",
+  });
+  expect(
+    getModalOperation(overlay, {
+      status: "pending",
+      operation: { type: "createTemplate" },
+    }),
+  ).toEqual({ status: "pending", label: "CREATING..." });
+  expect(
+    getModalOperation(overlay, {
+      status: "pending",
+      operation: { type: "addSet", templateExerciseId: "exercise" },
+    }),
+  ).toEqual({ status: "idle" });
+});
+
 it("excludes existing exercises and disables competition lifts after all three families", () => {
   const template = createTemplate("template", [
     competitionBench,

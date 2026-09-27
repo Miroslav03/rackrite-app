@@ -8,11 +8,76 @@ import {
 } from "@/domain/templates/editor/tests/templates.test.helpers";
 import { createTemplateSessionActions } from "../templateSessionActions";
 
+jest.mock("@/data/repositories/templateRepository", () => ({
+  templateRepository: { insertTemplateAggregate: jest.fn() },
+}));
+
 const actions = createTemplateSessionActions({
+  repository: { insertTemplateAggregate: jest.fn() },
   now: () => 2000,
   createTemplateId: () => "template",
   createTemplateExerciseId: () => "exercise",
   createTemplateSetId: () => "set",
+});
+
+it("adds a fresh set with stable ownership and preserves previous values", () => {
+  const original = freezeTemplate(createTemplate());
+  const exercise = original.exercises[0];
+  const next = actions.addSet(original, {
+    templateExerciseId: exercise.templateExercise.id,
+  });
+
+  expect(next.exercises[0].sets).toEqual([
+    ...exercise.sets,
+    {
+      id: "set",
+      templateExerciseId: exercise.templateExercise.id,
+      setIndex: exercise.sets.length,
+      type: "working",
+      reps: 5,
+      rpe: null,
+      createdAt: 2000,
+      updatedAt: 2000,
+    },
+  ]);
+  expect(original.exercises[0].sets).toHaveLength(exercise.sets.length);
+});
+
+it("reorders and removes exercises immutably, reindexing the remaining entries", () => {
+  const original = freezeTemplate(
+    createTemplate("template", [competitionBench, barbellRow]),
+  );
+  const [first, second] = original.exercises;
+  const reordered = actions.updateExerciseOrder(original, {
+    templateExerciseId: second.templateExercise.id,
+    orderIndex: 0,
+  });
+
+  expect(
+    reordered.exercises.map(({ templateExercise }) => templateExercise.id),
+  ).toEqual([second.templateExercise.id, first.templateExercise.id]);
+  expect(
+    reordered.exercises.map(
+      ({ templateExercise }) => templateExercise.orderIndex,
+    ),
+  ).toEqual([0, 1]);
+  expect(original.exercises[0]).toBe(first);
+  expect(
+    actions.updateExerciseOrder(reordered, {
+      templateExerciseId: second.templateExercise.id,
+      orderIndex: 0,
+    }),
+  ).toBe(reordered);
+
+  const removed = actions.removeExercise(reordered, {
+    templateExerciseId: second.templateExercise.id,
+  });
+  expect(removed.exercises).toHaveLength(1);
+  expect(removed.exercises[0].templateExercise).toMatchObject({
+    id: first.templateExercise.id,
+    orderIndex: 0,
+  });
+  expect(removed.exercises[0].sets).toEqual(first.sets);
 });
 
 it("adds an exercise with one working set, five reps, null RPE and its rest default", () => {

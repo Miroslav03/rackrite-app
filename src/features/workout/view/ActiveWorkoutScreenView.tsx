@@ -35,6 +35,11 @@ import type {
   WorkoutSessionResult,
 } from "@/features/workout/session/workoutSession.types";
 
+import {
+  ExerciseOptionsSheet,
+  type ExerciseOption,
+} from "@/shared/components/exercise-editor/ExerciseOptionsSheet";
+import { ExerciseOrderEditor } from "@/shared/components/exercise-editor/ExerciseOrderEditor/ExerciseOrderEditor";
 import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
 import { Screen } from "@/shared/components/layout/Screen";
 import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
@@ -62,12 +67,7 @@ import {
 import { ActiveSetEditorDock } from "./components/ActiveWorkoutDock/ActiveSetEditorDock";
 import { RestTimerDock } from "./components/ActiveWorkoutDock/RestTimerDock";
 import { useActiveWorkoutDockEditor } from "./components/ActiveWorkoutDock/useActiveWorkoutDockEditor";
-import { ExerciseOrderEditor } from "./components/ExerciseOrderEditor/ExerciseOrderEditor";
 import { RestTimerCard } from "./components/RestTimerCard";
-import {
-  WorkoutExerciseOptionsSheet,
-  type WorkoutExerciseOption,
-} from "./components/WorkoutExerciseOptionsSheet";
 import {
   WorkoutExerciseSection,
   type WorkoutExerciseSectionActions,
@@ -360,7 +360,7 @@ export function ActiveWorkoutScreenView({
     [copyPreviousSet, savePendingKeypadUpdate],
   );
 
-  async function handleExerciseOptionSelected(option: WorkoutExerciseOption) {
+  async function handleExerciseOptionSelected(option: ExerciseOption) {
     if (activeOverlay.type !== "exerciseOptions") {
       return;
     }
@@ -687,7 +687,7 @@ export function ActiveWorkoutScreenView({
       />
 
       {optionsExercise !== null && (
-        <WorkoutExerciseOptionsSheet
+        <ExerciseOptionsSheet
           exerciseName={optionsExercise.exercise.name}
           onOptionSelect={handleExerciseOptionSelected}
           onClose={closeOverlay}
@@ -696,8 +696,12 @@ export function ActiveWorkoutScreenView({
 
       {activeOverlay.type === "exerciseOrderEditor" && (
         <ExerciseOrderEditor
-          exercises={workout.exercises}
-          initialWorkoutExerciseId={activeOverlay.workoutExerciseId}
+          exercises={workout.exercises.map(({ workoutExercise, exercise }) => ({
+            id: workoutExercise.id,
+            name: exercise.name,
+            kind: exercise.kind,
+          }))}
+          initialExerciseId={activeOverlay.workoutExerciseId}
           disabled={operationPending}
           onMove={handleExerciseOrderChange}
           onClose={closeExerciseOrderEditor}

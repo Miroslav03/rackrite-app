@@ -1,4 +1,4 @@
-import { CommonSetEditorPanel } from "@/shared/components/exercise-editor/setEditorPanel.types";
+import { CommonSetEditorPanel } from "@/shared/components/set-editor/setEditorPanel.types";
 
 export type ActiveSetEditorPanel =
   | CommonSetEditorPanel

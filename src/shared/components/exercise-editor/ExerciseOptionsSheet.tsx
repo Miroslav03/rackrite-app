@@ -4,19 +4,19 @@ import { BottomSheet } from "@/shared/components/ui/BottomSheet";
 import { Button } from "@/shared/components/ui/Button";
 import { colors } from "@/shared/theme/tokens";
 
-export type WorkoutExerciseOption = "removeExercise";
+export type ExerciseOption = "removeExercise";
 
-type WorkoutExerciseOptionsSheetProps = {
+type ExerciseOptionsSheetProps = {
   exerciseName: string;
-  onOptionSelect: (option: WorkoutExerciseOption) => void;
+  onOptionSelect: (option: ExerciseOption) => void;
   onClose: () => void;
 };
 
-export function WorkoutExerciseOptionsSheet({
+export function ExerciseOptionsSheet({
   exerciseName,
   onOptionSelect,
   onClose,
-}: WorkoutExerciseOptionsSheetProps) {
+}: ExerciseOptionsSheetProps) {
   return (
     <BottomSheet open title={exerciseName} onClose={onClose}>
       <Button

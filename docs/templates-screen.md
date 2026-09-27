@@ -3,9 +3,9 @@
 A template describes a reusable training day. The current implementation covers
 its domain model, editing rules, validation, mappers, and local persistence.
 The Templates tab also provides an unpaginated library and an entry point to
-template creation. Template details, editing controls, saving, duplication,
-starting a workout from a template, and saving a workout as a template are later
-work.
+template creation with exercise/set editing, exercise reordering, and saving.
+Metadata controls, editing saved templates, duplication, starting a workout from
+a template, and saving a workout as a template are later work.
 
 ## Template list
 
@@ -17,9 +17,10 @@ draft in the shared template session, then opens `/template-editor` outside the
 tabs. The provider sits above the root stack, so navigation preserves the session.
 Each press of the create button starts a fresh draft. The editor renders from
 `TemplateSessionState`; opening it without an active session returns to the
-library. Initialization failures offer retry. Nothing is persisted yet. Editing
-will use the same route once loading an existing template into the session is
-implemented.
+library. Initialization failures offer retry. Draft edits stay in memory until
+creation is confirmed. A successful insert clears the session and returns to the
+library, which refreshes on focus. Editing will use the same route once loading
+an existing template into the session is implemented.
 
 Execution statistics come from the latest completed workout referencing the
 template, ordered by finish time and then workout ID descending. Relative dates
@@ -70,7 +71,7 @@ Close Grip Bench, and Barbell Row. Each has its own sets and rest duration.
 
 ## Editing and validation
 
-Creation produces an empty in-memory draft with a blank name. Metadata, exercise
+Creation produces an empty in-memory draft named **New Template**. Metadata, exercise
 selection, notes, rest duration, and set values can be edited through pure domain
 functions. The caller supplies IDs and timestamps.
 
@@ -93,6 +94,19 @@ functions. The caller supplies IDs and timestamps.
 Drafts may have no exercises or a blank name. Every existing exercise still needs
 valid sets. Saving requires a nonblank name and at least one exercise with valid
 sets. There is no persisted draft status or draft autosave.
+
+The editor adds fresh working sets with five reps and no target RPE, without
+changing selection. Exercise options open a removal confirmation; removing an
+exercise also removes its sets. Long-pressing an exercise title opens the shared
+order editor, which also supports accessibility move actions. Reordering requires
+at least two exercises.
+
+Pending keypad values are flushed before adding sets or opening exercise options,
+reordering, and creation confirmation. Create Template is disabled for an empty
+draft. Its action validates the aggregate and inserts it atomically without
+changing timestamps or metadata. While saving, draft changes, discard, and duplicate
+submissions are blocked. A failed save retains the draft and allows retry; discard
+cancels pending keypad updates and clears the in-memory session.
 
 ## Persistence
 

@@ -3,15 +3,14 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
-import type { WorkoutExerciseAggregate } from "@/domain/workout/workout.types";
-
 import { spacing } from "@/shared/theme/tokens";
 
+import type { ExerciseOrderItem } from "./exerciseOrderEditor.types";
 import { EXERCISE_ORDER_ROW_STRIDE } from "./exerciseOrderEditor.utils";
 import { ExerciseOrderRowContent } from "./ExerciseOrderRowContent";
 
 type DraggableExerciseOrderRowProps = {
-  exerciseAggregate: WorkoutExerciseAggregate;
+  item: ExerciseOrderItem;
   sourceIndex: number;
   exerciseCount: number;
   disabled: boolean;
@@ -22,7 +21,7 @@ type DraggableExerciseOrderRowProps = {
 };
 
 export function DraggableExerciseOrderRow({
-  exerciseAggregate,
+  item,
   sourceIndex,
   exerciseCount,
   disabled,
@@ -66,7 +65,7 @@ export function DraggableExerciseOrderRow({
       ]}
     >
       <ExerciseOrderRowContent
-        exerciseAggregate={exerciseAggregate}
+        item={item}
         index={sourceIndex}
         exerciseCount={exerciseCount}
         disabled={disabled}

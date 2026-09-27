@@ -1,5 +1,8 @@
 import type { ExerciseKind } from "@/domain/exercises/exercise.types";
-import { getTemplateExerciseBySetId } from "@/domain/templates/editor/templates.selectors";
+import {
+  getTemplateExerciseById,
+  getTemplateExerciseBySetId,
+} from "@/domain/templates/editor/templates.selectors";
 import type { TemplateAggregate } from "@/domain/templates/editor/templates.types";
 
 import type { ExercisePickerSelectionOperation } from "@/features/exercises/view/components/ExercisePickerSheet";
@@ -57,6 +60,21 @@ export function getModalContent(
             confirmLabel: "DISCARD",
           };
 
+        case "removeExercise": {
+          const exercise = getTemplateExerciseById(
+            template,
+            overlay.confirmation.templateExerciseId,
+          );
+
+          return exercise
+            ? {
+                title: "REMOVE EXERCISE?",
+                description: `${exercise.exercise.name} and all of its sets will be removed from this template. This action cannot be undone.`,
+                confirmLabel: "REMOVE",
+              }
+            : null;
+        }
+
         case "removeSet": {
           const exercise = getTemplateExerciseBySetId(
             template,
@@ -74,6 +92,18 @@ export function getModalContent(
               }
             : null;
         }
+      }
+
+    case "confirmationModal":
+      switch (overlay.confirmation.action) {
+        case "createTemplate":
+          return {
+            title: "CREATE TEMPLATE?",
+            description: `${template.template.name} will be saved to your template library.`,
+            confirmLabel: "CREATE",
+          };
+        case "editTemplate":
+          return null;
       }
 
     default:
@@ -103,6 +133,23 @@ export function getModalOperation(
               overlay.confirmation.templateSetId
             ? { status: "pending", label: "REMOVING..." }
             : { status: "idle" };
+
+        case "removeExercise":
+          return operation.operation.type === "removeExercise" &&
+            operation.operation.templateExerciseId ===
+              overlay.confirmation.templateExerciseId
+            ? { status: "pending", label: "REMOVING..." }
+            : { status: "idle" };
+      }
+
+    case "confirmationModal":
+      switch (overlay.confirmation.action) {
+        case "createTemplate":
+          return operation.operation.type === "createTemplate"
+            ? { status: "pending", label: "CREATING..." }
+            : { status: "idle" };
+        case "editTemplate":
+          return { status: "idle" };
       }
 
     default:

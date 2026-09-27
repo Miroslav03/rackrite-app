@@ -8,6 +8,12 @@ import {
 import { OperationState } from "@/shared/state/operationState";
 
 export type CommonTemplateOperations =
+  | { type: "addSet"; templateExerciseId: TemplateExerciseId }
+  | {
+      type: "updateExerciseOrder";
+      templateExerciseId: TemplateExerciseId;
+      orderIndex: number;
+    }
   | { type: "updateSet"; templateSetId: TemplateSetId }
   | { type: "removeSet"; templateSetId: TemplateSetId }
   | {

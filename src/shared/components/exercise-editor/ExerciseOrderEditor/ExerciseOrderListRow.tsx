@@ -6,7 +6,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
-import type { WorkoutExerciseAggregate } from "@/domain/workout/workout.types";
+import type { ExerciseOrderItem } from "./exerciseOrderEditor.types";
 
 import {
   EXERCISE_ORDER_ROW_STRIDE,
@@ -16,7 +16,7 @@ import {
 import { ExerciseOrderRowContent } from "./ExerciseOrderRowContent";
 
 type ExerciseOrderListRowProps = {
-  exerciseAggregate: WorkoutExerciseAggregate;
+  item: ExerciseOrderItem;
   index: number;
   sourceIndex: number;
   exerciseCount: number;
@@ -32,7 +32,7 @@ type ExerciseOrderListRowProps = {
 };
 
 export function ExerciseOrderListRow({
-  exerciseAggregate,
+  item,
   index,
   sourceIndex,
   exerciseCount,
@@ -88,7 +88,7 @@ export function ExerciseOrderListRow({
       ]}
     >
       <ExerciseOrderRowContent
-        exerciseAggregate={exerciseAggregate}
+        item={item}
         index={index}
         exerciseCount={exerciseCount}
         disabled={disabled}

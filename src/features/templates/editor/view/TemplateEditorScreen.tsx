@@ -1,10 +1,24 @@
+import { Ionicons } from "@expo/vector-icons";
+
+import { useIsFocused, usePreventRemove } from "@react-navigation/native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BackHandler, FlatList, Platform } from "react-native";
+
 import type { Exercise } from "@/domain/exercises/exercise.types";
+import { getTemplateExerciseById } from "@/domain/templates/editor/templates.selectors";
 import type {
   TemplateExerciseAggregate,
   TemplateExerciseId,
   TemplateSetId,
 } from "@/domain/templates/editor/templates.types";
+
 import { ExercisePickerSheet } from "@/features/exercises/view/components/ExercisePickerSheet";
+
+import {
+  ExerciseOptionsSheet,
+  type ExerciseOption,
+} from "@/shared/components/exercise-editor/ExerciseOptionsSheet";
+import { ExerciseOrderEditor } from "@/shared/components/exercise-editor/ExerciseOrderEditor/ExerciseOrderEditor";
 import { ErrorNotifier } from "@/shared/components/feedback/ErrorNotifier/ErrorNotifier";
 import { getTemplateEditorOperationErrorMessage } from "@/shared/components/feedback/ErrorNotifier/utils";
 import { Screen } from "@/shared/components/layout/Screen";
@@ -12,16 +26,15 @@ import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 import { ScreenSection } from "@/shared/components/layout/ScreenSection";
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
+import { ConfirmationModal as ConfirmationModalView } from "@/shared/components/ui/ConfirmationModal";
 import { DangerModal as DangerModalView } from "@/shared/components/ui/DangerModal";
 import { useScrollVisibility } from "@/shared/context/ScrollVisibilityContext";
 import { isOperationPending } from "@/shared/state/operationState";
 import { colors, spacing } from "@/shared/theme/tokens";
-import { Ionicons } from "@expo/vector-icons";
-import { useIsFocused, usePreventRemove } from "@react-navigation/native";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { BackHandler, FlatList, Platform } from "react-native";
+
 import type { TemplateSessionState } from "../session/templatesSession.types";
 import type { TemplateSessionController } from "../session/useTemplateSessionController";
+
 import { TemplateEditorDock } from "./TemplateEditorDock/TemplateEditorDock";
 import { useTemplateEditorDockEditor } from "./TemplateEditorDock/useTemplateEditorDockEditor";
 import { TemplateExerciseSection } from "./components/TemplateExerciseSection";
@@ -38,7 +51,11 @@ export type TemplateEditorScreenProps = {
   actions: Pick<
     TemplateSessionController,
     | "discardTemplate"
+    | "createTemplate"
     | "addExercise"
+    | "removeExercise"
+    | "addSet"
+    | "updateExerciseOrder"
     | "updateSet"
     | "removeSet"
     | "selectSet"
@@ -93,6 +110,12 @@ export function TemplateEditorScreen({
   const pending = isOperationPending(state.operation);
   const modalContent = getModalContent(activeOverlay, template);
   const exclusions = getExercisePickerExclusions(template);
+  const canCreate = state.status === "create" && template.exercises.length > 0;
+
+  const optionsExercise =
+    activeOverlay.type === "exerciseOptions"
+      ? getTemplateExerciseById(template, activeOverlay.templateExerciseId)
+      : undefined;
 
   const view = TEMPLATE_EDITOR_VIEW[state.status];
 
@@ -101,12 +124,13 @@ export function TemplateEditorScreen({
     editor.activeSet !== undefined &&
     editor.activeExercise !== undefined;
 
-  const closeOverlay = useCallback(
-    () => setActiveOverlay(NO_ACTIVE_OVERLAY),
-    [],
-  );
+  const closeOverlay = useCallback(() => {
+    if (!pending) setActiveOverlay(NO_ACTIVE_OVERLAY);
+  }, [pending]);
 
   const openDiscardTemplateConfirmation = () => {
+    if (pending) return;
+
     setActiveOverlay({
       type: "dangerModal",
       confirmation: { action: "discardTemplate" },
@@ -159,12 +183,78 @@ export function TemplateEditorScreen({
   );
 
   async function openExercisePicker() {
-    if (await editor.closeSetEditor())
+    if (pending) return;
+
+    if (await editor.closeSetEditor()) {
       setActiveOverlay({ type: "exercisePicker" });
+    }
   }
 
   function handleExerciseSelected(exercise: Exercise) {
     if (actions.addExercise({ exercise }).success) closeOverlay();
+  }
+
+  async function openExerciseOptions(templateExerciseId: TemplateExerciseId) {
+    if (pending || !(await editor.closeSetEditor())) return;
+
+    setActiveOverlay({ type: "exerciseOptions", templateExerciseId });
+  }
+
+  function handleExerciseOptionSelected(option: ExerciseOption) {
+    if (pending || activeOverlay.type !== "exerciseOptions") return;
+
+    switch (option) {
+      case "removeExercise":
+        setActiveOverlay({
+          type: "dangerModal",
+          confirmation: {
+            action: "removeExercise",
+            templateExerciseId: activeOverlay.templateExerciseId,
+          },
+        });
+        return;
+    }
+  }
+
+  async function openExerciseOrderEditor(
+    templateExerciseId: TemplateExerciseId,
+  ) {
+    if (pending || template.exercises.length < 2) return;
+
+    if (!(await editor.closeSetEditor())) return;
+
+    setActiveOverlay({ type: "exerciseOrderEditor", templateExerciseId });
+  }
+
+  async function handleExerciseOrderChange(
+    templateExerciseId: TemplateExerciseId,
+    orderIndex: number,
+  ) {
+    const result = actions.updateExerciseOrder({
+      templateExerciseId,
+      orderIndex,
+    });
+
+    return result.success;
+  }
+
+  async function handleAddSet(templateExerciseId: TemplateExerciseId) {
+    if (pending || !(await editor.savePendingKeypadUpdate())) return;
+
+    actions.addSet({ templateExerciseId });
+  }
+
+  function handleRemoveExercise(templateExerciseId: TemplateExerciseId) {
+    if (actions.removeExercise({ templateExerciseId }).success) closeOverlay();
+  }
+
+  async function openCreateTemplateConfirmation() {
+    if (pending || !canCreate || !(await editor.closeSetEditor())) return;
+
+    setActiveOverlay({
+      type: "confirmationModal",
+      confirmation: { action: "createTemplate" },
+    });
   }
 
   async function openRemoveSetConfirmation() {
@@ -193,16 +283,33 @@ export function TemplateEditorScreen({
   }
 
   function handleModalAction() {
-    if (activeOverlay.type !== "dangerModal") return;
+    if (pending) return;
 
-    switch (activeOverlay.confirmation.action) {
-      case "discardTemplate":
-        handleDiscardTemplate();
-        return;
+    switch (activeOverlay.type) {
+      case "dangerModal":
+        switch (activeOverlay.confirmation.action) {
+          case "discardTemplate":
+            handleDiscardTemplate();
+            return;
 
-      case "removeSet":
-        handleRemoveSet(activeOverlay.confirmation.templateSetId);
-        return;
+          case "removeExercise":
+            handleRemoveExercise(activeOverlay.confirmation.templateExerciseId);
+            return;
+
+          case "removeSet":
+            handleRemoveSet(activeOverlay.confirmation.templateSetId);
+            return;
+        }
+
+      case "confirmationModal":
+        switch (activeOverlay.confirmation.action) {
+          case "createTemplate":
+            if (canCreate) void actions.createTemplate();
+            return;
+
+          case "editTemplate":
+            return;
+        }
     }
   }
 
@@ -240,6 +347,10 @@ export function TemplateEditorScreen({
               activeField={editor.panel?.type}
               repsDraft={editor.repsDraft}
               disabled={pending}
+              canReorder={template.exercises.length > 1}
+              onOpenOptions={openExerciseOptions}
+              onOpenOrderEditor={openExerciseOrderEditor}
+              onAddSet={handleAddSet}
               onOpenEditor={editor.openSetEditor}
             />
           )}
@@ -282,7 +393,7 @@ export function TemplateEditorScreen({
                 variant="ghost"
                 intent="primary"
                 size="lg"
-                disabled={pending}
+                disabled={pending || !canCreate}
                 dimWhenDisabled={true}
                 accessibilityRole="button"
                 leftIcon={
@@ -293,6 +404,7 @@ export function TemplateEditorScreen({
                   />
                 }
                 textClassName="color-primarySoft"
+                onPress={openCreateTemplateConfirmation}
               />
               <Button
                 title={view.discardButtonTitle}
@@ -356,8 +468,44 @@ export function TemplateEditorScreen({
         onClose={closeOverlay}
       />
 
+      {optionsExercise && (
+        <ExerciseOptionsSheet
+          exerciseName={optionsExercise.exercise.name}
+          onOptionSelect={handleExerciseOptionSelected}
+          onClose={closeOverlay}
+        />
+      )}
+
+      {activeOverlay.type === "exerciseOrderEditor" && (
+        <ExerciseOrderEditor
+          exercises={template.exercises.map(
+            ({ templateExercise, exercise }) => ({
+              id: templateExercise.id,
+              name: exercise.name,
+              kind: exercise.kind,
+            }),
+          )}
+          initialExerciseId={activeOverlay.templateExerciseId}
+          disabled={pending}
+          onMove={handleExerciseOrderChange}
+          onClose={closeOverlay}
+        />
+      )}
+
       {activeOverlay.type === "dangerModal" && modalContent !== null && (
         <DangerModalView
+          open
+          title={modalContent.title}
+          description={modalContent.description}
+          confirmLabel={modalContent.confirmLabel}
+          operation={getModalOperation(activeOverlay, state.operation)}
+          onConfirm={handleModalAction}
+          onClose={closeOverlay}
+        />
+      )}
+
+      {activeOverlay.type === "confirmationModal" && modalContent !== null && (
+        <ConfirmationModalView
           open
           title={modalContent.title}
           description={modalContent.description}

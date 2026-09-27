@@ -8,21 +8,21 @@ import type { SetType } from "@/domain/domain.types";
 import type { WorkoutSet } from "@/domain/workout/workout.types";
 
 import type {
-  ActiveWorkoutOperation,
-  OperationState,
+    ActiveWorkoutOperation,
+    OperationState,
 } from "@/features/workout/session/workoutSession.types";
 import {
-  RpePickerPanel,
-  type RpePickerValue,
-} from "@/shared/components/exercise-editor/RpePickerPanel";
-import { SetEditorDock } from "@/shared/components/exercise-editor/SetEditorDock";
-import { isRepsKeypadPanel } from "@/shared/components/exercise-editor/setEditorPanel.types.utils";
-import { SetTypePickerPanel } from "@/shared/components/exercise-editor/SetTypePickerPanel";
+    RpePickerPanel,
+    type RpePickerValue,
+} from "@/shared/components/set-editor/RpePickerPanel";
+import { SetEditorDock } from "@/shared/components/set-editor/SetEditorDock";
+import { isRepsKeypadPanel } from "@/shared/components/set-editor/setEditorPanel.types.utils";
+import { SetTypePickerPanel } from "@/shared/components/set-editor/SetTypePickerPanel";
 import { Button } from "@/shared/components/ui/Button";
 import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
 import {
-  InteractiveKeypad,
-  type InteractiveKeypadKey,
+    InteractiveKeypad,
+    type InteractiveKeypadKey,
 } from "@/shared/components/ui/InteractiveKeypad";
 import { isOperationPending } from "@/shared/state/operationState";
 
@@ -30,8 +30,8 @@ import { getPanelLabel } from "../../activeWorkout.viewState.utils";
 
 import type { ActiveSetEditorPanel } from "./activeWorkoutDock.types";
 import {
-  isActiveSetEditorKeypadPanel,
-  isWeightKeypadPanel,
+    isActiveSetEditorKeypadPanel,
+    isWeightKeypadPanel,
 } from "./activeWorkoutDock.types.utils";
 import { WeightQuickAdjustPanel } from "./WeightQuickAdjustPanel";
 

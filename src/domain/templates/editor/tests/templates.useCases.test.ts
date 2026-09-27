@@ -29,7 +29,7 @@ describe("createEmptyTemplate", () => {
     expect(draft).toEqual({
       template: {
         id: "draft",
-        name: "",
+        name: "New Template",
         description: null,
         createdAt: now,
         updatedAt: now,
@@ -38,7 +38,9 @@ describe("createEmptyTemplate", () => {
     });
 
     expect(() => assertTemplateAggregateInvariants(draft)).not.toThrow();
-    expect(() => assertTemplateCanBeSaved(draft)).toThrow("name");
+    expect(() => assertTemplateCanBeSaved(draft)).toThrow(
+      "at least one exercise",
+    );
   });
 });
 

@@ -81,7 +81,7 @@ export function createEmptyTemplate({
   const aggregate: TemplateAggregate = {
     template: {
       id,
-      name: "",
+      name: "New Template",
       description: null,
       createdAt: now,
       updatedAt: now,

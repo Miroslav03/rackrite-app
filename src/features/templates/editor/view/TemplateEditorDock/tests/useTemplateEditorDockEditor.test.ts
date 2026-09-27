@@ -11,6 +11,10 @@ import {
 } from "../../../session/useTemplateSessionController";
 import { useTemplateEditorDockEditor } from "../useTemplateEditorDockEditor";
 
+jest.mock("@/data/repositories/templateRepository", () => ({
+  templateRepository: { insertTemplateAggregate: jest.fn() },
+}));
+
 const { act, create } = jest.requireActual<{
   act: (callback: () => void | Promise<void>) => Promise<void>;
   create: (element: ReactElement) => { unmount: () => void };
@@ -19,7 +23,11 @@ const renderers: { unmount: () => void }[] = [];
 
 async function renderEditor() {
   let nextId = 0;
+  const insertTemplateAggregate = jest.fn<Promise<void>, [TemplateAggregate]>(
+    async () => undefined,
+  );
   const actions = createTemplateSessionActions({
+    repository: { insertTemplateAggregate },
     now: () => Date.now(),
     createTemplateId: () => `template-${++nextId}`,
     createTemplateExerciseId: () => `exercise-${++nextId}`,
@@ -75,7 +83,15 @@ async function renderEditor() {
   });
   const firstId = getState().activeTemplate.exercises[0].sets[0].id;
   const secondId = getState().activeTemplate.exercises[1].sets[0].id;
-  return { getSession, getEditor, getState, firstId, secondId, updateSet };
+  return {
+    getSession,
+    getEditor,
+    getState,
+    firstId,
+    secondId,
+    updateSet,
+    insertTemplateAggregate,
+  };
 }
 
 beforeEach(() => jest.useFakeTimers({ now: 2000 }));
@@ -92,6 +108,48 @@ it("adds exercises in the same render without lost updates or automatic selectio
   expect(rendered.getState().activeTemplate.exercises).toHaveLength(2);
   expect(rendered.getState().activeSetId).toBeNull();
   expect(rendered.getEditor().panel).toBeNull();
+});
+
+it("flushes the latest reps before creation and cancels delayed work after the editor unmounts", async () => {
+  const r = await renderEditor();
+  await act(async () => {
+    await r.getEditor().openSetEditor(r.firstId, "repsKeypad");
+  });
+  await act(async () => {
+    r.getEditor().pressRepsKey("clear");
+    r.getEditor().pressRepsKey("8");
+    expect(await r.getEditor().closeSetEditor()).toBe(true);
+    expect((await r.getSession().createTemplate()).success).toBe(true);
+  });
+  expect(r.insertTemplateAggregate).toHaveBeenCalledTimes(1);
+  expect(
+    r.insertTemplateAggregate.mock.calls[0][0].exercises[0].sets[0].reps,
+  ).toBe(8);
+  expect(r.getSession().state).toEqual({ status: "noActiveTemplate" });
+  await act(async () => {
+    jest.runOnlyPendingTimers();
+  });
+  expect(r.updateSet).toHaveBeenCalledTimes(1);
+});
+
+it("closes the dock when its selected exercise is removed", async () => {
+  const r = await renderEditor();
+  const templateExerciseId =
+    r.getState().activeTemplate.exercises[0].templateExercise.id;
+  await act(async () => {
+    await r.getEditor().openSetEditor(r.firstId, "repsKeypad");
+  });
+  await act(async () => {
+    r.getEditor().pressRepsKey("clear");
+    r.getEditor().pressRepsKey("9");
+    r.getSession().removeExercise({ templateExerciseId });
+  });
+  expect(r.getState().activeSetId).toBeNull();
+  expect(r.getEditor().panel).toBeNull();
+  await act(async () => {
+    jest.runOnlyPendingTimers();
+  });
+  expect(r.updateSet).not.toHaveBeenCalled();
 });
 
 it("shows keypresses immediately and commits reps after one second", async () => {

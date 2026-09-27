@@ -3,15 +3,15 @@ import type { TemplateSet } from "@/domain/templates/editor/templates.types";
 import { Ionicons } from "@expo/vector-icons";
 
 import {
-  RpePickerPanel,
-  type RpePickerValue,
-} from "@/shared/components/exercise-editor/RpePickerPanel";
-import { SetEditorDock } from "@/shared/components/exercise-editor/SetEditorDock";
-import { SetTypePickerPanel } from "@/shared/components/exercise-editor/SetTypePickerPanel";
+    RpePickerPanel,
+    type RpePickerValue,
+} from "@/shared/components/set-editor/RpePickerPanel";
+import { SetEditorDock } from "@/shared/components/set-editor/SetEditorDock";
+import { SetTypePickerPanel } from "@/shared/components/set-editor/SetTypePickerPanel";
 import { EditorOptionButton } from "@/shared/components/ui/EditorOptionButton";
 import {
-  InteractiveKeypad,
-  type InteractiveKeypadKey,
+    InteractiveKeypad,
+    type InteractiveKeypadKey,
 } from "@/shared/components/ui/InteractiveKeypad";
 import { colors } from "@/shared/theme/tokens";
 

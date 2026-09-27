@@ -2,35 +2,35 @@ import { useCallback, useEffect, useRef } from "react";
 
 import type { SetType } from "@/domain/domain.types";
 import {
-  getActiveWorkoutExercise,
-  getActiveWorkoutSet,
-  getWorkoutSetById,
+    getActiveWorkoutExercise,
+    getActiveWorkoutSet,
+    getWorkoutSetById,
 } from "@/domain/workout/workout.selectors";
 import type {
-  WorkoutAggregate,
-  WorkoutRestTimer,
-  WorkoutSetId,
+    WorkoutAggregate,
+    WorkoutRestTimer,
+    WorkoutSetId,
 } from "@/domain/workout/workout.types";
 
 import type { RestTimerAdjustmentSeconds } from "@/features/workout/actions/adjustRestTimer";
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
 import { SET_VALUE_UPDATE_DEBOUNCE_MS } from "@/features/workout/view/activeWorkout.config";
 
-import type { RpePickerValue } from "@/shared/components/exercise-editor/RpePickerPanel";
+import type { RpePickerValue } from "@/shared/components/set-editor/RpePickerPanel";
 import type { InteractiveKeypadKey } from "@/shared/components/ui/InteractiveKeypad";
 import { useDebouncedCallback } from "@/shared/hooks/useDebouncedCallback";
 
 import {
-  addWeightIncrement,
-  formatKeypadDraft,
-  parseKeypadDraft,
-  updateKeypadDraft,
-} from "@/shared/components/exercise-editor/setEditorKeypad.utils";
-import { isRepsKeypadPanel } from "@/shared/components/exercise-editor/setEditorPanel.types.utils";
+    addWeightIncrement,
+    formatKeypadDraft,
+    parseKeypadDraft,
+    updateKeypadDraft,
+} from "@/shared/components/set-editor/setEditorKeypad.utils";
+import { isRepsKeypadPanel } from "@/shared/components/set-editor/setEditorPanel.types.utils";
 import type { ActiveSetEditorPanelType } from "./activeWorkoutDock.types";
 import {
-  isActiveSetEditorKeypadPanel,
-  isWeightKeypadPanel,
+    isActiveSetEditorKeypadPanel,
+    isWeightKeypadPanel,
 } from "./activeWorkoutDock.types.utils";
 import { useActiveWorkoutDockController } from "./useActiveWorkoutDockController";
 
