@@ -1,4 +1,4 @@
-import { localCalendarDay } from "@/shared/utils/localCalendar";
+export { formatRelativeDay as formatHistoryRelativeDay } from "@/shared/utils/formatRelativeDay";
 
 export const performedDateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -15,16 +15,6 @@ export const performedTimeFormatter = new Intl.DateTimeFormat("en-GB", {
 export const weightFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
-
-export function formatHistoryRelativeDay(
-  startedAt: number,
-  now: number,
-): string {
-  const days = Math.max(0, localCalendarDay(now) - localCalendarDay(startedAt));
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  return `${days} days ago`;
-}
 
 export function formatHistoryPerformedAt(startedAt: number): string {
   return `Performed ${performedDateFormatter.format(startedAt)} · ${performedTimeFormatter.format(startedAt)}`;

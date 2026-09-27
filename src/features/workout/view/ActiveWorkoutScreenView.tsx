@@ -29,13 +29,17 @@ import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
 import type { UndoSetCompletionCommand } from "@/features/workout/actions/undoCompletedSet";
 import type { UpdateExerciseOrderCommand } from "@/features/workout/actions/updateExerciseOrder";
 import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
-import { isOperationPending } from "@/features/workout/session/workoutSession.selectors";
 import type {
   ActiveWorkoutOperation,
   OperationState,
   WorkoutSessionResult,
 } from "@/features/workout/session/workoutSession.types";
 
+import {
+  ExerciseOptionsSheet,
+  type ExerciseOption,
+} from "@/shared/components/exercise-editor/ExerciseOptionsSheet";
+import { ExerciseOrderEditor } from "@/shared/components/exercise-editor/ExerciseOrderEditor/ExerciseOrderEditor";
 import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
 import { Screen } from "@/shared/components/layout/Screen";
 import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
@@ -48,7 +52,11 @@ import { DangerModal as DangerModalView } from "@/shared/components/ui/DangerMod
 import { ElapsedTimer } from "@/shared/components/ui/ElapsedTimer";
 import { colors, spacing } from "@/shared/theme/tokens";
 
+import { ErrorNotifier } from "@/shared/components/feedback/ErrorNotifier/ErrorNotifier";
+import { getActiveWorkoutOperationErrorMessage } from "@/shared/components/feedback/ErrorNotifier/utils";
 import { useScrollVisibility } from "@/shared/context/ScrollVisibilityContext";
+import { isOperationPending } from "@/shared/state/operationState";
+
 import {
   getAddExerciseOperation,
   getModalContent,
@@ -59,13 +67,7 @@ import {
 import { ActiveSetEditorDock } from "./components/ActiveWorkoutDock/ActiveSetEditorDock";
 import { RestTimerDock } from "./components/ActiveWorkoutDock/RestTimerDock";
 import { useActiveWorkoutDockEditor } from "./components/ActiveWorkoutDock/useActiveWorkoutDockEditor";
-import { ActiveWorkoutOperationErrorNotifier } from "./components/ActiveWorkoutOperationErrorNotifier";
-import { ExerciseOrderEditor } from "./components/ExerciseOrderEditor/ExerciseOrderEditor";
 import { RestTimerCard } from "./components/RestTimerCard";
-import {
-  WorkoutExerciseOptionsSheet,
-  type WorkoutExerciseOption,
-} from "./components/WorkoutExerciseOptionsSheet";
 import {
   WorkoutExerciseSection,
   type WorkoutExerciseSectionActions,
@@ -358,7 +360,7 @@ export function ActiveWorkoutScreenView({
     [copyPreviousSet, savePendingKeypadUpdate],
   );
 
-  async function handleExerciseOptionSelected(option: WorkoutExerciseOption) {
+  async function handleExerciseOptionSelected(option: ExerciseOption) {
     if (activeOverlay.type !== "exerciseOptions") {
       return;
     }
@@ -574,7 +576,7 @@ export function ActiveWorkoutScreenView({
           ListFooterComponent={
             <ScreenSection className="relative z-30 mt-0 pt-8 pb-4">
               <Button
-                title="Add Exercise"
+                title={"Add Exercise"}
                 variant="ghost"
                 intent="neutral"
                 size="md"
@@ -668,25 +670,24 @@ export function ActiveWorkoutScreenView({
         />
       ) : null}
 
-      <ActiveWorkoutOperationErrorNotifier
+      <ErrorNotifier
         operation={operation}
         isFocused={isFocused}
         onErrorDismissed={actions.dismissOperationError}
+        getErrorMessage={getActiveWorkoutOperationErrorMessage}
       />
 
       <ExercisePickerSheet
         open={activeOverlay.type === "exercisePicker"}
         excludedExerciseIds={excludedExerciseIds}
         selectionOperation={getAddExerciseOperation(activeOverlay, operation)}
-        onSelect={(exercise) => {
-          void handleExerciseSelected(exercise);
-        }}
+        onSelect={handleExerciseSelected}
         excludedKinds={excludedExerciseKinds}
         onClose={closeOverlay}
       />
 
       {optionsExercise !== null && (
-        <WorkoutExerciseOptionsSheet
+        <ExerciseOptionsSheet
           exerciseName={optionsExercise.exercise.name}
           onOptionSelect={handleExerciseOptionSelected}
           onClose={closeOverlay}
@@ -695,8 +696,12 @@ export function ActiveWorkoutScreenView({
 
       {activeOverlay.type === "exerciseOrderEditor" && (
         <ExerciseOrderEditor
-          exercises={workout.exercises}
-          initialWorkoutExerciseId={activeOverlay.workoutExerciseId}
+          exercises={workout.exercises.map(({ workoutExercise, exercise }) => ({
+            id: workoutExercise.id,
+            name: exercise.name,
+            kind: exercise.kind,
+          }))}
+          initialExerciseId={activeOverlay.workoutExerciseId}
           disabled={operationPending}
           onMove={handleExerciseOrderChange}
           onClose={closeExerciseOrderEditor}

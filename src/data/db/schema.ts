@@ -24,6 +24,52 @@ export const exercisesTable = sqliteTable("exercises", {
   defaultRestSeconds: integer("default_rest_seconds"),
 });
 
+export const templatesTable = sqliteTable("templates", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const templateExercisesTable = sqliteTable(
+  "template_exercises",
+  {
+    id: text("id").primaryKey(),
+    templateId: text("template_id")
+      .notNull()
+      .references(() => templatesTable.id, { onDelete: "cascade" }),
+    exerciseId: text("exercise_id")
+      .notNull()
+      .references(() => exercisesTable.id),
+    notes: text("notes"),
+    restSeconds: integer("rest_seconds").notNull(),
+    orderIndex: integer("order_index").notNull(),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [index("idx_template_exercises_template_id").on(table.templateId)],
+);
+
+export const templateSetsTable = sqliteTable(
+  "template_sets",
+  {
+    id: text("id").primaryKey(),
+    templateExerciseId: text("template_exercise_id")
+      .notNull()
+      .references(() => templateExercisesTable.id, { onDelete: "cascade" }),
+    setIndex: integer("set_index").notNull(),
+    type: text("type").$type<SetType>().notNull(),
+    reps: integer("reps").notNull(),
+    rpe: real("rpe"),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    index("idx_template_sets_exercise_id").on(table.templateExerciseId),
+  ],
+);
+
 export const workoutsTable = sqliteTable(
   "workouts",
   {
@@ -105,6 +151,13 @@ export const workoutSetsTable = sqliteTable(
 
 export type ExerciseRow = typeof exercisesTable.$inferSelect;
 export type NewExerciseRow = typeof exercisesTable.$inferInsert;
+
+export type TemplateRow = typeof templatesTable.$inferSelect;
+export type NewTemplateRow = typeof templatesTable.$inferInsert;
+export type TemplateExerciseRow = typeof templateExercisesTable.$inferSelect;
+export type NewTemplateExerciseRow = typeof templateExercisesTable.$inferInsert;
+export type TemplateSetRow = typeof templateSetsTable.$inferSelect;
+export type NewTemplateSetRow = typeof templateSetsTable.$inferInsert;
 
 export type WorkoutRow = typeof workoutsTable.$inferSelect;
 export type NewWorkoutRow = typeof workoutsTable.$inferInsert;

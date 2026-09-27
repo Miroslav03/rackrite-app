@@ -6,6 +6,7 @@ export type EntityIdPrefix =
   | "section"
   | "set"
   | "template"
+  | "template_exercise"
   | "template_section"
   | "template_set";
 

@@ -19,10 +19,13 @@ export function HistoryExerciseCard({
   return (
     <SurfaceCard className="bg-surfaceLow" contentClassName="p-md gap-md">
       <View>
-        <AppText className="text-sm font-bold uppercase tracking-wide text-foreground">
+        <AppText
+          variant="title"
+          className="text-xl font-extrabold uppercase tracking-wide text-foreground"
+        >
           {exercise.name}
         </AppText>
-        <AppText className="mt-xs text-xs uppercase tracking-wider">
+        <AppText variant="subtitle" className="mt-[1px]">
           {exercise.kind}
         </AppText>
       </View>

@@ -13,8 +13,8 @@ import type { ExercisePickerSelectionOperation } from "@/features/exercises/view
 
 import type { ConfirmationModalOperation } from "@/shared/components/ui/ConfirmationModal";
 import type { DangerModalOperation } from "@/shared/components/ui/DangerModal";
+import { isOperationPending } from "@/shared/state/operationState";
 
-import { isOperationPending } from "../session/workoutSession.selectors";
 import type {
   ActiveWorkoutOperation,
   OperationState,

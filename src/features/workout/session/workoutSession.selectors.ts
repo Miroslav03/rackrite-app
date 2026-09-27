@@ -1,16 +1,15 @@
-import type { WorkoutExerciseId, WorkoutId } from "@/domain/workout/workout.types";
+import type {
+  WorkoutExerciseId,
+  WorkoutId,
+} from "@/domain/workout/workout.types";
+
+import { isOperationPending } from "@/shared/state/operationState";
 
 import type {
   ActiveWorkoutOperation,
   OperationState,
   StartWorkoutOperation,
 } from "./workoutSession.types";
-
-export function isOperationPending<TOperation>(
-  state: OperationState<TOperation>,
-): state is { status: "pending"; operation: TOperation } {
-  return state.status === "pending";
-}
 
 export function getPendingRepeatWorkoutId(
   state: OperationState<StartWorkoutOperation | ActiveWorkoutOperation>,

@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { HistoryWorkoutDetails } from "@/domain/history/history.types";
 
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
-import { ActiveWorkoutOperationErrorNotifier } from "@/features/workout/view/components/ActiveWorkoutOperationErrorNotifier";
 
 import { Screen } from "@/shared/components/layout/Screen";
 import { AppText } from "@/shared/components/ui/AppText";
@@ -18,6 +17,8 @@ import { colors, spacing } from "@/shared/theme/tokens";
 
 import { useRepeatWorkoutController } from "../controller/useRepeatWorkoutController";
 
+import { ErrorNotifier } from "@/shared/components/feedback/ErrorNotifier/ErrorNotifier";
+import { getActiveWorkoutOperationErrorMessage } from "@/shared/components/feedback/ErrorNotifier/utils";
 import { HistoryExerciseCard } from "./components/HistoryExerciseCard";
 import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
 import { createHistoryDetailsViewModel } from "./historyDetails.viewModel";
@@ -57,10 +58,11 @@ export function HistoryDetailsScreenView({
     <Screen scroll={false} showBackButton className="pt-0 pb-0">
       {(session.state.status === "active" ||
         session.state.status === "noActiveWorkout") && (
-        <ActiveWorkoutOperationErrorNotifier
+        <ErrorNotifier
           operation={session.state.operation}
           isFocused={isFocused}
           onErrorDismissed={session.dismissOperationError}
+          getErrorMessage={getActiveWorkoutOperationErrorMessage}
         />
       )}
       <FlatList
