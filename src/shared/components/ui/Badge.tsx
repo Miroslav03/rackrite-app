@@ -60,7 +60,6 @@ export function Badge({
         className={cn("text-xs font-bold", textClassName)}
         style={{
           color: accentColor ?? appearance.accentColor,
-          fontVariant: ["tabular-nums"],
         }}
       >
         {label}

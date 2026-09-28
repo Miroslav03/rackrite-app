@@ -60,7 +60,6 @@ export function LiftStatusCard({
               className="text-center text-xl font-black text-foreground"
               style={{
                 color: metric.color ?? colors.foreground,
-                fontVariant: ["tabular-nums"],
               }}
             >
               {metric.value}

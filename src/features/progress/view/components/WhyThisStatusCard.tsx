@@ -56,10 +56,7 @@ export function WhyThisStatusCard({
             <AppText className="min-w-0 flex-1 text-md font-bold uppercase tracking-wide text-foreground">
               {row.label}
             </AppText>
-            <AppText
-              className="text-sm font-bold"
-              style={{ color: row.color, fontVariant: ["tabular-nums"] }}
-            >
+            <AppText className="text-sm font-bold">
               {row.direction} {row.value}
             </AppText>
           </View>

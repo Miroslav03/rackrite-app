@@ -79,10 +79,7 @@ export function BarChart({
                   />
                 )}
               </View>
-              <AppText
-                className="mt-2 text-center text-[9px] font-bold"
-                style={{ fontVariant: ["tabular-nums"] }}
-              >
+              <AppText className="mt-2 text-center text-[9px] font-bold">
                 {point.label}
                 {point.partial ? "*" : ""}
               </AppText>

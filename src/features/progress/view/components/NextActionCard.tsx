@@ -43,10 +43,7 @@ export function NextActionCard({
               />
             ) : null}
           </View>
-          <AppText
-            className="mt-2 text-3xl font-black tracking-tight text-foreground"
-            style={{ fontVariant: ["tabular-nums"] }}
-          >
+          <AppText className="mt-2 text-3xl font-black tracking-tight text-foreground">
             {model.benchmark.value}
           </AppText>
           <AppText className="mt-2 text-sm">
