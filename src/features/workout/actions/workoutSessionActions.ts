@@ -1,4 +1,8 @@
 import {
+  templateRepository,
+  type TemplateRepository,
+} from "@/data/repositories/templateRepository";
+import {
   repeatWorkout,
   type RepeatWorkoutCommand,
 } from "@/features/history/actions/repeatWorkout";
@@ -39,6 +43,10 @@ import { selectSet, type SelectSetCommand } from "./selectSet";
 import { skipRestTimer } from "./skipRestTimer";
 import { startQuickWorkout } from "./startQuickWorkout";
 import {
+  startWorkoutFromTemplate,
+  type StartWorkoutFromTemplateCommand,
+} from "./startWorkoutFromTemplate";
+import {
   undoCompletedSet,
   type UndoSetCompletionCommand,
 } from "./undoCompletedSet";
@@ -49,9 +57,10 @@ import {
 import { updateSet, type UpdateSetCommand } from "./updateSet";
 
 export type WorkoutSessionActions = {
-  repeatWorkout: (
-    command: RepeatWorkoutCommand,
+  startWorkoutFromTemplate: (
+    command: StartWorkoutFromTemplateCommand,
   ) => Promise<WorkoutAggregate>;
+  repeatWorkout: (command: RepeatWorkoutCommand) => Promise<WorkoutAggregate>;
   loadActiveWorkout: () => Promise<WorkoutAggregate | null>;
   startEmptyWorkout: () => Promise<WorkoutAggregate>;
   cancelWorkout: (workout: WorkoutAggregate) => Promise<void>;
@@ -108,6 +117,7 @@ export type WorkoutSessionActions = {
 };
 
 type CreateWorkoutSessionActionsDependencies = {
+  templateRepository: Pick<TemplateRepository, "getTemplateAggregateById">;
   repository: WorkoutRepository;
   now: () => number;
   createWorkoutId: () => WorkoutId;
@@ -120,6 +130,8 @@ export function createWorkoutSessionActions(
   dependencies: CreateWorkoutSessionActionsDependencies,
 ): WorkoutSessionActions {
   return {
+    startWorkoutFromTemplate: (command) =>
+      startWorkoutFromTemplate(dependencies, command),
     repeatWorkout: (command) => repeatWorkout(dependencies, command),
     loadActiveWorkout: () =>
       dependencies.repository.getActiveWorkoutAggregate(),
@@ -285,6 +297,7 @@ export function createWorkoutSessionActions(
 }
 
 export const workoutSessionActions = createWorkoutSessionActions({
+  templateRepository,
   repository: workoutRepository,
   now: Date.now,
   createWorkoutId: () => createId("workout"),

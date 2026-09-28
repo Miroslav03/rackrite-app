@@ -8,6 +8,7 @@ import {
   type ListRenderItemInfo,
 } from "react-native";
 
+import type { TemplateId } from "@/domain/templates/editor/templates.types";
 import type { TemplateListItem } from "@/domain/templates/list/templates.types";
 
 import { ErrorNotice } from "@/shared/components/feedback/ErrorNotice";
@@ -26,6 +27,7 @@ type TemplatesScreenViewProps = {
   dateReference: number;
   onRefresh: () => void;
   onCreateTemplate: () => void;
+  onOpenTemplate: (templateId: TemplateId) => void;
 };
 
 const CREATE_BUTTON_SIZE = 56;
@@ -35,6 +37,7 @@ export function TemplatesScreenView({
   dateReference,
   onRefresh,
   onCreateTemplate,
+  onOpenTemplate,
 }: TemplatesScreenViewProps) {
   const listRef = useRef<FlatList<TemplateListItem>>(null);
 
@@ -44,9 +47,13 @@ export function TemplatesScreenView({
 
   const renderTemplate = useCallback(
     ({ item }: ListRenderItemInfo<TemplateListItem>) => (
-      <TemplateListCard template={item} dateReference={dateReference} />
+      <TemplateListCard
+        template={item}
+        dateReference={dateReference}
+        onOpen={onOpenTemplate}
+      />
     ),
-    [dateReference],
+    [dateReference, onOpenTemplate],
   );
 
   return (

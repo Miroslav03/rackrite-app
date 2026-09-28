@@ -38,6 +38,7 @@ function createActions(
 ): WorkoutSessionActions {
   return {
     repeatWorkout: async () => workout,
+    startWorkoutFromTemplate: async () => workout,
     loadActiveWorkout: async () => workout,
     startEmptyWorkout: async () => workout,
     cancelWorkout: async () => undefined,
@@ -285,182 +286,181 @@ function repeatedWorkout() {
   });
 }
 
-describe("repeat workout session controller", () => {
-  it("commits a new session and rejects callbacks retained from the discarded workout", async () => {
-    const old = createWorkoutWithTwoSets();
-    const next = repeatedWorkout();
-    const actions = createActions(old, {
-      repeatWorkout: jest.fn(async () => next),
-      cancelWorkout: jest.fn(async () => undefined),
-    });
-    const rendered = await renderController(actions);
-    const staleCancel = rendered.getController().cancelWorkout;
-    const staleUpdate = rendered.getController().updateSet;
-    await act(async () => {
-      expect(
-        (
-          await rendered
-            .getController()
-            .repeatWorkout({
-              sourceWorkoutId: "source",
-              expectedActiveWorkoutId: old.workout.id,
-            })
-        ).success,
-      ).toBe(true);
-    });
-    expect(rendered.getController().state).toMatchObject({
-      status: "active",
-      workout: next,
-      operation: { status: "idle" },
-    });
-    await act(async () => {
-      expect((await staleCancel()).success).toBe(false);
-      expect(
-        (
-          await staleUpdate({
-            workoutSetId: "set_1",
-            values: { weight: 999 },
-          })
-        ).success,
-      ).toBe(false);
-    });
-    expect(actions.cancelWorkout).not.toHaveBeenCalled();
-    expect(rendered.getController().state).toMatchObject({
-      workout: next,
-    });
-    await rendered.unmount();
-  });
+describe.each(["repeatWorkout", "startWorkoutFromTemplate"] as const)(
+  "%s session controller",
+  (operation) => {
+    function start(
+      controller: WorkoutSessionController,
+      expectedActiveWorkoutId: string | null,
+    ) {
+      switch (operation) {
+        case "repeatWorkout":
+          return controller.repeatWorkout({
+            sourceWorkoutId: "source",
+            expectedActiveWorkoutId,
+          });
+        case "startWorkoutFromTemplate":
+          return controller.startWorkoutFromTemplate({
+            templateId: "source",
+            expectedActiveWorkoutId,
+          });
+      }
+    }
 
-  it.each([true, false])(
-    "prevents duplicate repeat and concurrent writes (active=%s)",
-    async (active) => {
+    it("commits a new session and rejects callbacks retained from the discarded workout", async () => {
       const old = createWorkoutWithTwoSets();
       const next = repeatedWorkout();
-      let resolve: (workout: WorkoutAggregate) => void = () => undefined;
-      const promise = new Promise<WorkoutAggregate>((done) => {
-        resolve = done;
+      const actions = createActions(old, {
+        [operation]: jest.fn(async () => next),
+        cancelWorkout: jest.fn(async () => undefined),
       });
-      const repeatWorkout = jest.fn(() => promise);
-      const rendered = await renderController(
-        createActions(old, {
-          loadActiveWorkout: async () => (active ? old : null),
-          repeatWorkout,
-        }),
-      );
-      const command = {
-        sourceWorkoutId: "source",
-        expectedActiveWorkoutId: active ? old.workout.id : null,
-      };
-      let pending:
-        ReturnType<WorkoutSessionController["repeatWorkout"]> | undefined;
+      const rendered = await renderController(actions);
+      const staleCancel = rendered.getController().cancelWorkout;
+      const staleUpdate = rendered.getController().updateSet;
       await act(async () => {
-        const controller = rendered.getController();
-        pending = controller.repeatWorkout(command);
-        expect((await controller.repeatWorkout(command)).success).toBe(
-          false,
-        );
-        expect((await controller.startEmptyWorkout()).success).toBe(false);
-        if (active)
-          expect(
-            (
-              await controller.updateSet({
-                workoutSetId: "set_1",
-                values: { weight: 999 },
-              })
-            ).success,
-          ).toBe(false);
-      });
-      expect(repeatWorkout).toHaveBeenCalledTimes(1);
-      expect(rendered.getController().state).toMatchObject({
-        operation: {
-          status: "pending",
-          operation: { type: "repeatWorkout", sourceWorkoutId: "source" },
-        },
-      });
-      await act(async () => {
-        resolve(next);
-        await pending;
+        expect(
+          (await start(rendered.getController(), old.workout.id)).success,
+        ).toBe(true);
       });
       expect(rendered.getController().state).toMatchObject({
         status: "active",
         workout: next,
+        operation: { status: "idle" },
+      });
+      await act(async () => {
+        expect((await staleCancel()).success).toBe(false);
+        expect(
+          (
+            await staleUpdate({
+              workoutSetId: "set_1",
+              values: { weight: 999 },
+            })
+          ).success,
+        ).toBe(false);
+      });
+      expect(actions.cancelWorkout).not.toHaveBeenCalled();
+      expect(rendered.getController().state).toMatchObject({ workout: next });
+      await rendered.unmount();
+    });
+
+    it.each([true, false])(
+      "prevents duplicate starts and concurrent writes (active=%s)",
+      async (active) => {
+        const old = createWorkoutWithTwoSets();
+        const next = repeatedWorkout();
+        let resolve: (workout: WorkoutAggregate) => void = () => undefined;
+        const promise = new Promise<WorkoutAggregate>((done) => {
+          resolve = done;
+        });
+        const startAction = jest.fn(() => promise);
+        const rendered = await renderController(
+          createActions(old, {
+            loadActiveWorkout: async () => (active ? old : null),
+            [operation]: startAction,
+          }),
+        );
+        const activeId = active ? old.workout.id : null;
+        let pending:
+          ReturnType<WorkoutSessionController["repeatWorkout"]> | undefined;
+        await act(async () => {
+          const controller = rendered.getController();
+          pending = start(controller, activeId);
+          expect((await start(controller, activeId)).success).toBe(false);
+          expect((await controller.startEmptyWorkout()).success).toBe(false);
+          if (active)
+            expect(
+              (
+                await controller.updateSet({
+                  workoutSetId: "set_1",
+                  values: { weight: 999 },
+                })
+              ).success,
+            ).toBe(false);
+        });
+        expect(startAction).toHaveBeenCalledTimes(1);
+        expect(rendered.getController().state).toMatchObject({
+          operation: {
+            status: "pending",
+            operation: {
+              type: operation,
+              [operation === "repeatWorkout"
+                ? "sourceWorkoutId"
+                : "templateId"]: "source",
+            },
+          },
+        });
+        await act(async () => {
+          resolve(next);
+          await pending;
+        });
+        expect(rendered.getController().state).toMatchObject({
+          status: "active",
+          workout: next,
+        });
+        await rendered.unmount();
+      },
+    );
+
+    it("preserves the active session on failure, retries, and rejects stale confirmation", async () => {
+      const old = createWorkoutWithTwoSets();
+      const next = repeatedWorkout();
+      const startAction = jest
+        .fn<Promise<WorkoutAggregate>, []>()
+        .mockRejectedValueOnce(new Error("Disk full"))
+        .mockResolvedValueOnce(next);
+      const rendered = await renderController(
+        createActions(old, { [operation]: startAction }),
+      );
+      await act(async () => {
+        await start(rendered.getController(), old.workout.id);
+      });
+      expect(rendered.getController().state).toMatchObject({
+        status: "active",
+        workout: old,
+        operation: { status: "error" },
+      });
+      await act(async () => {
+        await start(rendered.getController(), old.workout.id);
+      });
+      await act(async () => {
+        expect(
+          (await start(rendered.getController(), old.workout.id)).success,
+        ).toBe(false);
+      });
+      expect(startAction).toHaveBeenCalledTimes(2);
+      expect(rendered.getController().state).toMatchObject({ workout: next });
+      await rendered.unmount();
+    });
+
+    it("does not start while an existing workout mutation is in flight", async () => {
+      const old = createWorkoutWithTwoSets();
+      let resolve: (workout: WorkoutAggregate) => void = () => undefined;
+      const updatePromise = new Promise<WorkoutAggregate>((done) => {
+        resolve = done;
+      });
+      const startAction = jest.fn(async () => repeatedWorkout());
+      const rendered = await renderController(
+        createActions(old, {
+          updateSet: () => updatePromise,
+          [operation]: startAction,
+        }),
+      );
+      let pending:
+        ReturnType<WorkoutSessionController["updateSet"]> | undefined;
+      await act(async () => {
+        pending = rendered
+          .getController()
+          .updateSet({ workoutSetId: "set_1", values: { weight: 99 } });
+        expect(
+          (await start(rendered.getController(), old.workout.id)).success,
+        ).toBe(false);
+      });
+      expect(startAction).not.toHaveBeenCalled();
+      await act(async () => {
+        resolve(old);
+        await pending;
       });
       await rendered.unmount();
-    },
-  );
-
-  it("preserves the active session on failure, retries, and rejects stale confirmation", async () => {
-    const old = createWorkoutWithTwoSets();
-    const next = repeatedWorkout();
-    const repeatWorkout = jest
-      .fn<Promise<WorkoutAggregate>, []>()
-      .mockRejectedValueOnce(new Error("Disk full"))
-      .mockResolvedValueOnce(next);
-    const rendered = await renderController(
-      createActions(old, { repeatWorkout }),
-    );
-    const command = {
-      sourceWorkoutId: "source",
-      expectedActiveWorkoutId: old.workout.id,
-    };
-    await act(async () => {
-      await rendered.getController().repeatWorkout(command);
     });
-    expect(rendered.getController().state).toMatchObject({
-      status: "active",
-      workout: old,
-      operation: { status: "error" },
-    });
-    await act(async () => {
-      await rendered.getController().repeatWorkout(command);
-    });
-    await act(async () => {
-      expect(
-        (await rendered.getController().repeatWorkout(command)).success,
-      ).toBe(false);
-    });
-    expect(repeatWorkout).toHaveBeenCalledTimes(2);
-    expect(rendered.getController().state).toMatchObject({
-      workout: next,
-    });
-    await rendered.unmount();
-  });
-
-  it("does not repeat while an existing workout mutation is in flight", async () => {
-    const old = createWorkoutWithTwoSets();
-    let resolve: (workout: WorkoutAggregate) => void = () => undefined;
-    const updatePromise = new Promise<WorkoutAggregate>((done) => {
-      resolve = done;
-    });
-    const repeatWorkout = jest.fn(async () => repeatedWorkout());
-    const rendered = await renderController(
-      createActions(old, {
-        updateSet: () => updatePromise,
-        repeatWorkout,
-      }),
-    );
-    let pending:
-      ReturnType<WorkoutSessionController["updateSet"]> | undefined;
-    await act(async () => {
-      pending = rendered
-        .getController()
-        .updateSet({ workoutSetId: "set_1", values: { weight: 99 } });
-      expect(
-        (
-          await rendered
-            .getController()
-            .repeatWorkout({
-              sourceWorkoutId: "source",
-              expectedActiveWorkoutId: old.workout.id,
-            })
-        ).success,
-      ).toBe(false);
-    });
-    expect(repeatWorkout).not.toHaveBeenCalled();
-    await act(async () => {
-      resolve(old);
-      await pending;
-    });
-    await rendered.unmount();
-  });
-});
+  },
+);

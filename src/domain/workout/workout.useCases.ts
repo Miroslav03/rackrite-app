@@ -1,5 +1,8 @@
 import type { Exercise } from "@/domain/exercises/exercise.types";
 
+import { assertTemplateCanBeSaved } from "../templates/editor/assertions/templates.contracts";
+import { TemplateAggregate } from "../templates/editor/templates.types";
+
 import {
   assertWorkoutExerciseExists,
   assertWorkoutIsActive,
@@ -7,7 +10,6 @@ import {
   assertWorkoutSetExists,
 } from "./assertions/workout.contracts";
 import { assertWorkoutAggregateInvariants } from "./assertions/workout.invariants";
-
 import {
   getActiveSetIdAfterRemoval,
   getAllWorkoutSets,
@@ -28,9 +30,16 @@ import type {
   WorkoutSetId,
   WorkoutSetValues,
 } from "./workout.types";
-import { isCompletedSet } from "./workout.utils";
+import { isCompletedSet, uniquePreviousExercises } from "./workout.utils";
 
 type CreateRepeatedWorkoutInput = {
+  id: WorkoutId;
+  now: number;
+  createWorkoutExerciseId: () => WorkoutExerciseId;
+  createWorkoutSetId: () => WorkoutSetId;
+};
+
+type CreateWorkoutFromTemplateInput = {
   id: WorkoutId;
   now: number;
   createWorkoutExerciseId: () => WorkoutExerciseId;
@@ -124,6 +133,72 @@ type FinishWorkoutInput = {
   now: number;
   skipUnfinishedSets: boolean;
 };
+
+export function createWorkoutFromTemplate(
+  template: TemplateAggregate,
+  previous: WorkoutAggregate | null,
+  input: CreateWorkoutFromTemplateInput,
+): WorkoutAggregate {
+  assertTemplateCanBeSaved(template);
+
+  const previousExercises = uniquePreviousExercises(template, previous);
+
+  const exercises = template.exercises.map(
+    ({ templateExercise, exercise, sets }) => {
+      const id = input.createWorkoutExerciseId();
+      const previousExercise = previousExercises.get(exercise.id);
+
+      return {
+        exercise: { ...exercise },
+        workoutExercise: {
+          id,
+          workoutId: input.id,
+          exerciseId: exercise.id,
+          notes: templateExercise.notes,
+          restSeconds: templateExercise.restSeconds,
+          orderIndex: templateExercise.orderIndex,
+          createdAt: input.now,
+          updatedAt: input.now,
+        },
+        sets: sets.map((set) => {
+          const previousSet = previousExercise?.sets.find(
+            (candidate) =>
+              candidate.setIndex === set.setIndex &&
+              candidate.type === set.type,
+          );
+
+          return {
+            id: input.createWorkoutSetId(),
+            workoutExerciseId: id,
+            setIndex: set.setIndex,
+            type: set.type,
+            weight:
+              previousSet && isCompletedSet(previousSet)
+                ? previousSet.weight
+                : null,
+            reps: set.reps,
+            rpe: set.rpe,
+            finishedAt: null,
+            createdAt: input.now,
+            updatedAt: input.now,
+          };
+        }),
+      };
+    },
+  );
+
+  const workout: WorkoutAggregate = {
+    workout: {
+      ...createEmptyWorkout(input).workout,
+      sourceTemplateId: template.template.id,
+      activeSetId: exercises[0].sets[0].id,
+    },
+    exercises,
+  };
+
+  assertWorkoutAggregateInvariants(workout);
+  return workout;
+}
 
 export function createRepeatedWorkout(
   source: WorkoutAggregate,

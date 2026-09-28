@@ -39,10 +39,17 @@ export default function RootLayout() {
                     },
                   }}
                 >
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="(tabs)"
+                    options={{ headerShown: false }}
+                  />
                   <Stack.Screen
                     name="history/[workoutId]"
                     options={{ title: "Workout Details" }}
+                  />
+                  <Stack.Screen
+                    name="templates/[templateId]"
+                    options={{ title: "Template Details" }}
                   />
                   <Stack.Screen name="workout" options={{ title: "Workout" }} />
                   <Stack.Screen

@@ -1,4 +1,4 @@
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
 
 import { db } from "@/data/db/client";
 import {
@@ -14,6 +14,7 @@ import {
   workoutToRow,
 } from "@/data/mappers/workoutMappers";
 
+import type { TemplateId } from "@/domain/templates/editor/templates.types";
 import type {
   WorkoutAggregate,
   WorkoutId,
@@ -26,6 +27,9 @@ import {
 } from "../utils";
 
 export type WorkoutRepository = {
+  getLatestCompletedWorkoutForTemplate: (
+    templateId: TemplateId,
+  ) => Promise<WorkoutAggregate | null>;
   startWorkoutAggregate: (
     workout: WorkoutAggregate,
     expectedActiveWorkoutId: WorkoutId | null,
@@ -278,7 +282,27 @@ export const getActiveWorkoutAggregate: WorkoutRepository["getActiveWorkoutAggre
     return getWorkoutAggregateById(activeWorkoutRow.id);
   };
 
+export const getLatestCompletedWorkoutForTemplate: WorkoutRepository["getLatestCompletedWorkoutForTemplate"] =
+  async (templateId) => {
+    const row = db
+      .select({ id: workoutsTable.id })
+      .from(workoutsTable)
+      .where(
+        and(
+          eq(workoutsTable.sourceTemplateId, templateId),
+          eq(workoutsTable.status, "completed"),
+          isNotNull(workoutsTable.finishedAt),
+        ),
+      )
+      .orderBy(desc(workoutsTable.finishedAt), desc(workoutsTable.id))
+      .limit(1)
+      .get();
+
+    return row ? getWorkoutAggregateById(row.id) : null;
+  };
+
 export const workoutRepository: WorkoutRepository = {
+  getLatestCompletedWorkoutForTemplate,
   startWorkoutAggregate,
   insertWorkoutAggregate,
   deleteWorkoutAggregate,

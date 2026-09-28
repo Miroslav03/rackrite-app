@@ -4,16 +4,17 @@ A template describes a reusable training day. The current implementation covers
 its domain model, editing rules, validation, mappers, and local persistence.
 The Templates tab also provides an unpaginated library and an entry point to
 template creation with exercise/set editing, exercise reordering, and saving.
-Metadata controls, editing saved templates, duplication, starting a workout from
-a template, and saving a workout as a template are later work.
+Saved templates also have a read-only details screen and can start a workout.
+Metadata controls, editing saved templates, duplication, and saving a workout as
+a template are later work.
 
 ## Template list
 
 The list follows Stitch's **Templates - Refined Ledger Cards** design. It shows
 the saved-routine count, template names/descriptions, and tags for competition
 lifts only, in template exercise order. Variations and accessories have no tags.
-Cards are read-only. The floating create button initializes an empty in-memory
-draft in the shared template session, then opens `/template-editor` outside the
+Cards open `/templates/[templateId]` outside the tabs. The floating create button
+initializes an empty in-memory draft in the shared template session, then opens `/template-editor` outside the
 tabs. The provider sits above the root stack, so navigation preserves the session.
 Each press of the create button starts a fresh draft. The editor renders from
 `TemplateSessionState`; opening it without an active session returns to the
@@ -37,6 +38,35 @@ Like History, the list refreshes on focus, foreground return, and pull to refres
 Failed refreshes retain loaded cards; initial failures offer retry. Stale requests
 are ignored after replacement, blur, backgrounding, or unmount. Relative labels
 update at local midnight without another query. There is no pagination.
+
+## Template details and starting workouts
+
+Details load the saved template by ID and derive the planned exercise/set ledger,
+total set count, and average target RPE. All sets count toward the total; warm-ups
+and missing RPE are excluded from the average. The shared exercise details card
+matches History's layout with its Weight column hidden. The header shows Last
+performed using the latest completed execution's local completion day, or Never.
+There is no volume or duration metric. Focus and foreground return reload data;
+relative dates update at local midnight. Missing templates offer a return to the
+library, and failed loads can be retried. Viewing details never opens an editor
+session or modifies the template.
+
+Start Workout reloads the current saved template and its latest completed
+execution. It creates independent workout, exercise, and set identities, preserves
+the template's ordering, notes, rest durations, reps and target RPE, and selects the
+first unfinished set. The new workout retains the source template ID for execution
+history. Weights are copied only where an exercise definition occurs exactly once
+in both aggregates and a completed previous set matches its original set position
+and type. Zero weights are valid. New, changed, unfinished, or ambiguous matches
+start without weight; older executions are not searched.
+
+An existing active workout triggers the same switch-based danger-confirmation
+flow as History's Repeat Workout. The session controller shares its guarded start
+operation path with repeat. Confirmation captures the active workout ID; SQLite
+checks that ID and replaces the workout atomically. Stale confirmations are
+rejected, failed writes preserve the old workout, and pending operations block
+duplicate starts. Successful starts open the Workout screen. Cancellation leaves
+the active workout unchanged.
 
 ## Model
 
@@ -142,6 +172,10 @@ the real Drizzle Expo driver, adapting its synchronous native client calls to No
 built-in SQLite API. These tests require Node 24 or newer and add no dependency.
 They cover ordering, unpaginated reads, competition-only tags, and latest-execution
 selection. Controller tests cover refresh recovery, request races, lifecycle cleanup,
-and midnight updates; view tests cover the ledger and inactive controls. Native
-Storybook scenarios under **Templates/List** cover populated, empty, and refresh-error
+and midnight updates; view tests cover the ledger, card navigation, and shared
+exercise details.
+Details tests cover loading lifecycles, derived metrics, dates, confirmation, and
+start navigation. Workout tests cover weight matching, independent snapshots,
+concurrency guards, stale confirmations, and transactional replacement rollback.
+Native Storybook scenarios under **Templates/List** cover populated, empty, and refresh-error
 states without changing the application database.

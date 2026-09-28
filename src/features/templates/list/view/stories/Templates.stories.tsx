@@ -65,6 +65,7 @@ const meta = {
     dateReference,
     onRefresh: () => {},
     onCreateTemplate: () => {},
+    onOpenTemplate: () => {},
   },
 } satisfies Meta<typeof TemplatesScreenView>;
 

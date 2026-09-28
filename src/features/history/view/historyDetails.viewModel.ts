@@ -3,6 +3,7 @@ import type { HistoryWorkoutDetails } from "@/domain/history/history.types";
 import { formatExerciseKind } from "@/features/exercises/view/utils/formatExerciseKind";
 
 import { SET_TYPE_CONFIG } from "@/shared/theme/setTypes";
+import { formatRpe } from "@/shared/utils/formatRpe";
 import { getWorkoutDisplayName } from "@/shared/utils/getWorkoutDisplayName";
 
 import { performedDateFormatter, weightFormatter } from "./historyDate.utils";
@@ -14,7 +15,7 @@ export function createHistoryDetailsViewModel(workout: HistoryWorkoutDetails) {
     duration: `${workout.durationMinutes} MIN`,
     totalVolume: weightFormatter.format(workout.totalWeight),
     totalSets: String(workout.totalSets),
-    averageRpe: workout.averageRpe?.toFixed(1) ?? "—",
+    averageRpe: formatRpe(workout.averageRpe),
     exercises: workout.exercises.map((exercise) => ({
       id: exercise.id,
       name: exercise.name,
@@ -25,7 +26,7 @@ export function createHistoryDetailsViewModel(workout: HistoryWorkoutDetails) {
         type: SET_TYPE_CONFIG[set.type],
         weight: weightFormatter.format(set.weight),
         reps: String(set.reps),
-        rpe: set.rpe?.toFixed(1) ?? "—",
+        rpe: formatRpe(set.rpe),
       })),
     })),
   };

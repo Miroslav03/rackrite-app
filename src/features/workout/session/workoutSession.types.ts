@@ -1,3 +1,4 @@
+import type { TemplateId } from "@/domain/templates/editor/templates.types";
 import type { ExerciseId } from "@/domain/exercises/exercise.types";
 import type {
   WorkoutAggregate,
@@ -14,10 +15,13 @@ import type { WorkoutSessionError } from "./workoutSession.errors";
 
 export type StartWorkoutOperation =
   | "startEmptyWorkout"
-  | "startWorkoutFromTemplate"
-  | Extract<ActiveWorkoutOperation, { type: "repeatWorkout" }>;
+  | Extract<
+      ActiveWorkoutOperation,
+      { type: "repeatWorkout" | "startWorkoutFromTemplate" }
+    >;
 
 export type ActiveWorkoutOperation =
+  | { type: "startWorkoutFromTemplate"; templateId: TemplateId }
   | { type: "repeatWorkout"; sourceWorkoutId: WorkoutId }
   | { type: "addExercise"; exerciseId: ExerciseId }
   | { type: "removeExercise"; workoutExerciseId: WorkoutExerciseId }

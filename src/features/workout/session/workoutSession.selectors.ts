@@ -1,3 +1,4 @@
+import type { TemplateId } from "@/domain/templates/editor/templates.types";
 import type {
   WorkoutExerciseId,
   WorkoutId,
@@ -45,4 +46,17 @@ export function isCopyPreviousSetOperationPending(
     state.operation.type === "copyPreviousSet" &&
     state.operation.workoutExerciseId === workoutExerciseId
   );
+}
+
+export function getPendingStartTemplateId(
+  state: OperationState<StartWorkoutOperation | ActiveWorkoutOperation>,
+): TemplateId | null {
+  if (
+    isOperationPending(state) &&
+    typeof state.operation !== "string" &&
+    state.operation.type === "startWorkoutFromTemplate"
+  ) {
+    return state.operation.templateId;
+  }
+  return null;
 }

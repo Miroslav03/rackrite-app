@@ -13,11 +13,15 @@ import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
 import type { UndoSetCompletionCommand } from "@/features/workout/actions/undoCompletedSet";
 import type { UpdateExerciseOrderCommand } from "@/features/workout/actions/updateExerciseOrder";
 import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
+import type { StartWorkoutFromTemplateCommand } from "@/features/workout/actions/startWorkoutFromTemplate";
 import type { WorkoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
 
 import { toError } from "@/shared/utils/error";
 
-import type { WorkoutAggregate } from "@/domain/workout/workout.types";
+import type {
+  WorkoutAggregate,
+  WorkoutId,
+} from "@/domain/workout/workout.types";
 
 import { failure, success } from "@/shared/types/result";
 
@@ -30,6 +34,9 @@ import type {
 } from "./workoutSession.types";
 
 export type WorkoutSessionController = {
+  startWorkoutFromTemplate: (
+    command: StartWorkoutFromTemplateCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   repeatWorkout: (
     command: RepeatWorkoutCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
@@ -311,44 +318,39 @@ export function useWorkoutSessionController(
     }
   }, [actions, state.status]);
 
-  const repeatWorkout = useCallback(
-    async (
-      command: RepeatWorkoutCommand,
-    ): Promise<WorkoutSessionResult<WorkoutAggregate>> => {
+  const runWorkoutStart = useCallback(
+    async (input: {
+      operation: Extract<
+        ActiveWorkoutOperation,
+        { type: "repeatWorkout" | "startWorkoutFromTemplate" }
+      >;
+      expectedActiveWorkoutId: WorkoutId | null;
+      invalidStateMessage: string;
+      failureMessage: string;
+      run: () => Promise<WorkoutAggregate>;
+    }): Promise<WorkoutSessionResult<WorkoutAggregate>> => {
       const activeId = activeWorkoutRef.current?.workout.id ?? null;
-
-      if (activeId !== command.expectedActiveWorkoutId) {
+      if (activeId !== input.expectedActiveWorkoutId) {
         return failure(
           new WorkoutSessionError({
             code: "invalidSessionState",
-            message:
-              "The active workout changed. Please select Repeat Workout again.",
+            message: input.invalidStateMessage,
           }),
         );
       }
 
-      if (command.expectedActiveWorkoutId !== null) {
-        return runActiveWorkoutOperation({
-          operation: {
-            type: "repeatWorkout",
-            sourceWorkoutId: command.sourceWorkoutId,
-          },
-          invalidStateMessage:
-            "The active workout changed. Please select Repeat Workout again.",
-          failureMessage: "Failed to repeat the workout",
-          run: () => actions.repeatWorkout(command),
-        });
+      if (input.expectedActiveWorkoutId !== null) {
+        return runActiveWorkoutOperation(input);
       }
 
       if (state.status !== "noActiveWorkout") {
         return failure(
           new WorkoutSessionError({
             code: "invalidSessionState",
-            message: "A workout cannot be repeated in this state",
+            message: input.invalidStateMessage,
           }),
         );
       }
-
       if (isStartingRef.current || isActiveOperationRunningRef.current) {
         return failure(
           new WorkoutSessionError({
@@ -359,43 +361,61 @@ export function useWorkoutSessionController(
       }
 
       isStartingRef.current = true;
-      dispatch({
-        type: "startOperationStarted",
-        operation: {
-          type: "repeatWorkout",
-          sourceWorkoutId: command.sourceWorkoutId,
-        },
-      });
-
+      dispatch({ type: "startOperationStarted", operation: input.operation });
       try {
-        const workout = await actions.repeatWorkout(command);
+        const workout = await input.run();
         activeWorkoutRef.current = workout;
-
         dispatch({ type: "workoutCommitted", workout });
-
         return success(workout);
       } catch (error) {
         const sessionError = new WorkoutSessionError({
           code: "operationFailed",
-          message: "Failed to repeat the workout",
+          message: input.failureMessage,
           cause: toError(error),
         });
-
         dispatch({
           type: "startOperationFailed",
-          operation: {
-            type: "repeatWorkout",
-            sourceWorkoutId: command.sourceWorkoutId,
-          },
+          operation: input.operation,
           error: sessionError,
         });
-
         return failure(sessionError);
       } finally {
         isStartingRef.current = false;
       }
     },
-    [actions, runActiveWorkoutOperation, state.status],
+    [runActiveWorkoutOperation, state.status],
+  );
+
+  const repeatWorkout = useCallback(
+    (command: RepeatWorkoutCommand) =>
+      runWorkoutStart({
+        operation: {
+          type: "repeatWorkout",
+          sourceWorkoutId: command.sourceWorkoutId,
+        },
+        expectedActiveWorkoutId: command.expectedActiveWorkoutId,
+        invalidStateMessage:
+          "The active workout changed. Please select Repeat Workout again.",
+        failureMessage: "Failed to repeat the workout",
+        run: () => actions.repeatWorkout(command),
+      }),
+    [actions, runWorkoutStart],
+  );
+
+  const startWorkoutFromTemplate = useCallback(
+    (command: StartWorkoutFromTemplateCommand) =>
+      runWorkoutStart({
+        operation: {
+          type: "startWorkoutFromTemplate",
+          templateId: command.templateId,
+        },
+        expectedActiveWorkoutId: command.expectedActiveWorkoutId,
+        invalidStateMessage:
+          "The active workout changed. Please select Start Workout again.",
+        failureMessage: "Failed to start workout from template",
+        run: () => actions.startWorkoutFromTemplate(command),
+      }),
+    [actions, runWorkoutStart],
   );
 
   const addExercise = useCallback(
@@ -614,6 +634,7 @@ export function useWorkoutSessionController(
   return {
     state,
     startEmptyWorkout,
+    startWorkoutFromTemplate,
     repeatWorkout,
     cancelWorkout,
     finishWorkout,

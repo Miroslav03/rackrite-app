@@ -1,5 +1,9 @@
 import { useIsFocused, useRouter } from "expo-router";
 
+import { useCallback } from "react";
+
+import type { TemplateId } from "@/domain/templates/editor/templates.types";
+
 import { useTemplateSession } from "@/features/templates/editor/session/TemplateSessionContext";
 import { templatesActions } from "@/features/templates/list/actions/templatesActions";
 import { useTemplatesController } from "@/features/templates/list/controller/useTemplatesController";
@@ -17,6 +21,16 @@ export default function TemplatesScreen() {
   const { state, dateReference, refresh } = useTemplatesController(
     templatesActions,
     isFocused,
+  );
+
+  const openTemplate = useCallback(
+    (templateId: TemplateId) => {
+      router.push({
+        pathname: "/templates/[templateId]",
+        params: { templateId },
+      });
+    },
+    [router],
   );
 
   function openNewTemplate() {
@@ -41,6 +55,7 @@ export default function TemplatesScreen() {
           dateReference={dateReference}
           onRefresh={refresh}
           onCreateTemplate={openNewTemplate}
+          onOpenTemplate={openTemplate}
         />
       );
   }

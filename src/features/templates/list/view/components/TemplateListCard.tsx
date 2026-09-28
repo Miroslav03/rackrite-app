@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { memo, useMemo } from "react";
 import { View } from "react-native";
 
+import type { TemplateId } from "@/domain/templates/editor/templates.types";
 import type { TemplateListItem } from "@/domain/templates/list/templates.types";
 
 import { AppText } from "@/shared/components/ui/AppText";
@@ -15,9 +16,11 @@ import { createTemplateCardViewModel } from "../templateCard.viewModel";
 export const TemplateListCard = memo(function TemplateListCard({
   template,
   dateReference,
+  onOpen,
 }: {
   template: TemplateListItem;
   dateReference: number;
+  onOpen: (templateId: TemplateId) => void;
 }) {
   const card = useMemo(
     () => createTemplateCardViewModel(template, dateReference),
@@ -27,6 +30,8 @@ export const TemplateListCard = memo(function TemplateListCard({
   return (
     <TemplateSurfaceCard
       testID={`template-card-${template.id}`}
+      onPress={() => onOpen(template.id)}
+      accessibilityLabel={`View ${template.name} details`}
       surfaceAccent="primary"
       surfaceClassName="bg-surfaceLow rounded-xl border-t border-r border-b border-t-outline/30 border-r-outline/30 border-b-outline/30"
       contentClassName="px-sm pt-sm pb-lg"

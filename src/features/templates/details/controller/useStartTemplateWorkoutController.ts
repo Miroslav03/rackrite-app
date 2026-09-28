@@ -1,37 +1,42 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { WorkoutId } from "@/domain/workout/workout.types";
+import type { TemplateId } from "@/domain/templates/editor/templates.types";
 
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
-import { getPendingRepeatWorkoutId } from "@/features/workout/session/workoutSession.selectors";
+import { getPendingStartTemplateId } from "@/features/workout/session/workoutSession.selectors";
 
-import type { RepeatWorkoutCommand } from "../actions/repeatWorkout";
+import type { StartWorkoutFromTemplateCommand } from "@/features/workout/actions/startWorkoutFromTemplate";
 
-export type HistoryOverlay =
+export type TemplateDetailsOverlay =
   | { type: "none" }
   | {
       type: "dangerModal";
-      confirmation: RepeatWorkoutCommand & { action: "repeatWorkout" };
+      confirmation: StartWorkoutFromTemplateCommand & {
+        action: "startWorkoutFromTemplate";
+      };
     };
 
-export function useRepeatWorkoutController(
-  session: Pick<WorkoutSessionController, "state" | "repeatWorkout">,
+export function useStartTemplateWorkoutController(
+  session: Pick<WorkoutSessionController, "state" | "startWorkoutFromTemplate">,
   onStarted: () => void,
   isFocused: boolean,
 ) {
-  const [overlay, setOverlay] = useState<HistoryOverlay>({ type: "none" });
+  const [overlay, setOverlay] = useState<TemplateDetailsOverlay>({
+    type: "none",
+  });
 
   const runningRef = useRef(false);
   const activeRef = useRef(isFocused);
 
-  const { state, repeatWorkout } = session;
+  const { state, startWorkoutFromTemplate } = session;
 
-  const pendingWorkoutId =
+  const pendingTemplateId =
     state.status === "active" || state.status === "noActiveWorkout"
-      ? getPendingRepeatWorkoutId(state.operation)
+      ? getPendingStartTemplateId(state.operation)
       : null;
 
   const disabled =
+    !isFocused ||
     (state.status !== "active" && state.status !== "noActiveWorkout") ||
     state.operation.status === "pending";
 
@@ -45,13 +50,13 @@ export function useRepeatWorkoutController(
   }, [isFocused]);
 
   const run = useCallback(
-    async (command: RepeatWorkoutCommand) => {
-      if (runningRef.current || disabled) return;
+    async (command: StartWorkoutFromTemplateCommand) => {
+      if (!activeRef.current || runningRef.current || disabled) return;
 
       runningRef.current = true;
 
       try {
-        const result = await repeatWorkout(command);
+        const result = await startWorkoutFromTemplate(command);
 
         if (!activeRef.current) return;
 
@@ -65,11 +70,11 @@ export function useRepeatWorkoutController(
         runningRef.current = false;
       }
     },
-    [disabled, repeatWorkout, onStarted],
+    [disabled, startWorkoutFromTemplate, onStarted],
   );
 
-  const requestRepeat = useCallback(
-    (sourceWorkoutId: WorkoutId) => {
+  const requestStart = useCallback(
+    (templateId: TemplateId) => {
       if (disabled || runningRef.current) return;
 
       switch (state.status) {
@@ -77,14 +82,14 @@ export function useRepeatWorkoutController(
           setOverlay({
             type: "dangerModal",
             confirmation: {
-              action: "repeatWorkout",
-              sourceWorkoutId,
+              action: "startWorkoutFromTemplate",
+              templateId,
               expectedActiveWorkoutId: state.workout.workout.id,
             },
           });
           return;
         case "noActiveWorkout":
-          void run({ sourceWorkoutId, expectedActiveWorkoutId: null });
+          void run({ templateId, expectedActiveWorkoutId: null });
           return;
       }
     },
@@ -97,7 +102,7 @@ export function useRepeatWorkoutController(
         return;
       case "dangerModal":
         switch (overlay.confirmation.action) {
-          case "repeatWorkout":
+          case "startWorkoutFromTemplate":
             void run(overlay.confirmation);
             return;
         }
@@ -105,15 +110,15 @@ export function useRepeatWorkoutController(
   }
 
   function close() {
-    if (!runningRef.current && pendingWorkoutId === null)
+    if (!runningRef.current && pendingTemplateId === null)
       setOverlay({ type: "none" });
   }
 
   return {
     overlay,
-    pendingWorkoutId,
+    pendingTemplateId,
     disabled,
-    requestRepeat,
+    requestStart,
     confirm,
     close,
   };

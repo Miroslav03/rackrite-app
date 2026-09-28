@@ -5,7 +5,7 @@ import { useCallback, useMemo } from "react";
 import { ActivityIndicator, FlatList, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type { HistoryWorkoutDetails } from "@/domain/history/history.types";
+import type { TemplateDetails } from "@/domain/templates/details/templates.types";
 
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
 
@@ -16,22 +16,27 @@ import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
 import { ExerciseDetailsCard } from "@/shared/components/ui/ExerciseDetailsCard";
 import { Metric } from "@/shared/components/ui/Metric";
-import { colors, spacing } from "@/shared/theme/tokens";
+import { spacing } from "@/shared/theme/tokens";
 
-import { useRepeatWorkoutController } from "../controller/useRepeatWorkoutController";
+import { useStartTemplateWorkoutController } from "../controller/useStartTemplateWorkoutController";
 
-import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
-import { createHistoryDetailsViewModel } from "./historyDetails.viewModel";
+import { StartTemplateWorkoutModal } from "./components/StartTemplateWorkoutModal";
+import { createTemplateDetailsViewModel } from "./templateDetails.viewModel";
 
-type HistoryDetailsScreenViewProps = {
-  workout: HistoryWorkoutDetails;
-  session: WorkoutSessionController;
+type TemplateDetailsScreenViewProps = {
+  template: TemplateDetails;
+  dateReference: number;
+  session: Pick<
+    WorkoutSessionController,
+    "state" | "startWorkoutFromTemplate" | "dismissOperationError"
+  >;
 };
 
-export function HistoryDetailsScreenView({
-  workout: details,
+export function TemplateDetailsScreenView({
+  template: details,
+  dateReference,
   session,
-}: HistoryDetailsScreenViewProps) {
+}: TemplateDetailsScreenViewProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
@@ -41,17 +46,17 @@ export function HistoryDetailsScreenView({
     [router],
   );
 
-  const repeat = useRepeatWorkoutController(
+  const start = useStartTemplateWorkoutController(
     session,
     openActiveWorkout,
     isFocused,
   );
 
-  const repeatPending = repeat.pendingWorkoutId !== null;
+  const startPending = start.pendingTemplateId !== null;
 
-  const workout = useMemo(
-    () => createHistoryDetailsViewModel(details),
-    [details],
+  const template = useMemo(
+    () => createTemplateDetailsViewModel(details, dateReference),
+    [details, dateReference],
   );
 
   return (
@@ -66,11 +71,15 @@ export function HistoryDetailsScreenView({
         />
       )}
       <FlatList
-        testID="history-details-list"
-        data={workout.exercises}
+        testID="template-details-list"
+        data={template.exercises}
         keyExtractor={(exercise) => exercise.id}
         renderItem={({ item }) => (
-          <ExerciseDetailsCard exercise={item} setTestIdPrefix="history-set" />
+          <ExerciseDetailsCard
+            exercise={item}
+            showWeight={false}
+            setTestIdPrefix="template-set"
+          />
         )}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -81,35 +90,14 @@ export function HistoryDetailsScreenView({
         ListHeaderComponent={
           <View className="gap-xl pb-xl">
             <View className="gap-sm">
-              <AppText variant="title">{workout.name}</AppText>
-              <View className="flex-row flex-wrap items-center gap-sm">
-                <Ionicons
-                  name="calendar-outline"
-                  size={20}
-                  color={colors.primarySoft}
-                />
-                <AppText className="text-sm font-semibold text-foreground">
-                  {workout.date}
-                </AppText>
-                <AppText>·</AppText>
-                <Ionicons
-                  name="time-outline"
-                  size={20}
-                  color={colors.primarySoft}
-                />
-                <AppText className="text-sm font-semibold text-foreground">
-                  {workout.duration}
-                </AppText>
-              </View>
+              <AppText variant="title">{template.name}</AppText>
+              <AppText className="text-sm font-semibold text-foreground">
+                Last performed: {template.lastPerformed}
+              </AppText>
             </View>
             <View className="flex-row gap-sm">
-              <Metric
-                label="Total Volume"
-                value={workout.totalVolume}
-                unit="kg"
-              />
-              <Metric label="Total Sets" value={workout.totalSets} />
-              <Metric label="Avg. RPE" value={workout.averageRpe} />
+              <Metric label="Total Sets" value={template.totalSets} />
+              <Metric label="Avg. RPE" value={template.averageRpe} />
             </View>
           </View>
         }
@@ -119,28 +107,29 @@ export function HistoryDetailsScreenView({
         style={{ paddingBottom: insets.bottom + spacing.lg }}
       >
         <Button
-          title={repeatPending ? "Repeating..." : "Repeat Workout"}
+          testID="start-template-workout"
+          title={startPending ? "Starting..." : "Start Workout"}
           accessibilityRole="button"
           accessibilityState={{
-            disabled: repeat.disabled,
-            busy: repeatPending,
+            disabled: start.disabled || details.totalSets === 0,
+            busy: startPending,
           }}
-          disabled={repeat.disabled || details.totalSets === 0}
-          onPress={() => repeat.requestRepeat(details.id)}
+          disabled={start.disabled || details.totalSets === 0}
+          onPress={() => start.requestStart(details.id)}
           leftIcon={
-            repeatPending ? (
+            startPending ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Ionicons name="refresh" size={20} color="white" />
+              <Ionicons name="play" size={20} color="white" />
             )
           }
         />
       </View>
-      <RepeatWorkoutModal
-        overlay={repeat.overlay}
-        pending={repeatPending}
-        onConfirm={repeat.confirm}
-        onClose={repeat.close}
+      <StartTemplateWorkoutModal
+        overlay={start.overlay}
+        pending={startPending}
+        onConfirm={start.confirm}
+        onClose={start.close}
       />
     </Screen>
   );
