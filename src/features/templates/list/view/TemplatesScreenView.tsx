@@ -11,14 +11,14 @@ import {
 import type { TemplateListItem } from "@/domain/templates/list/templates.types";
 
 import { ErrorNotice } from "@/shared/components/feedback/ErrorNotice";
+import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
 import { Screen } from "@/shared/components/layout/Screen";
+import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 import { AppText } from "@/shared/components/ui/AppText";
 import { colors, spacing } from "@/shared/theme/tokens";
 
 import type { TemplatesState } from "../controller/templates.types";
 
-import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
-import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 import { TemplateListCard } from "./components/TemplateListCard";
 
 type TemplatesScreenViewProps = {
@@ -73,10 +73,9 @@ export function TemplatesScreenView({
               ? CREATE_BUTTON_SIZE + spacing.xl * 2
               : spacing.lg,
         }}
-        ItemSeparatorComponent={<View className="h-xl" />}
-
+        ItemSeparatorComponent={<View className="h-lg" />}
         ListHeaderComponent={
-          <View className="pb-12">
+          <View className="pb-xl">
             <ScreenHeader
               title="Templates"
               subtitle="Library"

@@ -1,6 +1,5 @@
 import { ErrorNotice } from "@/shared/components/feedback/ErrorNotice";
 import { Screen } from "@/shared/components/layout/Screen";
-
 import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 
 export function TemplatesScreenLoadError({

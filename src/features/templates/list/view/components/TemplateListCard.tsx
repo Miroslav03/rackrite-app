@@ -29,9 +29,9 @@ export const TemplateListCard = memo(function TemplateListCard({
       testID={`template-card-${template.id}`}
       surfaceAccent="primary"
       surfaceClassName="bg-surfaceLow rounded-xl border-t border-r border-b border-t-outline/30 border-r-outline/30 border-b-outline/30"
-      contentClassName="px-sm pt-sm pb-xl"
-      dividerClassName="mx-sm bg-outline/30"
-      footerClassName="px-sm pt-xl pb-sm"
+      contentClassName="px-sm pt-sm pb-lg"
+      dividerClassName="mx-sm bg-outline/20"
+      footerClassName="px-sm pt-md pb-sm"
       footer={
         <View className="min-h-6 flex-row items-center justify-between gap-lg">
           <View className="flex-1 flex-row flex-wrap items-center gap-x-lg gap-y-xs">
@@ -74,12 +74,7 @@ export const TemplateListCard = memo(function TemplateListCard({
         <View className="min-h-5 flex-row flex-wrap gap-sm">
           {card.liftBadges.length > 0 ? (
             card.liftBadges.map(({ id, label }) => (
-              <Badge
-                key={id}
-                label={label}
-                textClassName="text-xs uppercase tracking-wider"
-                className="py-0.5"
-              />
+              <Badge key={id} label={label} />
             ))
           ) : (
             <Badge

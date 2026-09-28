@@ -1,4 +1,5 @@
 import type { TemplateListItem } from "@/domain/templates/list/templates.types";
+
 import { formatRelativeDay } from "@/shared/utils/formatRelativeDay";
 
 export function createTemplateCardViewModel(
