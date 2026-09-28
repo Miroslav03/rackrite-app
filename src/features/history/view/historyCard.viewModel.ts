@@ -4,11 +4,7 @@ import type { HistoryWorkoutSummary } from "@/domain/history/history.types";
 import { SET_TYPE_CONFIG, SET_TYPE_ORDER } from "@/shared/theme/setTypes";
 import { getWorkoutDisplayName } from "@/shared/utils/getWorkoutDisplayName";
 
-import {
-  formatHistoryPerformedAt,
-  formatHistoryRelativeDay,
-  weightFormatter,
-} from "./historyDate.utils";
+import { formatHistoryPerformedAt, weightFormatter } from "./historyDate.utils";
 
 const liftLabels: Record<LiftFamily, string> = {
   bench: "Bench",
@@ -16,10 +12,7 @@ const liftLabels: Record<LiftFamily, string> = {
   deadlift: "Deadlift",
 };
 
-export function createHistoryCardViewModel(
-  summary: HistoryWorkoutSummary,
-  now: number,
-) {
+export function createHistoryCardViewModel(summary: HistoryWorkoutSummary) {
   return {
     workoutName: getWorkoutDisplayName(summary.sourceTemplateId),
     duration: `${summary.durationMinutes} min`,
@@ -36,11 +29,10 @@ export function createHistoryCardViewModel(
         (type) => exercise.setCounts[type] > 0,
       ).map((type) => ({
         type,
-        label: `${type === "top" ? "Top" : SET_TYPE_CONFIG[type].label} ${exercise.setCounts[type]}`,
+        label: `${type === "top" ? "Top" : SET_TYPE_CONFIG[type].label}`,
       })),
     })),
-    relativeDay: formatHistoryRelativeDay(summary.startedAt, now),
-    totalWeight: `${weightFormatter.format(summary.totalWeight)} kg total`,
+    totalWeight: `VOLUME: ${weightFormatter.format(summary.totalWeight)} kg`,
     performedAt: formatHistoryPerformedAt(summary.startedAt),
   };
 }

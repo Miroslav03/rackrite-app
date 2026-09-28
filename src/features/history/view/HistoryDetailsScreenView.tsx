@@ -9,6 +9,8 @@ import type { HistoryWorkoutDetails } from "@/domain/history/history.types";
 
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
 
+import { ErrorNotifier } from "@/shared/components/feedback/ErrorNotifier/ErrorNotifier";
+import { getActiveWorkoutOperationErrorMessage } from "@/shared/components/feedback/ErrorNotifier/utils";
 import { Screen } from "@/shared/components/layout/Screen";
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
@@ -17,8 +19,6 @@ import { colors, spacing } from "@/shared/theme/tokens";
 
 import { useRepeatWorkoutController } from "../controller/useRepeatWorkoutController";
 
-import { ErrorNotifier } from "@/shared/components/feedback/ErrorNotifier/ErrorNotifier";
-import { getActiveWorkoutOperationErrorMessage } from "@/shared/components/feedback/ErrorNotifier/utils";
 import { HistoryExerciseCard } from "./components/HistoryExerciseCard";
 import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
 import { createHistoryDetailsViewModel } from "./historyDetails.viewModel";
@@ -71,30 +71,31 @@ export function HistoryDetailsScreenView({
         keyExtractor={(exercise) => exercise.id}
         renderItem={({ item }) => <HistoryExerciseCard exercise={item} />}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: spacing.xl }}
-        ItemSeparatorComponent={<View className="h-xl" />}
+        contentContainerStyle={{
+          paddingBottom: spacing.xl,
+          paddingTop: spacing.xl,
+        }}
+        ItemSeparatorComponent={<View className="h-lg" />}
         ListHeaderComponent={
-          <View className="gap-xl pb-xl pt-sm">
+          <View className="gap-xl pb-xl">
             <View className="gap-sm">
-              <AppText variant="logo" className="text-3xl uppercase">
-                {workout.name}
-              </AppText>
+              <AppText variant="title">{workout.name}</AppText>
               <View className="flex-row flex-wrap items-center gap-sm">
                 <Ionicons
                   name="calendar-outline"
-                  size={14}
+                  size={20}
                   color={colors.primarySoft}
                 />
-                <AppText className="text-xs font-semibold text-foreground">
+                <AppText className="text-sm font-semibold text-foreground">
                   {workout.date}
                 </AppText>
                 <AppText>·</AppText>
                 <Ionicons
                   name="time-outline"
-                  size={14}
+                  size={20}
                   color={colors.primarySoft}
                 />
-                <AppText className="text-xs font-semibold text-foreground">
+                <AppText className="text-sm font-semibold text-foreground">
                   {workout.duration}
                 </AppText>
               </View>
@@ -112,7 +113,7 @@ export function HistoryDetailsScreenView({
         }
       />
       <View
-        className="bg-background pt-md"
+        className="bg-transparent"
         style={{ paddingBottom: insets.bottom + spacing.lg }}
       >
         <Button
@@ -154,16 +155,17 @@ function Metric({
 }) {
   return (
     <SurfaceCard
-      className="flex-1 bg-surfaceLow"
-      contentClassName="p-md gap-sm"
+      className="flex-1 bg-surfaceLow border-l-2"
+      accent="primary"
+      contentClassName="p-md gap-xs"
     >
-      <AppText className="text-[10px] font-bold uppercase tracking-wide">
+      <AppText
+        variant="subtitle"
+        className="text-xs font-extrabold uppercase tracking-wide"
+      >
         {label}
       </AppText>
-      <AppText
-        className="text-2xl font-extrabold text-foreground"
-        style={{ fontVariant: ["tabular-nums"] }}
-      >
+      <AppText className="text-xl font-extrabold text-foreground">
         {value}
         {unit ? (
           <AppText className="text-[10px] uppercase"> {unit}</AppText>

@@ -57,7 +57,7 @@ export function Badge({
     >
       {leadingAccessory}
       <AppText
-        className={cn("text-sm font-bold", textClassName)}
+        className={cn("text-xs font-bold", textClassName)}
         style={{
           color: accentColor ?? appearance.accentColor,
           fontVariant: ["tabular-nums"],

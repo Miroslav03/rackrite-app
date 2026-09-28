@@ -1,3 +1,5 @@
+import { colors } from "@/shared/theme/tokens";
+import { Ionicons } from "@expo/vector-icons";
 import { memo, useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
@@ -5,8 +7,6 @@ import {
   View,
   type GestureResponderEvent,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@/shared/theme/tokens";
 
 import type { HistoryWorkoutSummary } from "@/domain/history/history.types";
 import type { WorkoutId } from "@/domain/workout/workout.types";
@@ -19,7 +19,6 @@ import { createHistoryCardViewModel } from "../historyCard.viewModel";
 
 type HistoryWorkoutCardProps = {
   workout: HistoryWorkoutSummary;
-  dateReference: number;
   onOpen?: (workoutId: WorkoutId) => void;
   onRepeat?: (workoutId: WorkoutId) => void;
   repeatDisabled?: boolean;
@@ -28,17 +27,18 @@ type HistoryWorkoutCardProps = {
 
 export const HistoryWorkoutCard = memo(function HistoryWorkoutCard({
   workout,
-  dateReference,
   onOpen,
   onRepeat,
   repeatDisabled,
   repeatPending,
 }: HistoryWorkoutCardProps) {
-  const card = useMemo(
-    () => createHistoryCardViewModel(workout, dateReference),
-    [workout, dateReference],
+  const card = useMemo(() => createHistoryCardViewModel(workout), [workout]);
+
+  const handleOpen = useCallback(
+    () => onOpen?.(workout.id),
+    [onOpen, workout.id],
   );
-  const handleOpen = useCallback(() => onOpen?.(workout.id), [onOpen, workout.id]);
+
   const handleRepeat = useCallback(
     (event: GestureResponderEvent) => {
       event.stopPropagation();
@@ -56,18 +56,12 @@ export const HistoryWorkoutCard = memo(function HistoryWorkoutCard({
       surfaceClassName="bg-surfaceLow rounded-2xl"
       contentClassName="px-sm pb-0 pt-sm"
       footerClassName="px-sm pt-sm pb-sm"
-      dividerClassName="mx-lg bg-outline/20"
+      dividerClassName="bg-outline/20"
       footer={
         <View className="flex-row items-end justify-between gap-sm">
           <View className="flex-1 gap-xs">
             <View className="flex-row flex-wrap items-center gap-x-sm gap-y-xs">
               <AppText className="text-md font-bold uppercase tracking-wide">
-                {card.relativeDay}
-              </AppText>
-              <AppText
-                className="text-md font-bold uppercase tracking-wide"
-                style={{ fontVariant: ["tabular-nums"] }}
-              >
                 {card.totalWeight}
               </AppText>
             </View>
@@ -92,9 +86,7 @@ export const HistoryWorkoutCard = memo(function HistoryWorkoutCard({
                 <Ionicons
                   name="refresh"
                   size={24}
-                  color={
-                    repeatDisabled ? colors.outline : colors.primarySoft
-                  }
+                  color={repeatDisabled ? colors.outline : colors.primarySoft}
                 />
               )}
             </Pressable>
@@ -104,26 +96,14 @@ export const HistoryWorkoutCard = memo(function HistoryWorkoutCard({
     >
       <View className="gap-sm pb-md">
         <View className="flex-row items-center justify-between gap-x-sm gap-y-xs">
-          <AppText
-            variant="logo"
-            className="flex-1 text-2xl tracking-wide"
-          >
+          <AppText variant="title" className="flex-1 text-3xl tracking-wide">
             {card.workoutName}
           </AppText>
-          <AppText
-            className="text-sm font-bold uppercase tracking-wider"
-            style={{ fontVariant: ["tabular-nums"] }}
-          >
+          <AppText className="text-sm font-bold uppercase tracking-wider">
             {card.duration}
           </AppText>
         </View>
-        {card.liftBadges.length > 0 ? (
-          <View className="flex-row flex-wrap gap-xs">
-            {card.liftBadges.map(({ family, label }) => (
-              <Badge key={family} label={label.toUpperCase()} />
-            ))}
-          </View>
-        ) : null}
+        {/*  Place for Workout Description */}
       </View>
 
       {card.exercises.map((exercise) => (
@@ -133,7 +113,7 @@ export const HistoryWorkoutCard = memo(function HistoryWorkoutCard({
         >
           <View className="flex-row items-baseline justify-between gap-sm">
             <View className="flex-row items-baseline gap-sm">
-              <AppText className="flex-shrink text-md font-bold text-foreground">
+              <AppText className="flex-shrink text-md font-extrabold text-foreground">
                 {exercise.name}
               </AppText>
 

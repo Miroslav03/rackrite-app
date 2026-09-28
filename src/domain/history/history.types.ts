@@ -36,7 +36,7 @@ export type HistoryWorkoutSummary = {
   startedAt: number;
   durationMinutes: number;
   totalWeight: number;
-  liftFamilies: LiftFamily[];
+  liftFamilies: LiftFamily[]; // REMOVED
   exercises: HistoryExerciseSummary[];
 };
 

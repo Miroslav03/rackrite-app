@@ -18,7 +18,6 @@ import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
 import { Screen } from "@/shared/components/layout/Screen";
 import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 import { AppText } from "@/shared/components/ui/AppText";
-import { Button } from "@/shared/components/ui/Button";
 import { colors, spacing } from "@/shared/theme/tokens";
 
 import { useRepeatWorkoutController } from "../controller/useRepeatWorkoutController";
@@ -76,20 +75,13 @@ export function HistoryScreenView({
     ({ item }: ListRenderItemInfo<HistoryWorkoutSummary>) => (
       <HistoryWorkoutCard
         workout={item}
-        dateReference={dateReference}
         onOpen={openWorkout}
         onRepeat={requestRepeat}
         repeatDisabled={repeatDisabled}
         repeatPending={pendingWorkoutId === item.id}
       />
     ),
-    [
-      dateReference,
-      openWorkout,
-      requestRepeat,
-      repeatDisabled,
-      pendingWorkoutId,
-    ],
+    [openWorkout, requestRepeat, repeatDisabled, pendingWorkoutId],
   );
 
   useEffect(() => {
@@ -160,14 +152,6 @@ export function HistoryScreenView({
               <AppText className="text-center">
                 Finish your first session to build your history.
               </AppText>
-            </View>
-
-            <View className="absolute bottom-0 left-0 right-0">
-              <Button
-                title="Go to Start"
-                accessibilityRole="button"
-                onPress={() => router.navigate("/")}
-              />
             </View>
           </View>
         }

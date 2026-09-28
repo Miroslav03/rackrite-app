@@ -21,7 +21,7 @@ export function HistoryExerciseCard({
       <View>
         <AppText
           variant="title"
-          className="text-xl font-extrabold uppercase tracking-wide text-foreground"
+          className="text-2xl font-extrabold uppercase tracking-wide text-foreground"
         >
           {exercise.name}
         </AppText>
@@ -29,13 +29,13 @@ export function HistoryExerciseCard({
           {exercise.kind}
         </AppText>
       </View>
-      <View className="gap-sm">
+      <View className="gap-xs">
         {!expanded && (
           <View className="flex-row px-sm">
             {columns.map((label, index) => (
               <AppText
                 key={label}
-                className={`text-[10px] font-bold uppercase ${label === "RPE" ? "text-white text-right" : "text-muted"}`}
+                className={`text-xs font-bold uppercase ${label === "RPE" ? "text-white text-right" : "text-muted"}`}
                 style={{ flex: widths[index] }}
               >
                 {label}
@@ -47,7 +47,7 @@ export function HistoryExerciseCard({
           <SurfaceCard
             key={set.id}
             testID={`history-set-${set.id}`}
-            className="border rounded-md"
+            className="rounded-md"
             style={{
               backgroundColor: set.type.tintColor,
               borderColor: `${set.type.accentColor}40`,
@@ -79,7 +79,6 @@ export function HistoryExerciseCard({
                 <AppText
                   className={`text-xs font-bold ${index === 1 ? "uppercase" : ""} ${index === 4 ? "text-white" : "text-foreground"} ${index === 4 && !expanded ? "text-right" : ""}`}
                   style={{
-                    fontVariant: ["tabular-nums"],
                     ...(index === 1 ? { color: set.type.accentColor } : {}),
                   }}
                 >

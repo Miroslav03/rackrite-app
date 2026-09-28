@@ -61,7 +61,7 @@ export const TemplateListCard = memo(function TemplateListCard({
       }
     >
       <View className="gap-md">
-        <AppText variant="logo" className="text-3xl tracking-tight">
+        <AppText variant="title" className="text-3xl tracking-wide">
           {card.name}
         </AppText>
         {card.description !== null ? (
