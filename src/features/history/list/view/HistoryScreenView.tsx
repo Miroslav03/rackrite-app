@@ -11,7 +11,7 @@ import {
 import type { HistoryWorkoutSummary } from "@/domain/history/history.types";
 import type { WorkoutId } from "@/domain/workout/workout.types";
 
-import type { HistoryState } from "@/features/history/controller/history.types";
+import type { HistoryState } from "@/features/history/list/controller/history.types";
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
 
 import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
@@ -20,13 +20,13 @@ import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 import { AppText } from "@/shared/components/ui/AppText";
 import { colors, spacing } from "@/shared/theme/tokens";
 
-import { useRepeatWorkoutController } from "../controller/useRepeatWorkoutController";
+import { useRepeatWorkoutController } from "../../controller/useRepeatWorkoutController";
 
 import { ErrorNotifier } from "@/shared/components/feedback/ErrorNotifier/ErrorNotifier";
 import { getActiveWorkoutOperationErrorMessage } from "@/shared/components/feedback/ErrorNotifier/utils";
 import { HistoryErrorNotice } from "./components/HistoryErrorNotice";
 import { HistoryWorkoutCard } from "./components/HistoryWorkoutCard";
-import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
+import { RepeatWorkoutModal } from "../../view/components/RepeatWorkoutModal";
 
 type HistoryScreenViewProps = {
   state: Extract<HistoryState, { status: "ready" }>;

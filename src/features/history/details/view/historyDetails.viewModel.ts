@@ -6,7 +6,7 @@ import { SET_TYPE_CONFIG } from "@/shared/theme/setTypes";
 import { formatRpe } from "@/shared/utils/formatRpe";
 import { getWorkoutDisplayName } from "@/shared/utils/getWorkoutDisplayName";
 
-import { performedDateFormatter, weightFormatter } from "./historyDate.utils";
+import { performedDateFormatter, weightFormatter } from "../../view/historyDate.utils";
 
 export function createHistoryDetailsViewModel(workout: HistoryWorkoutDetails) {
   return {

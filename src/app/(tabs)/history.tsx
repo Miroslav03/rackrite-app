@@ -1,9 +1,9 @@
 import { useIsFocused } from "expo-router";
 
 import { historyActions } from "@/features/history/actions/historyActions";
-import { useHistoryController } from "@/features/history/controller/useHistoryController";
-import { HistoryScreenLoadError } from "@/features/history/view/HistoryScreenLoadError";
-import { HistoryScreenView } from "@/features/history/view/HistoryScreenView";
+import { useHistoryController } from "@/features/history/list/controller/useHistoryController";
+import { HistoryScreenLoadError } from "@/features/history/list/view/HistoryScreenLoadError";
+import { HistoryScreenView } from "@/features/history/list/view/HistoryScreenView";
 import { useWorkoutSession } from "@/features/workout/session/WorkoutSessionContext";
 
 import { FullScreenLoader } from "@/shared/components/feedback/FullScreenLoader";

@@ -13,9 +13,9 @@ import type {
   HistoryWorkoutDetails,
 } from "@/domain/history/history.types";
 
-import { loadHistoryDetails } from "./loadHistoryDetails";
-import { loadHistoryOverview } from "./loadHistoryOverview";
-import { HISTORY_PAGE_SIZE, loadHistoryPage } from "./loadHistoryPage";
+import { loadHistoryDetails } from "../details/actions/loadHistoryDetails";
+import { loadHistoryOverview } from "../list/actions/loadHistoryOverview";
+import { HISTORY_PAGE_SIZE, loadHistoryPage } from "../list/actions/loadHistoryPage";
 
 export type HistoryActions = {
   loadDetails: (workoutId: string) => Promise<HistoryWorkoutDetails | null>;

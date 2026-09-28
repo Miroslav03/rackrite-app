@@ -18,9 +18,9 @@ import { ExerciseDetailsCard } from "@/shared/components/ui/ExerciseDetailsCard"
 import { Metric } from "@/shared/components/ui/Metric";
 import { colors, spacing } from "@/shared/theme/tokens";
 
-import { useRepeatWorkoutController } from "../controller/useRepeatWorkoutController";
+import { useRepeatWorkoutController } from "../../controller/useRepeatWorkoutController";
 
-import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
+import { RepeatWorkoutModal } from "../../view/components/RepeatWorkoutModal";
 import { createHistoryDetailsViewModel } from "./historyDetails.viewModel";
 
 type HistoryDetailsScreenViewProps = {

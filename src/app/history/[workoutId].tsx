@@ -3,8 +3,8 @@ import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
 import { View } from "react-native";
 
 import { historyActions } from "@/features/history/actions/historyActions";
-import { useHistoryDetailsController } from "@/features/history/controller/useHistoryDetailsController";
-import { HistoryDetailsScreenView } from "@/features/history/view/HistoryDetailsScreenView";
+import { useHistoryDetailsController } from "@/features/history/details/controller/useHistoryDetailsController";
+import { HistoryDetailsScreenView } from "@/features/history/details/view/HistoryDetailsScreenView";
 import { useWorkoutSession } from "@/features/workout/session/WorkoutSessionContext";
 
 import { ErrorNotice } from "@/shared/components/feedback/ErrorNotice";

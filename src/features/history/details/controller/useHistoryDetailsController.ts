@@ -4,7 +4,7 @@ import type { HistoryWorkoutDetails } from "@/domain/history/history.types";
 
 import { toError } from "@/shared/utils/error";
 
-import type { HistoryActions } from "../actions/historyActions";
+import type { HistoryActions } from "../../actions/historyActions";
 
 export type HistoryDetailsState =
   | { status: "loading" }

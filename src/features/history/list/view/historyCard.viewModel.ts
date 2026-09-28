@@ -4,7 +4,7 @@ import type { HistoryWorkoutSummary } from "@/domain/history/history.types";
 import { SET_TYPE_CONFIG, SET_TYPE_ORDER } from "@/shared/theme/setTypes";
 import { getWorkoutDisplayName } from "@/shared/utils/getWorkoutDisplayName";
 
-import { formatHistoryPerformedAt, weightFormatter } from "./historyDate.utils";
+import { formatHistoryPerformedAt, weightFormatter } from "../../view/historyDate.utils";
 
 const liftLabels: Record<LiftFamily, string> = {
   bench: "Bench",

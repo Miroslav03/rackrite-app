@@ -7,7 +7,7 @@ import {
   startOfLocalDay,
 } from "@/shared/utils/localCalendar";
 
-import { HistoryActions } from "../actions/historyActions";
+import { HistoryActions } from "../../actions/historyActions";
 
 import { historyReducer, initialHistoryState } from "./history.reducer";
 import type { HistoryAction, HistoryState } from "./history.types";
