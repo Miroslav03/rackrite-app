@@ -3,6 +3,7 @@ import { templateRepository } from "@/data/repositories/templateRepository";
 import type { Exercise } from "@/domain/exercises/exercise.types";
 import { DEFAULT_REST_SECONDS_BY_EXERCISE_KIND } from "@/domain/settings/settings.constants";
 import type {
+  Template,
   TemplateAggregate,
   TemplateExerciseId,
   TemplateId,
@@ -17,6 +18,7 @@ import {
   removeTemplateSet,
   updateTemplateExerciseOrder,
   updateTemplateSet,
+  updateTemplateMetadata,
 } from "@/domain/templates/editor/templates.useCases";
 
 import { createId } from "@/shared/utils/id";
@@ -44,7 +46,15 @@ export type UpdateTemplateSetCommand = {
 };
 export type RemoveTemplateSetCommand = { templateSetId: TemplateSetId };
 
+export type UpdateTemplateMetadataCommand = Partial<
+  Pick<Template, "name" | "description">
+>;
+
 export type TemplateSessionActions = {
+  updateMetadata: (
+    template: TemplateAggregate,
+    command: UpdateTemplateMetadataCommand,
+  ) => TemplateAggregate;
   createEmptyTemplate: () => TemplateAggregate;
   createTemplate: (template: TemplateAggregate) => Promise<void>;
   removeExercise: (
@@ -82,6 +92,8 @@ export function createTemplateSessionActions(
   },
 ): TemplateSessionActions {
   return {
+    updateMetadata: (template, command) =>
+      updateTemplateMetadata(template, { ...command, now: dependencies.now() }),
     createTemplate: (template) => createTemplate(dependencies, template),
     createEmptyTemplate: () =>
       createEmptyTemplate({

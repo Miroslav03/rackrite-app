@@ -12,6 +12,7 @@ export function createTemplateDetailsViewModel(
 ) {
   return {
     name: template.name,
+    description: template.description,
     lastPerformed: template.lastExecution
       ? formatRelativeDay(template.lastExecution.finishedAt, now)
       : "Never",

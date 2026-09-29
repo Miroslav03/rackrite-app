@@ -6,6 +6,7 @@ it("keeps the best set and set-type badges without family badges or set totals",
   const summary: HistoryWorkoutSummary = {
     id: "workout",
     sourceTemplateId: null,
+    description: null,
     startedAt: 0,
     durationMinutes: 45,
     totalWeight: 500,

@@ -21,6 +21,7 @@ export type StartWorkoutOperation =
     >;
 
 export type ActiveWorkoutOperation =
+  | { type: "updateMetadata" }
   | { type: "startWorkoutFromTemplate"; templateId: TemplateId }
   | { type: "repeatWorkout"; sourceWorkoutId: WorkoutId }
   | { type: "addExercise"; exerciseId: ExerciseId }

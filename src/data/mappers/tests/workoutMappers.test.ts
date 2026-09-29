@@ -10,6 +10,7 @@ function createWorkout(): Workout {
   return {
     id: "workout_1",
     sourceTemplateId: null,
+    description: null,
     status: "active",
     activeSetId: "set_2",
     restTimer: {
@@ -28,6 +29,7 @@ function createWorkoutRow(overrides: Partial<WorkoutRow> = {}): WorkoutRow {
   return {
     id: "workout_1",
     sourceTemplateId: null,
+    description: null,
     status: "active",
     activeSetId: "set_2",
     restTimerSourceSetId: "set_1",
@@ -68,3 +70,14 @@ describe("workout timer mapping", () => {
     );
   });
 });
+
+it.each([null, "Pause every rep"])(
+  "round trips description %s",
+  (description) => {
+    const workout = { ...createWorkout(), description };
+    expect(workoutToRow(workout).description).toBe(description);
+    expect(
+      workoutRowToWorkout(createWorkoutRow({ description })).description,
+    ).toBe(description);
+  },
+);

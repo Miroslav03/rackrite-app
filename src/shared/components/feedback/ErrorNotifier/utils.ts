@@ -42,6 +42,9 @@ export function getActiveWorkoutOperationErrorMessage(
     case "copyPreviousSet":
       return "Couldn't copy previous set. Try again.";
 
+    case "updateMetadata":
+      return "Couldn't save description. Try again.";
+
     case "updateSet":
       return "Couldn't update set. Try again.";
 

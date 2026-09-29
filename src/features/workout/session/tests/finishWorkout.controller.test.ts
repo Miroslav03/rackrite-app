@@ -1,8 +1,8 @@
 import { createElement, type ReactElement } from "react";
 
 import {
-  createWorkoutWithAllSetsCompleted,
   createCompletedWorkoutWithMixedSets,
+  createWorkoutWithAllSetsCompleted,
   createWorkoutWithTwoExercises,
   createWorkoutWithTwoSets,
 } from "@/domain/workout/tests/workout.test.helpers";
@@ -12,6 +12,7 @@ import {
   createRepeatedWorkout,
   updateWorkoutExerciseOrder,
 } from "@/domain/workout/workout.useCases";
+
 import type { WorkoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
 
 import {
@@ -49,6 +50,7 @@ function createActions(
     removeSet: async (currentWorkout) => currentWorkout,
     addSet: async (currentWorkout) => currentWorkout,
     copyPreviousSet: async (currentWorkout) => currentWorkout,
+    updateMetadata: async (currentWorkout) => currentWorkout,
     updateSet: async (currentWorkout) => currentWorkout,
     selectSet: async (currentWorkout) => currentWorkout,
     completeSet: async (currentWorkout) => currentWorkout,
@@ -464,3 +466,37 @@ describe.each(["repeatWorkout", "startWorkoutFromTemplate"] as const)(
     });
   },
 );
+
+it("commits description only after persistence succeeds and permits retry", async () => {
+  const workout = createWorkoutWithTwoSets();
+  const saved = {
+    ...workout,
+    workout: { ...workout.workout, description: "Heavy day" },
+  };
+  const updateMetadata = jest
+    .fn()
+    .mockRejectedValueOnce(new Error("Database unavailable"))
+    .mockResolvedValueOnce(saved);
+  const r = await renderController(createActions(workout, { updateMetadata }));
+  await act(async () => {
+    expect(
+      (await r.getController().updateMetadata({ description: "Heavy day" }))
+        .success,
+    ).toBe(false);
+  });
+  expect(r.getController().state).toMatchObject({
+    workout,
+    operation: { status: "error", operation: { type: "updateMetadata" } },
+  });
+  await act(async () => {
+    expect(
+      (await r.getController().updateMetadata({ description: "Heavy day" }))
+        .success,
+    ).toBe(true);
+  });
+  expect(r.getController().state).toMatchObject({
+    workout: saved,
+    operation: { status: "idle" },
+  });
+  await r.unmount();
+});

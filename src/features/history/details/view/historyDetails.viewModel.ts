@@ -6,10 +6,14 @@ import { SET_TYPE_CONFIG } from "@/shared/theme/setTypes";
 import { formatRpe } from "@/shared/utils/formatRpe";
 import { getWorkoutDisplayName } from "@/shared/utils/getWorkoutDisplayName";
 
-import { performedDateFormatter, weightFormatter } from "../../view/historyDate.utils";
+import {
+  performedDateFormatter,
+  weightFormatter,
+} from "../../view/historyDate.utils";
 
 export function createHistoryDetailsViewModel(workout: HistoryWorkoutDetails) {
   return {
+    description: workout.description,
     name: getWorkoutDisplayName(workout.sourceTemplateId),
     date: performedDateFormatter.format(workout.startedAt).toUpperCase(),
     duration: `${workout.durationMinutes} MIN`,

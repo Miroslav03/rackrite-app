@@ -56,7 +56,16 @@ import {
 } from "./updateExerciseOrder";
 import { updateSet, type UpdateSetCommand } from "./updateSet";
 
+import {
+  updateMetadata,
+  type UpdateWorkoutMetadataCommand,
+} from "./updateMetadata";
+
 export type WorkoutSessionActions = {
+  updateMetadata: (
+    workout: WorkoutAggregate,
+    command: UpdateWorkoutMetadataCommand,
+  ) => Promise<WorkoutAggregate>;
   startWorkoutFromTemplate: (
     command: StartWorkoutFromTemplateCommand,
   ) => Promise<WorkoutAggregate>;
@@ -130,6 +139,8 @@ export function createWorkoutSessionActions(
   dependencies: CreateWorkoutSessionActionsDependencies,
 ): WorkoutSessionActions {
   return {
+    updateMetadata: (workout, command) =>
+      updateMetadata(dependencies, workout, command),
     startWorkoutFromTemplate: (command) =>
       startWorkoutFromTemplate(dependencies, command),
     repeatWorkout: (command) => repeatWorkout(dependencies, command),

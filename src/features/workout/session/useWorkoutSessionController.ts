@@ -33,7 +33,12 @@ import type {
   WorkoutSessionState,
 } from "./workoutSession.types";
 
+import type { UpdateWorkoutMetadataCommand } from "../actions/updateMetadata";
+
 export type WorkoutSessionController = {
+  updateMetadata: (
+    command: UpdateWorkoutMetadataCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   startWorkoutFromTemplate: (
     command: StartWorkoutFromTemplateCommand,
   ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
@@ -532,6 +537,18 @@ export function useWorkoutSessionController(
     [actions, runActiveWorkoutOperation],
   );
 
+  const updateMetadata = useCallback(
+    (command: UpdateWorkoutMetadataCommand) =>
+      runActiveWorkoutOperation({
+        operation: { type: "updateMetadata" },
+        invalidStateMessage:
+          "Description cannot be updated without an active workout",
+        failureMessage: "Failed to save the description",
+        run: (workout) => actions.updateMetadata(workout, command),
+      }),
+    [actions, runActiveWorkoutOperation],
+  );
+
   const updateSet = useCallback(
     (command: UpdateSetCommand) =>
       runActiveWorkoutOperation({
@@ -645,6 +662,7 @@ export function useWorkoutSessionController(
     addSet,
     copyPreviousSet,
     updateSet,
+    updateMetadata,
     selectSet,
     completeSet,
     adjustRestTimer,

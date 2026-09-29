@@ -12,6 +12,7 @@ export function createHistoryCardViewModel(summary: HistoryWorkoutSummary) {
   return {
     workoutName: getWorkoutDisplayName(summary.sourceTemplateId),
     duration: `${summary.durationMinutes} min`,
+    description: summary.description,
     exercises: summary.exercises.map((exercise) => ({
       id: exercise.id,
       name: exercise.name,

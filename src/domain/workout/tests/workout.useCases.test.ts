@@ -1,3 +1,4 @@
+import { selectHistoryWorkoutDetails } from "@/domain/history/history.utils";
 import { assertWorkoutAggregateInvariants } from "../assertions/workout.invariants";
 import {
   addWorkoutExercise,
@@ -8,6 +9,7 @@ import {
   completeWorkoutSet,
   createEmptyWorkout,
   createRepeatedWorkout,
+  createWorkoutFromTemplate,
   finishWorkout,
   removeWorkoutExercise,
   removeWorkoutSet,
@@ -18,9 +20,12 @@ import {
   undoWorkoutSetCompletion,
   updateWorkoutExerciseOrder,
   updateWorkoutExerciseRestSeconds,
+  updateWorkoutMetadata,
   updateWorkoutSet,
 } from "../workout.useCases";
 
+import { selectTemplateDetails } from "@/domain/templates/details/templates.selectors";
+import { createTemplate } from "@/domain/templates/editor/tests/templates.test.helpers";
 import {
   barbellRow,
   closeGripBench,
@@ -49,6 +54,7 @@ describe("createEmptyWorkout", () => {
     expect(workoutAggregate.workout).toEqual({
       id: "workout_1",
       sourceTemplateId: null,
+      description: null,
       status: "active",
       activeSetId: null,
       restTimer: null,
@@ -58,6 +64,80 @@ describe("createEmptyWorkout", () => {
       updatedAt: 1000,
     });
     expect(workoutAggregate.exercises).toEqual([]);
+  });
+});
+
+describe("updateMetaData", () => {
+  it("updates and clears metadata without mutating workout data", () => {
+    const source = createWorkoutWithTwoSets();
+    Object.freeze(source.workout);
+    Object.freeze(source);
+    const updated = updateWorkoutMetadata(source, {
+      description: "  Pause each rep  ",
+      now: 9000,
+    });
+    expect(updated.workout.description).toBe("Pause each rep");
+    expect(updated.workout.updatedAt).toBe(9000);
+    expect(updated.exercises).toBe(source.exercises);
+    expect(source.workout.description).toBeNull();
+    expect(
+      updateWorkoutMetadata(updated, { description: "  ", now: 10000 }).workout
+        .description,
+    ).toBeNull();
+    expect(
+      updateWorkoutMetadata(updated, {
+        description: "Pause each rep",
+        now: 10000,
+      }),
+    ).toBe(updated);
+  });
+
+  it("rejects metadata changes to completed workouts", () => {
+    expect(() =>
+      updateWorkoutMetadata(createCompletedWorkoutWithMixedSets(), {
+        description: "new",
+        now: 9000,
+      }),
+    ).toThrow();
+  });
+
+  it("copies template descriptions independently and exposes them in details", () => {
+    const template = createTemplate();
+    template.template.description = "Heavy bench day";
+    let id = 0;
+    const workout = createWorkoutFromTemplate(template, null, {
+      id: "new-workout",
+      now: 9000,
+      createWorkoutExerciseId: () => `exercise-${++id}`,
+      createWorkoutSetId: () => `set-${++id}`,
+    });
+    expect(workout.workout.description).toBe("Heavy bench day");
+    expect(selectTemplateDetails(template, null).description).toBe(
+      "Heavy bench day",
+    );
+    updateWorkoutMetadata(workout, {
+      description: "Session-specific",
+      now: 10000,
+    });
+    expect(template.template.description).toBe("Heavy bench day");
+  });
+
+  it("keeps completed descriptions in history and copies them into repeated sessions", () => {
+    const source = createCompletedWorkoutWithMixedSets();
+    source.workout.description = "Competition practice";
+    let id = 0;
+    const repeated = createRepeatedWorkout(source, {
+      id: "repeat",
+      now: 9000,
+      createWorkoutExerciseId: () => `exercise-${++id}`,
+      createWorkoutSetId: () => `set-${++id}`,
+    });
+    expect(repeated.workout.description).toBe("Competition practice");
+    expect(selectHistoryWorkoutDetails(source).description).toBe(
+      "Competition practice",
+    );
+    updateWorkoutMetadata(repeated, { description: "New session", now: 10000 });
+    expect(source.workout.description).toBe("Competition practice");
   });
 });
 
@@ -1555,6 +1635,7 @@ describe("Repeat Workout", () => {
     expect(repeated.workout).toEqual({
       id: "repeated",
       sourceTemplateId: "template_1",
+      description: null,
       status: "active",
       activeSetId: "set_2",
       restTimer: null,

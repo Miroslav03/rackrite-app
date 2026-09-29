@@ -6,7 +6,7 @@ import type {
   TemplateSet,
 } from "../editor/templates.types";
 
-export type TemplateDetails = Pick<Template, "id" | "name"> & {
+export type TemplateDetails = Pick<Template, "id" | "name" | "description"> & {
   lastExecution: { finishedAt: number } | null;
   totalSets: number;
   averageRpe: number | null;

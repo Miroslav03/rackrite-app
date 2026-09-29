@@ -103,7 +103,9 @@ export const HistoryWorkoutCard = memo(function HistoryWorkoutCard({
             {card.duration}
           </AppText>
         </View>
-        {/*  Place for Workout Description */}
+        {card.description ? (
+          <AppText variant="body">{card.description}</AppText>
+        ) : null}
       </View>
 
       {card.exercises.map((exercise) => (

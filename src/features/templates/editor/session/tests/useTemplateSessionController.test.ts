@@ -192,3 +192,23 @@ it("rejects an empty creation draft without writing or clearing it", async () =>
   expect(r.getDraft().exercises).toEqual([]);
   expect(r.insertTemplateAggregate).not.toHaveBeenCalled();
 });
+
+it("updates description in the draft and includes it in creation", async () => {
+  const r = await renderSession();
+  await act(async () => {
+    const result = r
+      .getController()
+      .updateMetadata({ description: "  Pause every rep  " });
+    expect(result.success).toBe(true);
+  });
+  expect(r.getDraft().template.description).toBe("Pause every rep");
+  expect(r.insertTemplateAggregate).not.toHaveBeenCalled();
+  await act(async () => {
+    await r.getController().createTemplate();
+  });
+  expect(r.insertTemplateAggregate).toHaveBeenCalledWith(
+    expect.objectContaining({
+      template: expect.objectContaining({ description: "Pause every rep" }),
+    }),
+  );
+});

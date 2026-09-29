@@ -22,6 +22,7 @@ export function workoutToRow(workout: Workout): NewWorkoutRow {
   return {
     id: workout.id,
     sourceTemplateId: workout.sourceTemplateId,
+    description: workout.description,
     status: workout.status,
     activeSetId: workout.activeSetId,
     restTimerSourceSetId: workout.restTimer?.sourceSetId ?? null,
@@ -85,6 +86,7 @@ export function workoutRowToWorkout(workoutRow: WorkoutRow): Workout {
   return {
     id: workoutRow.id,
     sourceTemplateId: workoutRow.sourceTemplateId,
+    description: workoutRow.description,
     status: workoutRow.status,
     activeSetId: workoutRow.activeSetId,
     restTimer:

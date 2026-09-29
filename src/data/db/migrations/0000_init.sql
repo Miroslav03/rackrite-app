@@ -74,6 +74,7 @@ CREATE INDEX `idx_workout_sets_exercise_id` ON `workout_sets` (`workout_exercise
 CREATE TABLE `workouts` (
 	`id` text PRIMARY KEY NOT NULL,
 	`source_template_id` text,
+	`description` text,
 	`status` text NOT NULL,
 	`active_set_id` text,
 	`rest_timer_source_set_id` text,

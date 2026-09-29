@@ -1,8 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
+import { usePreventRemove } from "@react-navigation/native";
 import { useIsFocused } from "expo-router";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, type ListRenderItemInfo } from "react-native";
+import {
+  BackHandler,
+  FlatList,
+  Platform,
+  View,
+  type ListRenderItemInfo,
+} from "react-native";
 
 import type { Exercise, ExerciseKind } from "@/domain/exercises/exercise.types";
 import {
@@ -28,12 +35,15 @@ import type { RemoveSetCommand } from "@/features/workout/actions/removeSet";
 import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
 import type { UndoSetCompletionCommand } from "@/features/workout/actions/undoCompletedSet";
 import type { UpdateExerciseOrderCommand } from "@/features/workout/actions/updateExerciseOrder";
+import type { UpdateWorkoutMetadataCommand } from "@/features/workout/actions/updateMetadata";
 import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
 import type {
   ActiveWorkoutOperation,
   OperationState,
   WorkoutSessionResult,
 } from "@/features/workout/session/workoutSession.types";
+import { DescriptionCard } from "@/shared/components/ui/DescriptionCard";
+import { useDescriptionCard } from "@/shared/hooks/useDescriptionCard";
 
 import {
   ExerciseOptionsSheet,
@@ -74,6 +84,9 @@ import {
 } from "./components/WorkoutExerciseSection";
 
 export type ActiveWorkoutScreenActions = {
+  updateMetadata: (
+    command: UpdateWorkoutMetadataCommand,
+  ) => Promise<WorkoutSessionResult<WorkoutAggregate>>;
   dismissOperationError: (error: Error) => void;
   cancelWorkout: () => Promise<WorkoutSessionResult<void>>;
   finishWorkout: (
@@ -133,6 +146,7 @@ export type ConfirmationModal = {
 
 export type ActiveWorkoutOverlay =
   | { type: "none" }
+  | { type: "description" }
   | { type: "exercisePicker" }
   | { type: "exerciseOptions"; workoutExerciseId: WorkoutExerciseId }
   | { type: "exerciseOrderEditor"; workoutExerciseId: WorkoutExerciseId }
@@ -164,6 +178,7 @@ export function ActiveWorkoutScreenView({
   const { addSet, copyPreviousSet, updateExerciseOrder } = actions;
   const { savePendingKeypadUpdate } = activeDockEditor;
 
+  const isEditingDescription = activeOverlay.type === "description";
   const restTimer = workout.workout.restTimer;
   const editorActiveSet = activeDockEditor.activeSet;
   const editorActiveExercise = activeDockEditor.activeExercise;
@@ -201,15 +216,61 @@ export function ActiveWorkoutScreenView({
     setActiveOverlay(NO_ACTIVE_OVERLAY);
   }
 
-  function openExercisePicker() {
+  // Description Card
+  const openDescriptionOverlay = useCallback(() => {
+    setActiveOverlay({ type: "description" });
+  }, []);
+
+  const dismissDescription = useCallback(() => {
+    setActiveOverlay((current) =>
+      current.type === "description" ? NO_ACTIVE_OVERLAY : current,
+    );
+  }, []);
+
+  const description = useDescriptionCard({
+    description: workout.workout.description,
+    isEditing: isEditingDescription,
+    saveBlocked: operationPending,
+    run: (text) => actions.updateMetadata({ description: text }),
+    onBeforeOpen: savePendingKeypadUpdate,
+    onOpen: openDescriptionOverlay,
+    onClose: dismissDescription,
+  });
+  const {
+    openDescription,
+    closeDescription,
+    handleDescriptionBack,
+    handleDescriptionBlur,
+    retryDescription,
+  } = description;
+
+  const descriptionBackBlocked =
+    isFocused && (isEditingDescription || description.hasPendingChanges);
+
+  usePreventRemove(descriptionBackBlocked, handleDescriptionBack);
+
+  useEffect(() => {
+    if (!descriptionBackBlocked || Platform.OS !== "android") return;
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      handleDescriptionBack,
+    );
+    return () => subscription.remove();
+  }, [descriptionBackBlocked, handleDescriptionBack]);
+
+  // Exercise Picker
+  async function openExercisePicker() {
+    if (!(await closeDescription())) return;
     setActiveOverlay({ type: "exercisePicker" });
   }
 
   const openExerciseOptions = useCallback(
-    (workoutExerciseId: WorkoutExerciseId) => {
+    async (workoutExerciseId: WorkoutExerciseId) => {
+      if (!(await closeDescription())) return;
       setActiveOverlay({ type: "exerciseOptions", workoutExerciseId });
     },
-    [],
+    [closeDescription],
   );
 
   const openExerciseOrderEditor = useCallback(
@@ -218,7 +279,7 @@ export function ActiveWorkoutScreenView({
         return;
       }
 
-      if (!(await savePendingKeypadUpdate())) {
+      if (!(await closeDescription()) || !(await savePendingKeypadUpdate())) {
         return;
       }
 
@@ -227,7 +288,12 @@ export function ActiveWorkoutScreenView({
         workoutExerciseId: workoutExerciseId,
       });
     },
-    [operationPending, savePendingKeypadUpdate, workout.exercises.length],
+    [
+      operationPending,
+      closeDescription,
+      savePendingKeypadUpdate,
+      workout.exercises.length,
+    ],
   );
 
   const closeExerciseOrderEditor = useCallback(() => {
@@ -292,10 +358,13 @@ export function ActiveWorkoutScreenView({
   }
 
   async function handleCancelWorkout() {
+    description.cancel();
     await actions.cancelWorkout();
   }
 
   async function handleFinishWorkoutPress() {
+    if (!(await closeDescription())) return;
+
     if (workoutEligibility.status === "blocked") {
       return;
     }
@@ -382,7 +451,7 @@ export function ActiveWorkoutScreenView({
     }
   }
 
-  function handleModalAction() {
+  async function handleModalAction() {
     switch (activeOverlay.type) {
       case "dangerModal":
         switch (activeOverlay.confirmation.action) {
@@ -405,6 +474,7 @@ export function ActiveWorkoutScreenView({
         switch (activeOverlay.confirmation.action) {
           case "finishWorkout":
             if (workoutEligibility.status === "blocked") return;
+            if (!(await closeDescription())) return;
 
             void actions.finishWorkout({
               skipUnfinishedSets: workoutEligibility.unfinishedSetCount > 0,
@@ -420,7 +490,10 @@ export function ActiveWorkoutScreenView({
       openOrderEditor: openExerciseOrderEditor,
       addSet: handleAddSet,
       copyPreviousSet: handleCopyPreviousSet,
-      openSetEditor: activeDockEditor.openSetEditor,
+      openSetEditor: async (...args) => {
+        if (await closeDescription())
+          await activeDockEditor.openSetEditor(...args);
+      },
     }),
     [
       openExerciseOptions,
@@ -428,6 +501,7 @@ export function ActiveWorkoutScreenView({
       handleAddSet,
       handleCopyPreviousSet,
       activeDockEditor.openSetEditor,
+      closeDescription,
     ],
   );
 
@@ -513,7 +587,10 @@ export function ActiveWorkoutScreenView({
                   time={value}
                   disabled={operationPending}
                   onPress={() => {
-                    void activeDockEditor.openRestTimerDock(restTimer);
+                    void (async () => {
+                      if (await closeDescription())
+                        await activeDockEditor.openRestTimerDock(restTimer);
+                    })();
                   }}
                 />
               )}
@@ -541,25 +618,39 @@ export function ActiveWorkoutScreenView({
             flexGrow: 1,
             paddingTop: spacing.xl,
             paddingBottom:
-              !restTimerDockOpen && !activeDockEditor.activeSet
+              isEditingDescription ||
+              (!restTimerDockOpen && !activeDockEditor.activeSet)
                 ? 0
                 : activeDockHeight,
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
-            <ScreenHeader
-              title="New Workout"
-              subtitle={`${workout.workout.status} workout`.toUpperCase()}
-              rightAccessory={
-                <ElapsedTimer
-                  startedAt={workout.workout.startedAt}
-                  enabled={isFocused}
-                >
-                  {(value) => <HeaderMetric label="Duration" value={value} />}
-                </ElapsedTimer>
-              }
-            />
+            <View className="gap-lg">
+              <ScreenHeader
+                title="New Workout"
+                subtitle={`${workout.workout.status} workout`.toUpperCase()}
+                rightAccessory={
+                  <ElapsedTimer
+                    startedAt={workout.workout.startedAt}
+                    enabled={isFocused}
+                  >
+                    {(value) => <HeaderMetric label="Duration" value={value} />}
+                  </ElapsedTimer>
+                }
+              />
+              <DescriptionCard
+                mode="edit"
+                description={workout.workout.description}
+                value={description.value}
+                isEditing={isEditingDescription}
+                saveFailed={description.saveFailed}
+                onEdit={openDescription}
+                onChangeText={description.onChangeText}
+                onBlur={handleDescriptionBlur}
+                onRetry={retryDescription}
+              />
+            </View>
           }
           ListHeaderComponentStyle={
             workout.exercises.length > 0
@@ -637,38 +728,39 @@ export function ActiveWorkoutScreenView({
         />
       </Screen>
 
-      {restTimerDockOpen && restTimer ? (
-        <RestTimerDock
-          endsAt={restTimer.endsAt}
-          enabled={isFocused}
-          operation={operation}
-          onAdjust={activeDockEditor.adjustRestTimer}
-          onReset={activeDockEditor.resetRestTimer}
-          onSkip={activeDockEditor.skipRestTimer}
-          onDismiss={activeDockEditor.closeRestTimerDock}
-          onHeightChange={setActiveDockHeight}
-        />
-      ) : activeSetPanel && editorActiveSet && editorActiveExercise ? (
-        <ActiveSetEditorDock
-          exerciseName={editorActiveExercise.exercise.name}
-          activeSet={editorActiveSet}
-          setCount={editorActiveExercise.sets.length}
-          panel={activeSetPanel}
-          operation={operation}
-          onAdjustWeight={activeDockEditor.adjustWeight}
-          onToggleKeypad={activeDockEditor.toggleKeypad}
-          onPressWeightKey={activeDockEditor.pressWeightKey}
-          onPressRepsKey={activeDockEditor.pressRepsKey}
-          onSelectRpe={activeDockEditor.selectRpe}
-          onSelectSetType={activeDockEditor.selectSetType}
-          onComplete={activeDockEditor.completeSet}
-          onUndoCompletion={activeDockEditor.undoCompletedSet}
-          onDelete={() => {
-            void openRemoveSetConfirmation(editorActiveSet.id);
-          }}
-          onHeightChange={setActiveDockHeight}
-        />
-      ) : null}
+      {!isEditingDescription &&
+        (restTimerDockOpen && restTimer ? (
+          <RestTimerDock
+            endsAt={restTimer.endsAt}
+            enabled={isFocused}
+            operation={operation}
+            onAdjust={activeDockEditor.adjustRestTimer}
+            onReset={activeDockEditor.resetRestTimer}
+            onSkip={activeDockEditor.skipRestTimer}
+            onDismiss={activeDockEditor.closeRestTimerDock}
+            onHeightChange={setActiveDockHeight}
+          />
+        ) : activeSetPanel && editorActiveSet && editorActiveExercise ? (
+          <ActiveSetEditorDock
+            exerciseName={editorActiveExercise.exercise.name}
+            activeSet={editorActiveSet}
+            setCount={editorActiveExercise.sets.length}
+            panel={activeSetPanel}
+            operation={operation}
+            onAdjustWeight={activeDockEditor.adjustWeight}
+            onToggleKeypad={activeDockEditor.toggleKeypad}
+            onPressWeightKey={activeDockEditor.pressWeightKey}
+            onPressRepsKey={activeDockEditor.pressRepsKey}
+            onSelectRpe={activeDockEditor.selectRpe}
+            onSelectSetType={activeDockEditor.selectSetType}
+            onComplete={activeDockEditor.completeSet}
+            onUndoCompletion={activeDockEditor.undoCompletedSet}
+            onDelete={() => {
+              void openRemoveSetConfirmation(editorActiveSet.id);
+            }}
+            onHeightChange={setActiveDockHeight}
+          />
+        ) : null)}
 
       <ErrorNotifier
         operation={operation}

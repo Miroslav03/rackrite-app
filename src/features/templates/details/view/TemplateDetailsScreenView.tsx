@@ -15,8 +15,9 @@ import { Screen } from "@/shared/components/layout/Screen";
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
 import { ExerciseDetailsCard } from "@/shared/components/ui/ExerciseDetailsCard";
+import { DescriptionCard } from "@/shared/components/ui/DescriptionCard";
 import { Metric } from "@/shared/components/ui/Metric";
-import { spacing } from "@/shared/theme/tokens";
+import { colors, spacing } from "@/shared/theme/tokens";
 
 import { useStartTemplateWorkoutController } from "../controller/useStartTemplateWorkoutController";
 
@@ -91,14 +92,22 @@ export function TemplateDetailsScreenView({
           <View className="gap-xl pb-xl">
             <View className="gap-sm">
               <AppText variant="title">{template.name}</AppText>
-              <AppText className="text-sm font-semibold text-foreground">
-                Last performed: {template.lastPerformed}
-              </AppText>
+              <View className="flex-row items-center gap-sm">
+                <Ionicons
+                  name="time-outline"
+                  size={20}
+                  color={colors.primarySoft}
+                />
+                <AppText className="text-sm font-semibold text-foreground">
+                  Last performed: {template.lastPerformed}
+                </AppText>
+              </View>
             </View>
             <View className="flex-row gap-sm">
               <Metric label="Total Sets" value={template.totalSets} />
               <Metric label="Avg. RPE" value={template.averageRpe} />
             </View>
+            <DescriptionCard mode="view" description={template.description} />
           </View>
         }
       />

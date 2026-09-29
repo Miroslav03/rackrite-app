@@ -11,6 +11,7 @@ export type WorkoutStatus = "active" | "completed";
 export interface Workout {
   id: WorkoutId;
   sourceTemplateId: TemplateId | null;
+  description: string | null;
   status: WorkoutStatus;
   activeSetId: WorkoutSetId | null;
   restTimer: WorkoutRestTimer | null;

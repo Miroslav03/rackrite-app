@@ -33,6 +33,7 @@ export type HistoryWorkoutSummary = {
   id: WorkoutId;
   sourceTemplateId: WorkoutAggregate["workout"]["sourceTemplateId"];
   startedAt: number;
+  description: WorkoutAggregate["workout"]["description"];
   durationMinutes: number;
   totalWeight: number;
   exercises: HistoryExerciseSummary[];
@@ -45,7 +46,12 @@ export type HistoryPage = {
 
 export type HistoryWorkoutDetails = Pick<
   HistoryWorkoutSummary,
-  "id" | "sourceTemplateId" | "startedAt" | "durationMinutes" | "totalWeight"
+  | "id"
+  | "sourceTemplateId"
+  | "startedAt"
+  | "durationMinutes"
+  | "totalWeight"
+  | "description"
 > & {
   totalSets: number;
   averageRpe: number | null;

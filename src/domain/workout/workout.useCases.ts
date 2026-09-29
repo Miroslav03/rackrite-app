@@ -191,6 +191,7 @@ export function createWorkoutFromTemplate(
     workout: {
       ...createEmptyWorkout(input).workout,
       sourceTemplateId: template.template.id,
+      description: template.template.description,
       activeSetId: exercises[0].sets[0].id,
     },
     exercises,
@@ -250,6 +251,7 @@ export function createRepeatedWorkout(
     workout: {
       ...createEmptyWorkout(input).workout,
       sourceTemplateId: source.workout.sourceTemplateId,
+      description: source.workout.description,
       activeSetId: firstSet.id,
     },
     exercises,
@@ -268,6 +270,7 @@ export function createEmptyWorkout({
     workout: {
       id,
       sourceTemplateId: null,
+      description: null,
       status: "active",
       activeSetId: null,
       restTimer: null,
@@ -282,6 +285,24 @@ export function createEmptyWorkout({
   assertWorkoutAggregateInvariants(workoutAggregate);
 
   return workoutAggregate;
+}
+
+export function updateWorkoutMetadata(
+  aggregate: WorkoutAggregate,
+  input: { description: string | null; now: number },
+): WorkoutAggregate {
+  assertWorkoutIsActive(aggregate);
+
+  const description = input.description?.trim() || null;
+  if (description === aggregate.workout.description) return aggregate;
+
+  const next = {
+    ...aggregate,
+    workout: { ...aggregate.workout, description, updatedAt: input.now },
+  };
+
+  assertWorkoutAggregateInvariants(next);
+  return next;
 }
 
 export function addWorkoutExercise(

@@ -23,6 +23,7 @@ export function selectTemplateDetails(
   return {
     id: aggregate.template.id,
     name: aggregate.template.name,
+    description: aggregate.template.description,
     lastExecution,
     totalSets: sets.length,
     averageRpe:

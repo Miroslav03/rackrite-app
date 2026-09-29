@@ -75,6 +75,7 @@ export const workoutsTable = sqliteTable(
   {
     id: text("id").primaryKey(),
     sourceTemplateId: text("source_template_id"),
+    description: text("description"),
     status: text("status").$type<WorkoutStatus>().notNull(),
     activeSetId: text("active_set_id"),
     restTimerSourceSetId: text("rest_timer_source_set_id"),

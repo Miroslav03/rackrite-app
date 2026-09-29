@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useIsFocused, usePreventRemove } from "@react-navigation/native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BackHandler, FlatList, Platform } from "react-native";
+import { BackHandler, FlatList, Platform, View } from "react-native";
 
 import type { Exercise } from "@/domain/exercises/exercise.types";
 import { getTemplateExerciseById } from "@/domain/templates/editor/templates.selectors";
@@ -28,7 +28,9 @@ import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
 import { ConfirmationModal as ConfirmationModalView } from "@/shared/components/ui/ConfirmationModal";
 import { DangerModal as DangerModalView } from "@/shared/components/ui/DangerModal";
+import { DescriptionCard } from "@/shared/components/ui/DescriptionCard";
 import { useScrollVisibility } from "@/shared/context/ScrollVisibilityContext";
+import { useDescriptionCard } from "@/shared/hooks/useDescriptionCard";
 import { isOperationPending } from "@/shared/state/operationState";
 import { colors, spacing } from "@/shared/theme/tokens";
 
@@ -56,6 +58,7 @@ export type TemplateEditorScreenProps = {
     | "removeExercise"
     | "addSet"
     | "updateExerciseOrder"
+    | "updateMetadata"
     | "updateSet"
     | "removeSet"
     | "selectSet"
@@ -78,6 +81,7 @@ export type ConfirmationModal =
 
 export type TemplateEditorOverlay =
   | { type: "none" }
+  | { type: "description" }
   | { type: "exercisePicker" }
   | { type: "exerciseOptions"; templateExerciseId: TemplateExerciseId }
   | { type: "exerciseOrderEditor"; templateExerciseId: TemplateExerciseId }
@@ -110,6 +114,7 @@ export function TemplateEditorScreen({
   const pending = isOperationPending(state.operation);
   const modalContent = getModalContent(activeOverlay, template);
   const exclusions = getExercisePickerExclusions(template);
+  const isEditingDescription = activeOverlay.type === "description";
   const canCreate = state.status === "create" && template.exercises.length > 0;
 
   const optionsExercise =
@@ -120,9 +125,37 @@ export function TemplateEditorScreen({
   const view = TEMPLATE_EDITOR_VIEW[state.status];
 
   const dockOpen =
+    !isEditingDescription &&
     editor.panel !== null &&
     editor.activeSet !== undefined &&
     editor.activeExercise !== undefined;
+
+  const openDescriptionOverlay = useCallback(() => {
+    setActiveOverlay({ type: "description" });
+  }, []);
+
+  const dismissDescription = useCallback(() => {
+    setActiveOverlay((current) =>
+      current.type === "description" ? NO_ACTIVE_OVERLAY : current,
+    );
+  }, []);
+
+  const description = useDescriptionCard({
+    description: template.template.description,
+    isEditing: isEditingDescription,
+    saveBlocked: pending,
+    run: (text) => actions.updateMetadata({ description: text }),
+    onBeforeOpen: editor.closeSetEditor,
+    onOpen: openDescriptionOverlay,
+    onClose: dismissDescription,
+  });
+  const {
+    openDescription,
+    closeDescription,
+    handleDescriptionBack,
+    handleDescriptionBlur,
+    retryDescription,
+  } = description;
 
   const closeOverlay = useCallback(() => {
     if (!pending) setActiveOverlay(NO_ACTIVE_OVERLAY);
@@ -138,6 +171,7 @@ export function TemplateEditorScreen({
   };
 
   const handleBack = useCallback(() => {
+    if (handleDescriptionBack()) return;
     if (pending) return;
 
     if (activeOverlay.type !== "none") {
@@ -148,6 +182,7 @@ export function TemplateEditorScreen({
       openDiscardTemplateConfirmation();
     }
   }, [
+    handleDescriptionBack,
     activeOverlay.type,
     closeOverlay,
     dockOpen,
@@ -183,7 +218,7 @@ export function TemplateEditorScreen({
   );
 
   async function openExercisePicker() {
-    if (pending) return;
+    if (pending || !(await closeDescription())) return;
 
     if (await editor.closeSetEditor()) {
       setActiveOverlay({ type: "exercisePicker" });
@@ -195,7 +230,12 @@ export function TemplateEditorScreen({
   }
 
   async function openExerciseOptions(templateExerciseId: TemplateExerciseId) {
-    if (pending || !(await editor.closeSetEditor())) return;
+    if (
+      pending ||
+      !(await closeDescription()) ||
+      !(await editor.closeSetEditor())
+    )
+      return;
 
     setActiveOverlay({ type: "exerciseOptions", templateExerciseId });
   }
@@ -221,7 +261,7 @@ export function TemplateEditorScreen({
   ) {
     if (pending || template.exercises.length < 2) return;
 
-    if (!(await editor.closeSetEditor())) return;
+    if (!(await closeDescription()) || !(await editor.closeSetEditor())) return;
 
     setActiveOverlay({ type: "exerciseOrderEditor", templateExerciseId });
   }
@@ -249,6 +289,7 @@ export function TemplateEditorScreen({
   }
 
   async function openCreateTemplateConfirmation() {
+    if (!(await closeDescription())) return;
     if (pending || !canCreate || !(await editor.closeSetEditor())) return;
 
     setActiveOverlay({
@@ -267,6 +308,7 @@ export function TemplateEditorScreen({
   }
 
   function handleDiscardTemplate() {
+    description.cancel();
     editor.cancelPendingUpdates();
     actions.discardTemplate();
   }
@@ -282,7 +324,7 @@ export function TemplateEditorScreen({
     closeOverlay();
   }
 
-  function handleModalAction() {
+  async function handleModalAction() {
     if (pending) return;
 
     switch (activeOverlay.type) {
@@ -304,7 +346,8 @@ export function TemplateEditorScreen({
       case "confirmationModal":
         switch (activeOverlay.confirmation.action) {
           case "createTemplate":
-            if (canCreate) void actions.createTemplate();
+            if (canCreate && (await closeDescription()))
+              void actions.createTemplate();
             return;
 
           case "editTemplate":
@@ -351,11 +394,27 @@ export function TemplateEditorScreen({
               onOpenOptions={openExerciseOptions}
               onOpenOrderEditor={openExerciseOrderEditor}
               onAddSet={handleAddSet}
-              onOpenEditor={editor.openSetEditor}
+              onOpenEditor={async (...args) => {
+                if (await closeDescription())
+                  await editor.openSetEditor(...args);
+              }}
             />
           )}
           ListHeaderComponent={
-            <ScreenHeader title={view.screenTitle} subtitle="Templates" />
+            <View className="gap-lg pb-lg">
+              <ScreenHeader title={view.screenTitle} subtitle="Templates" />
+              <DescriptionCard
+                mode="edit"
+                description={template.template.description}
+                value={description.value}
+                isEditing={isEditingDescription}
+                saveFailed={description.saveFailed}
+                onEdit={openDescription}
+                onChangeText={description.onChangeText}
+                onBlur={handleDescriptionBlur}
+                onRetry={retryDescription}
+              />
+            </View>
           }
           ListHeaderComponentStyle={
             template.exercises.length > 0
@@ -429,7 +488,10 @@ export function TemplateEditorScreen({
         />
       </Screen>
 
-      {editor.panel && editor.activeSet && editor.activeExercise ? (
+      {!isEditingDescription &&
+      editor.panel &&
+      editor.activeSet &&
+      editor.activeExercise ? (
         <TemplateEditorDock
           exerciseName={editor.activeExercise.exercise.name}
           activeSet={editor.activeSet}

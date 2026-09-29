@@ -14,6 +14,7 @@ import { getActiveWorkoutOperationErrorMessage } from "@/shared/components/feedb
 import { Screen } from "@/shared/components/layout/Screen";
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
+import { DescriptionCard } from "@/shared/components/ui/DescriptionCard";
 import { ExerciseDetailsCard } from "@/shared/components/ui/ExerciseDetailsCard";
 import { Metric } from "@/shared/components/ui/Metric";
 import { colors, spacing } from "@/shared/theme/tokens";
@@ -111,6 +112,7 @@ export function HistoryDetailsScreenView({
               <Metric label="Total Sets" value={workout.totalSets} />
               <Metric label="Avg. RPE" value={workout.averageRpe} />
             </View>
+            <DescriptionCard mode="view" description={workout.description} />
           </View>
         }
       />

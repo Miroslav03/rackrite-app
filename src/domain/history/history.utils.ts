@@ -47,6 +47,7 @@ export function selectHistoryWorkoutDetails(
 
   return {
     id: summary.id,
+    description: aggregate.workout.description,
     sourceTemplateId: summary.sourceTemplateId,
     startedAt: summary.startedAt,
     durationMinutes: summary.durationMinutes,
@@ -101,6 +102,7 @@ export function summarizeCompletedWorkout(
   return {
     id: workout.id,
     sourceTemplateId: workout.sourceTemplateId,
+    description: workout.description,
     startedAt: workout.startedAt,
     durationMinutes: getWorkoutDurationMinutes(
       workout.startedAt,

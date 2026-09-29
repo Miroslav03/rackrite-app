@@ -18,6 +18,7 @@ import type {
   TemplateSessionActions,
   UpdateTemplateExerciseOrderCommand,
   UpdateTemplateSetCommand,
+  UpdateTemplateMetadataCommand,
 } from "../actions/templateSessionActions";
 
 import { templatesSessionReducer } from "./templatesSession.reducer";
@@ -28,6 +29,9 @@ import type {
 } from "./templatesSession.types";
 
 export type TemplateSessionController = {
+  updateMetadata: (
+    command: UpdateTemplateMetadataCommand,
+  ) => Result<TemplateAggregate>;
   state: TemplateSessionState;
   createEmptyTemplate: () => void;
   createTemplate: () => Promise<Result<void>>;
@@ -218,6 +222,14 @@ export function useTemplateSessionController(
     [actions, mutateTemplate],
   );
 
+  const updateMetadata = useCallback(
+    (command: UpdateTemplateMetadataCommand) =>
+      mutateTemplate({ type: "updateMetadata" }, (template) =>
+        actions.updateMetadata(template, command),
+      ),
+    [actions, mutateTemplate],
+  );
+
   const updateSet = useCallback(
     (command: UpdateTemplateSetCommand) =>
       mutateTemplate(
@@ -272,6 +284,7 @@ export function useTemplateSessionController(
     addSet,
     updateExerciseOrder,
     updateSet,
+    updateMetadata,
     removeSet,
     selectSet,
     dismissOperationError,
