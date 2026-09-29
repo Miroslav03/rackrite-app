@@ -1,4 +1,4 @@
-import type { LiftFamily, SetType } from "@/domain/domain.types";
+import type { SetType } from "@/domain/domain.types";
 import { assertWorkoutIsCompleted } from "@/domain/workout/assertions/workout.contracts";
 import type { WorkoutAggregate } from "@/domain/workout/workout.types";
 import {
@@ -68,7 +68,6 @@ export function summarizeCompletedWorkout(
 
   const { workout } = aggregate;
 
-  const liftFamilies = new Set<LiftFamily>();
   const exercises: HistoryExerciseSummary[] = [];
 
   let totalWeight = 0;
@@ -78,7 +77,6 @@ export function summarizeCompletedWorkout(
 
     if (completedSets.length === 0) continue;
 
-    if (exercise.liftFamily !== null) liftFamilies.add(exercise.liftFamily);
     const setCounts: Record<SetType, number> = {
       warmup: 0,
       working: 0,
@@ -95,7 +93,6 @@ export function summarizeCompletedWorkout(
     exercises.push({
       id: workoutExercise.id,
       name: exercise.name,
-      totalSets: completedSets.length,
       setCounts,
       topSet: { weight: topSet.weight, reps: topSet.reps },
     });
@@ -110,7 +107,6 @@ export function summarizeCompletedWorkout(
       workout.finishedAt,
     ),
     totalWeight,
-    liftFamilies: [...liftFamilies],
     exercises,
   };
 }

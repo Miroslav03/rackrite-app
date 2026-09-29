@@ -34,7 +34,7 @@ export const TemplateListCard = memo(function TemplateListCard({
       accessibilityLabel={`View ${template.name} details`}
       surfaceAccent="primary"
       surfaceClassName="bg-surfaceLow rounded-xl border-t border-r border-b border-t-outline/30 border-r-outline/30 border-b-outline/30"
-      contentClassName="px-sm pt-sm pb-lg"
+      contentClassName="px-sm pt-sm pb-0"
       dividerClassName="mx-sm bg-outline/20"
       footerClassName="px-sm pt-md pb-sm"
       footer={
@@ -65,7 +65,7 @@ export const TemplateListCard = memo(function TemplateListCard({
         </View>
       }
     >
-      <View className="gap-md">
+      <View className="gap-md pb-md">
         <AppText variant="title" className="text-3xl tracking-wide">
           {card.name}
         </AppText>
@@ -76,20 +76,24 @@ export const TemplateListCard = memo(function TemplateListCard({
             </AppText>
           </View>
         ) : null}
-        <View className="min-h-5 flex-row flex-wrap gap-sm">
-          {card.liftBadges.length > 0 ? (
-            card.liftBadges.map(({ id, label }) => (
-              <Badge key={id} label={label} />
-            ))
-          ) : (
-            <Badge
-              label={"NO COMPETITION LIFTS"}
-              textClassName="text-xs uppercase tracking-wider"
-              className="py-0.5"
-            />
+      </View>
+      {card.exercises.map((exercise) => (
+        <View
+          key={exercise.id}
+          className="gap-sm border-t border-outline/20 py-md"
+        >
+          <AppText className="text-md font-extrabold text-foreground">
+            {exercise.name}
+          </AppText>
+          {exercise.setBadges.length > 0 && (
+            <View className="flex-row flex-wrap gap-xs">
+              {exercise.setBadges.map(({ type, label }) => (
+                <Badge key={type} label={label} tone={type} />
+              ))}
+            </View>
           )}
         </View>
-      </View>
+      ))}
     </TemplateSurfaceCard>
   );
 });

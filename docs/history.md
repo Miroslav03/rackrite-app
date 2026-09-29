@@ -71,10 +71,9 @@ Each shared `TemplateSurfaceCard` displays:
 
 - The existing Quick Workout / Template Workout name and whole elapsed minutes.
   Names and descriptions are not currently persisted, so descriptions are omitted.
-- Shared badges for lift families with completed sets, including variations,
-  deduplicated in exercise order. Accessories have no lift-family badge.
-- Every exercise with completed sets in workout order: name, completed-set count,
-  heaviest completed non-warm-up set, and nonzero counts by set type.
+- Every exercise with completed sets in workout order: name, heaviest completed
+  non-warm-up set, and one badge per completed set type. List cards do not display
+  lift-family badges or per-exercise set counts.
 - Relative local calendar day, total lifted weight, and local start date/time
   (24-hour clock). There are no separate date-group headers.
 
@@ -102,7 +101,7 @@ action pattern:
 - `historyRepository` queries SQLite and maps rows to workout aggregates. It owns
   filtering, ordering, cursor pagination, batched hydration, and the global count.
 - Pure domain selectors take completed workout aggregates and derive summaries:
-  completed-set counts, total lifted weight, top sets, lift families, and duration.
+  counts by set type, total lifted weight, top sets, and duration.
 
 `loadHistoryPage` validates the page request, fetches aggregates from the repository,
 and passes them to the domain selector. `loadHistoryOverview` combines the first

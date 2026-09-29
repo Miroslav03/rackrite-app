@@ -11,8 +11,10 @@ a template are later work.
 ## Template list
 
 The list follows Stitch's **Templates - Refined Ledger Cards** design. It shows
-the saved-routine count, template names/descriptions, and tags for competition
-lifts only, in template exercise order. Variations and accessories have no tags.
+the saved-routine count, template names/descriptions, and every exercise in saved
+order, including variations and accessories. Each exercise shows one badge per
+planned set type: Warm-up, Working, Top, and Backoff, in that order. Template cards
+do not calculate a best set or display set counts.
 Cards open `/templates/[templateId]` outside the tabs. The floating create button
 initializes an empty in-memory draft in the shared template session, then opens `/template-editor` outside the
 tabs. The provider sits above the root stack, so navigation preserves the session.
@@ -26,12 +28,14 @@ an existing template into the session is implemented.
 Execution statistics come from the latest completed workout referencing the
 template, ordered by finish time and then workout ID descending. Relative dates
 use the local completion day; durations use whole elapsed minutes from that same
-workout. Templates without completed executions keep an empty footer with the
-same spacing. Missing descriptions and tags keep their minimum layout space.
+workout. Templates without completed executions display “NO WORKOUT DATA YET”.
+Exercises without sets display their name without badges; an empty exercise list
+has no placeholder.
 
-The repository reads list metadata, competition exercises, and execution times
-without loading sets or full aggregates. The domain list contract and summary
-mapping live under `src/domain/templates/list`; actions, controller, and view live
+The repository reads list metadata, exercise names, distinct planned set types,
+and execution times in batched queries without loading full aggregates. The domain
+list contract and summary mapping live under `src/domain/templates/list`;
+actions, controller, and view live
 under `src/features/templates/list`. The full-list count is derived from its length.
 
 Like History, the list refreshes on focus, foreground return, and pull to refresh.
@@ -170,7 +174,7 @@ eligibility. Mapper tests cover complete round trips and invalid stored rows.
 List repository tests apply `0000_init.sql` to in-memory SQLite storage and exercise
 the real Drizzle Expo driver, adapting its synchronous native client calls to Node's
 built-in SQLite API. These tests require Node 24 or newer and add no dependency.
-They cover ordering, unpaginated reads, competition-only tags, and latest-execution
+They cover ordering, all exercise kinds, distinct set types, and latest-execution
 selection. Controller tests cover refresh recovery, request races, lifecycle cleanup,
 and midnight updates; view tests cover the ledger, card navigation, and shared
 exercise details.

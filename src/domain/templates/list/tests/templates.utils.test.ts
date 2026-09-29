@@ -5,8 +5,12 @@ const record: TemplateListRecord = {
   id: "template_1",
   name: "Bench day",
   description: null,
-  competitionLifts: [
-    { id: "bench", name: "Competition Bench", liftFamily: "bench" },
+  exercises: [
+    {
+      id: "bench",
+      name: "Competition Bench",
+      setTypes: ["working", "top"],
+    },
   ],
   lastExecution: null,
 };

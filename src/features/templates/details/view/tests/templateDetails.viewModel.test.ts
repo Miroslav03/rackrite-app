@@ -29,12 +29,12 @@ it("formats targets and missing data without weight or volume fields", () => {
     name: "Bench day",
     lastPerformed: "Never",
     totalSets: "4",
-    averageRpe: "8.0",
+    averageRpe: "8",
   });
   expect(view.exercises[0]).toMatchObject({
     kind: "Competition Lift",
     sets: [
-      { number: "01", reps: "5", rpe: "8.0" },
+      { number: "01", reps: "5", rpe: "8" },
       { number: "02", rpe: "—" },
     ],
   });

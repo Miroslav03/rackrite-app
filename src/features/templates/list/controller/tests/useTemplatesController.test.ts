@@ -25,7 +25,7 @@ function items(id: string): TemplateListItem[] {
       id,
       name: id,
       description: null,
-      competitionLifts: [],
+      exercises: [],
       lastExecution: null,
     },
   ];

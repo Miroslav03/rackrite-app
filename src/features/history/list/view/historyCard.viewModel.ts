@@ -1,29 +1,20 @@
-import type { LiftFamily } from "@/domain/domain.types";
 import type { HistoryWorkoutSummary } from "@/domain/history/history.types";
 
 import { SET_TYPE_CONFIG, SET_TYPE_ORDER } from "@/shared/theme/setTypes";
 import { getWorkoutDisplayName } from "@/shared/utils/getWorkoutDisplayName";
 
-import { formatHistoryPerformedAt, weightFormatter } from "../../view/historyDate.utils";
-
-const liftLabels: Record<LiftFamily, string> = {
-  bench: "Bench",
-  squat: "Squat",
-  deadlift: "Deadlift",
-};
+import {
+  formatHistoryPerformedAt,
+  weightFormatter,
+} from "../../view/historyDate.utils";
 
 export function createHistoryCardViewModel(summary: HistoryWorkoutSummary) {
   return {
     workoutName: getWorkoutDisplayName(summary.sourceTemplateId),
     duration: `${summary.durationMinutes} min`,
-    liftBadges: summary.liftFamilies.map((family) => ({
-      family,
-      label: liftLabels[family],
-    })),
     exercises: summary.exercises.map((exercise) => ({
       id: exercise.id,
       name: exercise.name,
-      totalSets: `${exercise.totalSets} ${exercise.totalSets === 1 ? "set" : "sets"}`,
       topSet: `Top: ${weightFormatter.format(exercise.topSet.weight)} kg × ${exercise.topSet.reps}`,
       setBadges: SET_TYPE_ORDER.filter(
         (type) => exercise.setCounts[type] > 0,

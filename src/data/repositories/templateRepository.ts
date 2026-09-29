@@ -8,7 +8,6 @@ import {
   templatesTable,
   workoutsTable,
 } from "@/data/db/schema";
-import { exerciseRowToExercise } from "@/data/mappers/exerciseMappers";
 import {
   rowsToTemplateAggregate,
   templateExerciseToRow,
@@ -22,10 +21,11 @@ import { assertTemplateCanBeSaved } from "@/domain/templates/editor/assertions/t
 import {
   Template,
   TemplateAggregate,
+  TemplateExerciseId,
   TemplateId,
 } from "@/domain/templates/editor/templates.types";
 import type {
-  TemplateCompetitionLift,
+  TemplateListExerciseSummary,
   TemplateListRecord,
 } from "@/domain/templates/list/templates.types";
 
@@ -88,33 +88,44 @@ export const getTemplateList: TemplateRepository["getTemplateList"] =
       if (templates.length === 0) return [];
 
       const exerciseRows = tx
-        .select({
+        .selectDistinct({
           templateId: templateExercisesTable.templateId,
-          exercise: exercisesTable,
+          id: templateExercisesTable.id,
+          name: exercisesTable.name,
+          setType: templateSetsTable.type,
         })
         .from(templateExercisesTable)
         .innerJoin(
           exercisesTable,
           eq(templateExercisesTable.exerciseId, exercisesTable.id),
         )
-        .where(eq(exercisesTable.kind, "competition_lift"))
+        .leftJoin(
+          templateSetsTable,
+          eq(templateSetsTable.templateExerciseId, templateExercisesTable.id),
+        )
         .orderBy(asc(templateExercisesTable.orderIndex))
         .all();
 
-      const liftsByTemplate = new Map<TemplateId, TemplateCompetitionLift[]>();
+      const exercisesByTemplate = new Map<
+        TemplateId,
+        Map<TemplateExerciseId, TemplateListExerciseSummary>
+      >();
 
       for (const row of exerciseRows) {
-        const exercise = exerciseRowToExercise(row.exercise);
+        const exercises =
+          exercisesByTemplate.get(row.templateId) ??
+          new Map<TemplateExerciseId, TemplateListExerciseSummary>();
 
-        if (exercise.kind !== "competition_lift") continue;
+        const exercise: TemplateListExerciseSummary = exercises.get(row.id) ?? {
+          id: row.id,
+          name: row.name,
+          setTypes: [],
+        };
 
-        const lifts = liftsByTemplate.get(row.templateId) ?? [];
-        lifts.push({
-          id: exercise.id,
-          name: exercise.name,
-          liftFamily: exercise.liftFamily,
-        });
-        liftsByTemplate.set(row.templateId, lifts);
+        if (row.setType !== null) exercise.setTypes.push(row.setType);
+
+        exercises.set(row.id, exercise);
+        exercisesByTemplate.set(row.templateId, exercises);
       }
 
       return templates.map(
@@ -122,7 +133,7 @@ export const getTemplateList: TemplateRepository["getTemplateList"] =
           id,
           name,
           description,
-          competitionLifts: liftsByTemplate.get(id) ?? [],
+          exercises: [...(exercisesByTemplate.get(id)?.values() ?? [])],
           lastExecution:
             startedAt !== null && finishedAt !== null
               ? { startedAt, finishedAt }

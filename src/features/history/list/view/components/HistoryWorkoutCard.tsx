@@ -116,8 +116,6 @@ export const HistoryWorkoutCard = memo(function HistoryWorkoutCard({
               <AppText className="flex-shrink text-md font-extrabold text-foreground">
                 {exercise.name}
               </AppText>
-
-              <AppText className="text-xs">{exercise.totalSets}</AppText>
             </View>
 
             <AppText className="text-xs">{exercise.topSet}</AppText>

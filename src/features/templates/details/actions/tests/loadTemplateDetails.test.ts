@@ -1,5 +1,5 @@
 import { createTemplate } from "@/domain/templates/editor/tests/templates.test.helpers";
-import { createWorkoutFromTemplate } from "@/domain/workout/createWorkoutFromTemplate";
+import { createWorkoutFromTemplate } from "@/domain/workout/workout.useCases";
 import { loadTemplateDetails } from "../loadTemplateDetails";
 
 it("derives the saved template's details and latest completion timestamp", async () => {

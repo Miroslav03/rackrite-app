@@ -47,11 +47,9 @@ describe("history summaries", () => {
     expect(summarizeCompletedWorkout(aggregate)).toMatchObject({
       durationMinutes: 75,
       totalWeight: 1450,
-      liftFamilies: ["bench"],
       exercises: [
         {
           name: "Competition Bench",
-          totalSets: 4,
           setCounts: { warmup: 1, working: 1, top: 1, backoff: 1 },
           topSet: { weight: 100, reps: 3 },
         },
@@ -83,10 +81,10 @@ describe("history summaries", () => {
     );
     expect(summary.totalWeight).toBe(0);
     expect(summary.exercises[0].topSet).toEqual({ weight: 0, reps: 10 });
-    expect(summary.exercises[0].totalSets).toBe(2);
+    expect(summary.exercises[0].setCounts.warmup).toBe(2);
   });
 
-  it("includes variations in family badges and accessories in the ledger", () => {
+  it("includes variations and accessories in the ledger", () => {
     const aggregate = completedWorkout([{ type: "working" }]);
     aggregate.exercises[1].sets[0] = {
       ...aggregate.exercises[1].sets[0],
@@ -108,7 +106,6 @@ describe("history summaries", () => {
       },
     });
     const summary = summarizeCompletedWorkout(aggregate);
-    expect(summary.liftFamilies).toEqual(["bench"]);
     expect(summary.exercises.map(({ name }) => name)).toEqual([
       "Competition Bench",
       "Paused Bench",

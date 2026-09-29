@@ -1,4 +1,4 @@
-import type { LiftFamily, SetType } from "@/domain/domain.types";
+import type { SetType } from "@/domain/domain.types";
 import type { ExerciseKind } from "@/domain/exercises/exercise.types";
 import type {
   WorkoutAggregate,
@@ -25,7 +25,6 @@ export type CompletedWorkoutPage = {
 export type HistoryExerciseSummary = {
   id: WorkoutExerciseId;
   name: string;
-  totalSets: number;
   setCounts: Record<SetType, number>;
   topSet: { weight: number; reps: number };
 };
@@ -36,7 +35,6 @@ export type HistoryWorkoutSummary = {
   startedAt: number;
   durationMinutes: number;
   totalWeight: number;
-  liftFamilies: LiftFamily[]; // REMOVED
   exercises: HistoryExerciseSummary[];
 };
 
