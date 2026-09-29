@@ -1,3 +1,5 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 
@@ -8,7 +10,12 @@ import { ErrorNotice } from "@/shared/components/feedback/ErrorNotice";
 import { Screen } from "@/shared/components/layout/Screen";
 import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 import { SegmentedControl } from "@/shared/components/ui/SegmentedControl";
-import { colors } from "@/shared/theme/tokens";
+import {
+  FLOATING_ACTION_BUTTON_SIZE,
+  FloatingActionButton,
+  FloatingActionGroup,
+} from "@/shared/components/ui/FloatingActionButton";
+import { colors, spacing } from "@/shared/theme/tokens";
 
 import { LiftStatusCard } from "./components/LiftStatusCard";
 import { NextActionCard } from "./components/NextActionCard";
@@ -24,11 +31,13 @@ export function ProgressScreenView({
   onRefresh,
   onSelectLift,
   onSelectMetric,
+  onOpenActiveWorkout,
 }: {
   state: Extract<ProgressState, { status: "ready" }>;
   onRefresh: () => void;
   onSelectLift: (family: LiftFamily) => void;
   onSelectMetric: (metric: TrendMetric) => void;
+  onOpenActiveWorkout?: () => void;
 }) {
   const [infoOpen, setInfoOpen] = useState(false);
 
@@ -55,7 +64,13 @@ export function ProgressScreenView({
     <Screen scroll={false} className="pt-0 pb-0">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 24, paddingBottom: 24, gap: 16 }}
+        contentContainerStyle={{
+          paddingTop: spacing.xl,
+          paddingBottom: onOpenActiveWorkout
+            ? FLOATING_ACTION_BUTTON_SIZE + spacing.xl * 2
+            : spacing.xl,
+          gap: spacing.lg,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={state.refresh.status === "pending"}
@@ -108,6 +123,22 @@ export function ProgressScreenView({
           />
         </View>
       </ScrollView>
+      {onOpenActiveWorkout ? (
+        <FloatingActionGroup>
+          <FloatingActionButton
+            intent="primary"
+            accessibilityLabel="Open active workout"
+            onPress={onOpenActiveWorkout}
+          >
+            <MaterialCommunityIcons
+              name="dumbbell"
+              size={24}
+              color="white"
+              accessible={false}
+            />
+          </FloatingActionButton>
+        </FloatingActionGroup>
+      ) : null}
       {infoOpen ? (
         <ProgressAnalysisInfoSheet
           open

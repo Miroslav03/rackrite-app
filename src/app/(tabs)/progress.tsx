@@ -1,13 +1,23 @@
-import { useIsFocused } from "expo-router";
+import { useIsFocused, useRouter } from "expo-router";
+import { useCallback } from "react";
 
 import { progressActions } from "@/features/progress/actions/progressActions";
 import { useProgressController } from "@/features/progress/controller/useProgressController";
 import { ProgressScreenLoadError } from "@/features/progress/view/ProgressScreenLoadError";
 import { ProgressScreenView } from "@/features/progress/view/ProgressScreenView";
+import { useWorkoutSession } from "@/features/workout/session/WorkoutSessionContext";
 
 import { FullScreenLoader } from "@/shared/components/feedback/FullScreenLoader";
 
 export default function ProgressScreen() {
+  const router = useRouter();
+  const session = useWorkoutSession();
+
+  const openActiveWorkout = useCallback(
+    () => router.push("/workout"),
+    [router],
+  );
+
   const { state, refresh, selectLift, selectMetric } = useProgressController(
     progressActions,
     useIsFocused(),
@@ -30,6 +40,9 @@ export default function ProgressScreen() {
           onRefresh={refresh}
           onSelectLift={selectLift}
           onSelectMetric={selectMetric}
+          onOpenActiveWorkout={
+            session.state.status === "active" ? openActiveWorkout : undefined
+          }
         />
       );
   }

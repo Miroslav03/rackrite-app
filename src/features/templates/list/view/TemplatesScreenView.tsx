@@ -1,12 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useCallback, useEffect, useRef } from "react";
-import {
-  FlatList,
-  Pressable,
-  View,
-  type ListRenderItemInfo,
-} from "react-native";
+import { FlatList, View, type ListRenderItemInfo } from "react-native";
 
 import type { TemplateId } from "@/domain/templates/editor/templates.types";
 import type { TemplateListItem } from "@/domain/templates/list/templates.types";
@@ -16,6 +11,11 @@ import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
 import { Screen } from "@/shared/components/layout/Screen";
 import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 import { AppText } from "@/shared/components/ui/AppText";
+import {
+  FLOATING_ACTION_BUTTON_SIZE,
+  FloatingActionButton,
+  FloatingActionGroup,
+} from "@/shared/components/ui/FloatingActionButton";
 import { colors, spacing } from "@/shared/theme/tokens";
 
 import type { TemplatesState } from "../controller/templates.types";
@@ -28,9 +28,8 @@ type TemplatesScreenViewProps = {
   onRefresh: () => void;
   onCreateTemplate: () => void;
   onOpenTemplate: (templateId: TemplateId) => void;
+  onOpenActiveWorkout?: () => void;
 };
-
-const CREATE_BUTTON_SIZE = 56;
 
 export function TemplatesScreenView({
   state,
@@ -38,6 +37,7 @@ export function TemplatesScreenView({
   onRefresh,
   onCreateTemplate,
   onOpenTemplate,
+  onOpenActiveWorkout,
 }: TemplatesScreenViewProps) {
   const listRef = useRef<FlatList<TemplateListItem>>(null);
 
@@ -75,10 +75,7 @@ export function TemplatesScreenView({
         contentContainerStyle={{
           flexGrow: 1,
           paddingTop: spacing.xl,
-          paddingBottom:
-            state.items.length > 0
-              ? CREATE_BUTTON_SIZE + spacing.xl * 2
-              : spacing.lg,
+          paddingBottom: FLOATING_ACTION_BUTTON_SIZE + spacing.xl * 2,
         }}
         ItemSeparatorComponent={<View className="h-lg" />}
         ListHeaderComponent={
@@ -114,26 +111,34 @@ export function TemplatesScreenView({
           </View>
         }
       />
-      <Pressable
-        testID="create-template-button"
-        accessibilityRole="button"
-        accessibilityLabel="Create template"
-        onPress={onCreateTemplate}
-        className="absolute items-center justify-center rounded-full border border-outline/30 bg-surfaceHigh/80"
-        style={{
-          width: CREATE_BUTTON_SIZE,
-          height: CREATE_BUTTON_SIZE,
-          right: spacing.screenX,
-          bottom: spacing.xl,
-        }}
-      >
-        <Ionicons
-          name="add"
-          size={30}
-          color={colors.primarySoft}
-          accessible={false}
-        />
-      </Pressable>
+      <FloatingActionGroup>
+        {onOpenActiveWorkout ? (
+          <FloatingActionButton
+            intent="primary"
+            accessibilityLabel="Open active workout"
+            onPress={onOpenActiveWorkout}
+          >
+            <MaterialCommunityIcons
+              name="dumbbell"
+              size={24}
+              color="white"
+              accessible={false}
+            />
+          </FloatingActionButton>
+        ) : null}
+        <FloatingActionButton
+          testID="create-template-button"
+          accessibilityLabel="Create template"
+          onPress={onCreateTemplate}
+        >
+          <Ionicons
+            name="add"
+            size={30}
+            color={colors.primarySoft}
+            accessible={false}
+          />
+        </FloatingActionButton>
+      </FloatingActionGroup>
     </Screen>
   );
 }

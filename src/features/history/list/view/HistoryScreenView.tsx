@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useIsFocused, useRouter } from "expo-router";
 
 import { useCallback, useEffect, useRef } from "react";
@@ -20,6 +21,11 @@ import { HeaderMetric } from "@/shared/components/layout/HeaderMetric";
 import { Screen } from "@/shared/components/layout/Screen";
 import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
 import { AppText } from "@/shared/components/ui/AppText";
+import {
+  FLOATING_ACTION_BUTTON_SIZE,
+  FloatingActionButton,
+  FloatingActionGroup,
+} from "@/shared/components/ui/FloatingActionButton";
 import { colors, spacing } from "@/shared/theme/tokens";
 
 import { useRepeatWorkoutController } from "../../controller/useRepeatWorkoutController";
@@ -118,7 +124,10 @@ export function HistoryScreenView({
         contentContainerStyle={{
           flexGrow: 1,
           paddingTop: spacing.xl,
-          paddingBottom: spacing.lg,
+          paddingBottom:
+            session.state.status === "active"
+              ? FLOATING_ACTION_BUTTON_SIZE + spacing.xl * 2
+              : spacing.lg,
         }}
         ItemSeparatorComponent={<View className="h-lg" />}
         ListHeaderComponent={
@@ -171,6 +180,22 @@ export function HistoryScreenView({
           ) : null
         }
       />
+      {session.state.status === "active" ? (
+        <FloatingActionGroup>
+          <FloatingActionButton
+            intent="primary"
+            accessibilityLabel="Open active workout"
+            onPress={openActiveWorkout}
+          >
+            <MaterialCommunityIcons
+              name="dumbbell"
+              size={24}
+              color="white"
+              accessible={false}
+            />
+          </FloatingActionButton>
+        </FloatingActionGroup>
+      ) : null}
       <RepeatWorkoutModal
         overlay={repeat.overlay}
         pending={pendingWorkoutId !== null}

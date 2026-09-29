@@ -9,12 +9,14 @@ import { templatesActions } from "@/features/templates/list/actions/templatesAct
 import { useTemplatesController } from "@/features/templates/list/controller/useTemplatesController";
 import { TemplatesScreenLoadError } from "@/features/templates/list/view/TemplatesScreenLoadError";
 import { TemplatesScreenView } from "@/features/templates/list/view/TemplatesScreenView";
+import { useWorkoutSession } from "@/features/workout/session/WorkoutSessionContext";
 
 import { FullScreenLoader } from "@/shared/components/feedback/FullScreenLoader";
 
 export default function TemplatesScreen() {
   const router = useRouter();
   const isFocused = useIsFocused();
+  const session = useWorkoutSession();
 
   const { createEmptyTemplate } = useTemplateSession();
 
@@ -38,6 +40,11 @@ export default function TemplatesScreen() {
     router.navigate("/template-editor");
   }
 
+  const openActiveWorkout = useCallback(
+    () => router.push("/workout"),
+    [router],
+  );
+
   switch (state.status) {
     case "loading":
       return (
@@ -56,6 +63,9 @@ export default function TemplatesScreen() {
           onRefresh={refresh}
           onCreateTemplate={openNewTemplate}
           onOpenTemplate={openTemplate}
+          onOpenActiveWorkout={
+            session.state.status === "active" ? openActiveWorkout : undefined
+          }
         />
       );
   }
