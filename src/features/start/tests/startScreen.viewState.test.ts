@@ -24,7 +24,7 @@ describe("getStartScreenViewState", () => {
       status: "noActiveWorkout",
       operation: {
         status: "pending",
-        operation: "startEmptyWorkout",
+        operation: { type: "startEmptyWorkout" },
       },
     };
 
@@ -40,7 +40,7 @@ describe("getStartScreenViewState", () => {
       status: "noActiveWorkout",
       operation: {
         status: "error",
-        operation: "startEmptyWorkout",
+        operation: { type: "startEmptyWorkout" },
         error,
       },
     };

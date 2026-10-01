@@ -1,28 +1,30 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useIsFocused, useRouter } from "expo-router";
+import { useIsFocused } from "expo-router";
 
-import { useCallback, useMemo } from "react";
-import { ActivityIndicator, FlatList, View } from "react-native";
+import { useMemo } from "react";
+import { ActivityIndicator, FlatList, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { TemplateDetails } from "@/domain/templates/details/templates.types";
 
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
+import { isStartWorkoutFromTemplatePending } from "@/features/workout/session/workoutSession.selectors";
 
 import { ErrorNotifier } from "@/shared/components/feedback/ErrorNotifier/ErrorNotifier";
 import { getActiveWorkoutOperationErrorMessage } from "@/shared/components/feedback/ErrorNotifier/utils";
 import { Screen } from "@/shared/components/layout/Screen";
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
-import { ExerciseDetailsCard } from "@/shared/components/ui/ExerciseDetailsCard";
+import { DangerModal as DangerModalView } from "@/shared/components/ui/DangerModal";
 import { DescriptionCard } from "@/shared/components/ui/DescriptionCard";
+import { ExerciseDetailsCard } from "@/shared/components/ui/ExerciseDetailsCard";
 import { Metric } from "@/shared/components/ui/Metric";
+import { isOperationPending } from "@/shared/state/operationState";
 import { colors, spacing } from "@/shared/theme/tokens";
 
-import { useStartTemplateWorkoutController } from "../controller/useStartTemplateWorkoutController";
-
-import { StartTemplateWorkoutModal } from "./components/StartTemplateWorkoutModal";
-import { createTemplateDetailsViewModel } from "./templateDetails.viewModel";
+import { TemplateOptionsSheet } from "./components/TemplateOptionsSheet";
+import { createTemplateDetailsViewModel } from "./templateDetails.viewState.utils";
+import { useTemplateDetailsScreenOverlay } from "./useTemplateDetailsScreenOverlay";
 
 type TemplateDetailsScreenViewProps = {
   template: TemplateDetails;
@@ -38,34 +40,62 @@ export function TemplateDetailsScreenView({
   dateReference,
   session,
 }: TemplateDetailsScreenViewProps) {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
 
-  const openActiveWorkout = useCallback(
-    () => router.replace("/workout"),
-    [router],
-  );
-
-  const start = useStartTemplateWorkoutController(
-    session,
-    openActiveWorkout,
-    isFocused,
-  );
-
-  const startPending = start.pendingTemplateId !== null;
+  const {
+    activeOverlay,
+    modalContent,
+    modalOperation,
+    closeOverlay,
+    handleModalAction,
+    handleRequestStartWorkout,
+    openTemplateDetailsOptions,
+    handleTemplateDetailsOptionsSelected,
+  } = useTemplateDetailsScreenOverlay({
+    template: details,
+    workoutSession: session,
+  });
 
   const template = useMemo(
     () => createTemplateDetailsViewModel(details, dateReference),
     [details, dateReference],
   );
 
+  const operation =
+    session.state.status === "active" ||
+    session.state.status === "noActiveWorkout"
+      ? session.state.operation
+      : null;
+
+  const startPending =
+    operation !== null && isStartWorkoutFromTemplatePending(operation);
+
+  const startDisabled =
+    !isFocused ||
+    operation === null ||
+    isOperationPending(operation) ||
+    details.totalSets === 0;
+
   return (
-    <Screen scroll={false} showBackButton className="pt-0 pb-0">
-      {(session.state.status === "active" ||
-        session.state.status === "noActiveWorkout") && (
+    <Screen
+      scroll={false}
+      showBackButton
+      className="pt-0 pb-0"
+      headerRightAccessory={
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Options for ${template.name}`}
+          onPress={openTemplateDetailsOptions}
+          hitSlop={12}
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color={colors.muted} />
+        </Pressable>
+      }
+    >
+      {operation && (
         <ErrorNotifier
-          operation={session.state.operation}
+          operation={operation}
           isFocused={isFocused}
           onErrorDismissed={session.dismissOperationError}
           getErrorMessage={getActiveWorkoutOperationErrorMessage}
@@ -120,11 +150,11 @@ export function TemplateDetailsScreenView({
           title={startPending ? "Starting..." : "Start Workout"}
           accessibilityRole="button"
           accessibilityState={{
-            disabled: start.disabled || details.totalSets === 0,
+            disabled: startDisabled,
             busy: startPending,
           }}
-          disabled={start.disabled || details.totalSets === 0}
-          onPress={() => start.requestStart(details.id)}
+          disabled={startDisabled}
+          onPress={() => handleRequestStartWorkout(details.id)}
           leftIcon={
             startPending ? (
               <ActivityIndicator color="white" />
@@ -134,12 +164,26 @@ export function TemplateDetailsScreenView({
           }
         />
       </View>
-      <StartTemplateWorkoutModal
-        overlay={start.overlay}
-        pending={startPending}
-        onConfirm={start.confirm}
-        onClose={start.close}
-      />
+
+      {activeOverlay.type === "templateDetailsOptions" && (
+        <TemplateOptionsSheet
+          templateName={template.name}
+          onOptionSelect={handleTemplateDetailsOptionsSelected}
+          onClose={closeOverlay}
+        />
+      )}
+
+      {activeOverlay.type === "dangerModal" && modalContent !== null && (
+        <DangerModalView
+          open
+          title={modalContent.title}
+          description={modalContent.description}
+          confirmLabel={modalContent.confirmLabel}
+          operation={modalOperation}
+          onConfirm={handleModalAction}
+          onClose={closeOverlay}
+        />
+      )}
     </Screen>
   );
 }

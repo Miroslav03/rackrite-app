@@ -1,4 +1,3 @@
-import type { TemplateId } from "@/domain/templates/editor/templates.types";
 import type {
   WorkoutExerciseId,
   WorkoutId,
@@ -15,11 +14,7 @@ import type {
 export function getPendingRepeatWorkoutId(
   state: OperationState<StartWorkoutOperation | ActiveWorkoutOperation>,
 ): WorkoutId | null {
-  if (
-    isOperationPending(state) &&
-    typeof state.operation !== "string" &&
-    state.operation.type === "repeatWorkout"
-  ) {
+  if (isOperationPending(state) && state.operation.type === "repeatWorkout") {
     return state.operation.sourceWorkoutId;
   }
 
@@ -48,15 +43,11 @@ export function isCopyPreviousSetOperationPending(
   );
 }
 
-export function getPendingStartTemplateId(
+export function isStartWorkoutFromTemplatePending(
   state: OperationState<StartWorkoutOperation | ActiveWorkoutOperation>,
-): TemplateId | null {
-  if (
+): boolean {
+  return (
     isOperationPending(state) &&
-    typeof state.operation !== "string" &&
     state.operation.type === "startWorkoutFromTemplate"
-  ) {
-    return state.operation.templateId;
-  }
-  return null;
+  );
 }

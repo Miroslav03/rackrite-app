@@ -10,14 +10,10 @@ import {
 export function getActiveWorkoutOperationErrorMessage(
   operation: ActiveWorkoutOperation | StartWorkoutOperation,
 ): string {
-  if (typeof operation === "string") {
-    switch (operation) {
-      case "startEmptyWorkout":
-        return "Couldn't start workout. Try again.";
-    }
-  }
-
   switch (operation.type) {
+    case "startEmptyWorkout":
+      return "Couldn't start workout. Try again.";
+
     case "startWorkoutFromTemplate":
       return "Couldn't start workout from template. Try again.";
 

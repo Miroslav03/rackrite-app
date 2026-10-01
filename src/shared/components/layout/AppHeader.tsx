@@ -19,7 +19,6 @@ type AppHeaderProps = {
 export function AppHeader({
   title = "RackRite",
   showBackButton = false,
-  showSettings = true,
   rightAccessory,
   className,
 }: AppHeaderProps) {
@@ -50,24 +49,9 @@ export function AppHeader({
         {title}
       </AppText>
 
-      {rightAccessory || showSettings ? (
+      {rightAccessory ? (
         <View className="ml-xl flex-row items-center gap-lg">
           {rightAccessory}
-
-          {showSettings ? (
-            <Pressable
-              hitSlop={12}
-              //This here must go to settings
-              onPress={() => router.push("/workout")}
-              className="h-9 w-9 items-center justify-center rounded-full bg-surfaceHigh"
-            >
-              <Ionicons
-                name="settings-outline"
-                size={18}
-                color={colors.muted}
-              />
-            </Pressable>
-          ) : null}
         </View>
       ) : null}
     </View>

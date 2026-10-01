@@ -10,10 +10,10 @@ import type { FinishWorkoutCommand } from "@/features/workout/actions/finishWork
 import type { RemoveExerciseCommand } from "@/features/workout/actions/removeExercise";
 import type { RemoveSetCommand } from "@/features/workout/actions/removeSet";
 import type { SelectSetCommand } from "@/features/workout/actions/selectSet";
+import type { StartWorkoutFromTemplateCommand } from "@/features/workout/actions/startWorkoutFromTemplate";
 import type { UndoSetCompletionCommand } from "@/features/workout/actions/undoCompletedSet";
 import type { UpdateExerciseOrderCommand } from "@/features/workout/actions/updateExerciseOrder";
 import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
-import type { StartWorkoutFromTemplateCommand } from "@/features/workout/actions/startWorkoutFromTemplate";
 import type { WorkoutSessionActions } from "@/features/workout/actions/workoutSessionActions";
 
 import { toError } from "@/shared/utils/error";
@@ -291,7 +291,7 @@ export function useWorkoutSessionController(
 
     dispatch({
       type: "startOperationStarted",
-      operation: "startEmptyWorkout",
+      operation: { type: "startEmptyWorkout" },
     });
 
     try {
@@ -313,7 +313,7 @@ export function useWorkoutSessionController(
 
       dispatch({
         type: "startOperationFailed",
-        operation: "startEmptyWorkout",
+        operation: { type: "startEmptyWorkout" },
         error: sessionError,
       });
 

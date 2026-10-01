@@ -35,14 +35,14 @@ describe("workoutSessionReducer", () => {
 
       const newState = workoutSessionReducer(state, {
         type: "startOperationStarted",
-        operation: "startEmptyWorkout",
+        operation: { type: "startEmptyWorkout" },
       });
 
       expect(newState).toEqual({
         status: "noActiveWorkout",
         operation: {
           status: "pending",
-          operation: "startEmptyWorkout",
+          operation: { type: "startEmptyWorkout" },
         },
       });
     });
@@ -63,7 +63,7 @@ describe("workoutSessionReducer", () => {
 
       const nextState = workoutSessionReducer(state, {
         type: "startOperationStarted",
-        operation: "startEmptyWorkout",
+        operation: { type: "startEmptyWorkout" },
       });
 
       expect(nextState).toBe(state);
@@ -76,13 +76,13 @@ describe("workoutSessionReducer", () => {
         status: "noActiveWorkout",
         operation: {
           status: "pending",
-          operation: "startEmptyWorkout",
+          operation: { type: "startEmptyWorkout" },
         },
       };
 
       const nextState = workoutSessionReducer(state, {
         type: "startOperationFailed",
-        operation: "startEmptyWorkout",
+        operation: { type: "startEmptyWorkout" },
         error,
       });
 
@@ -90,7 +90,7 @@ describe("workoutSessionReducer", () => {
         status: "noActiveWorkout",
         operation: {
           status: "error",
-          operation: "startEmptyWorkout",
+          operation: { type: "startEmptyWorkout" },
           error,
         },
       });
@@ -326,7 +326,7 @@ describe("workoutSessionReducer", () => {
         status: "noActiveWorkout",
         operation: {
           status: "error",
-          operation: "startEmptyWorkout",
+          operation: { type: "startEmptyWorkout" },
           error,
         },
       };
@@ -348,7 +348,7 @@ describe("workoutSessionReducer", () => {
         status: "noActiveWorkout",
         operation: {
           status: "error",
-          operation: "startEmptyWorkout",
+          operation: { type: "startEmptyWorkout" },
           error: currentError,
         },
       };
@@ -373,7 +373,7 @@ describe("workoutSessionReducer", () => {
         status: "noActiveWorkout",
         operation: {
           status: "pending",
-          operation: "startEmptyWorkout",
+          operation: { type: "startEmptyWorkout" },
         },
       };
 

@@ -37,7 +37,7 @@ export function DescriptionCard(props: DescriptionCardProps) {
 
   return (
     <SurfaceCard accent="primary" testID="description-card">
-      <AppText variant="title" className="text-lg">
+      <AppText variant="title" className="text-xl">
         Description
       </AppText>
       <AppText className="text-foreground">{props.description}</AppText>
@@ -65,7 +65,7 @@ function EditableDescriptionCard({
           onPress={onEdit}
         >
           <View className="flex-row items-center justify-between">
-            <AppText variant="title" className="text-lg">
+            <AppText variant="title" className="text-xl">
               Description
             </AppText>
 

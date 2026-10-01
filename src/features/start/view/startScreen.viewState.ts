@@ -33,7 +33,7 @@ export function getStartScreenViewState(
 
       if (
         operation.status === "pending" &&
-        operation.operation === "startEmptyWorkout"
+        operation.operation.type === "startEmptyWorkout"
       ) {
         return {
           view: "noActiveWorkout",
@@ -43,7 +43,7 @@ export function getStartScreenViewState(
 
       if (
         operation.status === "error" &&
-        operation.operation === "startEmptyWorkout"
+        operation.operation.type === "startEmptyWorkout"
       ) {
         return {
           view: "noActiveWorkout",
