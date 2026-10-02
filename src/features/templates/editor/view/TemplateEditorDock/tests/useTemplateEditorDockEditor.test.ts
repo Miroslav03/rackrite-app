@@ -27,7 +27,11 @@ async function renderEditor() {
     async () => undefined,
   );
   const actions = createTemplateSessionActions({
-    repository: { insertTemplateAggregate },
+    repository: {
+      insertTemplateAggregate,
+      getTemplateAggregateById: jest.fn(),
+      updateTemplateAggregate: jest.fn(),
+    },
     now: () => Date.now(),
     createTemplateId: () => `template-${++nextId}`,
     createTemplateExerciseId: () => `exercise-${++nextId}`,

@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 
 import { useCallback, useState } from "react";
 
+import { useTemplateSession } from "@/features/templates/editor/session/TemplateSessionContext";
 import { StartWorkoutFromTemplateCommand } from "@/features/workout/actions/startWorkoutFromTemplate";
 import { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
 
@@ -48,6 +49,7 @@ export function useTemplateDetailsScreenOverlay({
     useState<TemplateDetailsOverlay>(NO_ACTIVE_OVERLAY);
 
   const router = useRouter();
+  const { editTemplate } = useTemplateSession();
 
   const { state: workoutState, startWorkoutFromTemplate } = workoutSession;
   const { state: templateState } = templateSession;
@@ -130,7 +132,16 @@ export function useTemplateDetailsScreenOverlay({
       return;
     }
 
-    switch (option) {
+    switch (option.type) {
+      case "editTemplate":
+        closeOverlay();
+        void editTemplate(template.id);
+        router.navigate({
+          pathname: "/template-editor",
+          params: { templateId: template.id },
+        });
+        return;
+
       case "removeTemplate":
         setActiveOverlay({
           type: "dangerModal",

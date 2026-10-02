@@ -1,4 +1,7 @@
-import { templateRepository } from "@/data/repositories/templateRepository";
+import {
+  templateRepository,
+  type TemplateRepository,
+} from "@/data/repositories/templateRepository";
 
 import type { Exercise } from "@/domain/exercises/exercise.types";
 import { DEFAULT_REST_SECONDS_BY_EXERCISE_KIND } from "@/domain/settings/settings.constants";
@@ -23,10 +26,9 @@ import {
 
 import { createId } from "@/shared/utils/id";
 
-import {
-  createTemplate,
-  type CreateTemplateDependencies,
-} from "./createTemplate";
+import { createTemplate } from "./createTemplate";
+import { loadTemplate } from "./loadTemplate";
+import { updateTemplate } from "./updateTemplate";
 
 export type AddTemplateExerciseCommand = { exercise: Exercise };
 export type RemoveTemplateExerciseCommand = {
@@ -57,6 +59,11 @@ export type TemplateSessionActions = {
   ) => TemplateAggregate;
   createEmptyTemplate: () => TemplateAggregate;
   createTemplate: (template: TemplateAggregate) => Promise<void>;
+  loadTemplate: (templateId: TemplateId) => Promise<TemplateAggregate>;
+  updateTemplate: (
+    previous: TemplateAggregate,
+    next: TemplateAggregate,
+  ) => Promise<void>;
   removeExercise: (
     template: TemplateAggregate,
     command: RemoveTemplateExerciseCommand,
@@ -84,7 +91,13 @@ export type TemplateSessionActions = {
 };
 
 export function createTemplateSessionActions(
-  dependencies: CreateTemplateDependencies & {
+  dependencies: {
+    repository: Pick<
+      TemplateRepository,
+      | "insertTemplateAggregate"
+      | "getTemplateAggregateById"
+      | "updateTemplateAggregate"
+    >;
     now: () => number;
     createTemplateId: () => TemplateId;
     createTemplateExerciseId: () => TemplateExerciseId;
@@ -95,6 +108,9 @@ export function createTemplateSessionActions(
     updateMetadata: (template, command) =>
       updateTemplateMetadata(template, { ...command, now: dependencies.now() }),
     createTemplate: (template) => createTemplate(dependencies, template),
+    loadTemplate: (templateId) => loadTemplate(dependencies, templateId),
+    updateTemplate: (previous, next) =>
+      updateTemplate(dependencies, previous, next),
     createEmptyTemplate: () =>
       createEmptyTemplate({
         id: dependencies.createTemplateId(),

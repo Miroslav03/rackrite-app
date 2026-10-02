@@ -9,7 +9,39 @@ import {
   getExercisePickerExclusions,
   getModalContent,
   getModalOperation,
+  TEMPLATE_EDITOR_VIEW,
 } from "../templateEditor.viewState.utils";
+
+it("describes saving edits and only shows progress for an edit save", () => {
+  const template = createTemplate();
+  const overlay = {
+    type: "confirmationModal",
+    confirmation: { action: "editTemplate" },
+  } as const;
+
+  expect(TEMPLATE_EDITOR_VIEW.edit).toEqual({
+    screenTitle: "Edit Template",
+    finishButtonTitle: "Save Changes",
+    discardButtonTitle: "Cancel Editing",
+  });
+  expect(getModalContent(overlay, template)).toEqual({
+    title: "SAVE CHANGES?",
+    description: `Changes to ${template.template.name} will be saved to your template library.`,
+    confirmLabel: "SAVE",
+  });
+  expect(
+    getModalOperation(overlay, {
+      status: "pending",
+      operation: { type: "editTemplate" },
+    }),
+  ).toEqual({ status: "pending", label: "SAVING..." });
+  expect(
+    getModalOperation(overlay, {
+      status: "pending",
+      operation: { type: "createTemplate" },
+    }),
+  ).toEqual({ status: "idle" });
+});
 
 it("describes exercise removal and matches progress to the selected exercise", () => {
   const template = createTemplate();

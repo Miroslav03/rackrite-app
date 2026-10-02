@@ -33,7 +33,7 @@ export const TEMPLATE_EDITOR_VIEW = {
   },
   edit: {
     discardButtonTitle: "Cancel Editing",
-    finishButtonTitle: "Create Template",
+    finishButtonTitle: "Save Changes",
     screenTitle: "Edit Template",
   },
 } satisfies Record<
@@ -103,7 +103,11 @@ export function getModalContent(
             confirmLabel: "CREATE",
           };
         case "editTemplate":
-          return null;
+          return {
+            title: "SAVE CHANGES?",
+            description: `Changes to ${template.template.name} will be saved to your template library.`,
+            confirmLabel: "SAVE",
+          };
       }
 
     default:
@@ -149,7 +153,9 @@ export function getModalOperation(
             ? { status: "pending", label: "CREATING..." }
             : { status: "idle" };
         case "editTemplate":
-          return { status: "idle" };
+          return operation.operation.type === "editTemplate"
+            ? { status: "pending", label: "SAVING..." }
+            : { status: "idle" };
       }
 
     default:

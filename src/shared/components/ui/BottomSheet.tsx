@@ -42,7 +42,7 @@ export function BottomSheet({
           onPress={handleClose}
         />
 
-        <View className="bg-surface px-screenX pb-8 pt-lg">
+        <View className="bg-surface px-screenX pb-8 pt-lg gap-1">
           <AppText variant="sectionLabel" className="mb-md">
             {title}
           </AppText>

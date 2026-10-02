@@ -13,7 +13,11 @@ jest.mock("@/data/repositories/templateRepository", () => ({
 }));
 
 const actions = createTemplateSessionActions({
-  repository: { insertTemplateAggregate: jest.fn() },
+  repository: {
+    insertTemplateAggregate: jest.fn(),
+    getTemplateAggregateById: jest.fn(),
+    updateTemplateAggregate: jest.fn(),
+  },
   now: () => 2000,
   createTemplateId: () => "template",
   createTemplateExerciseId: () => "exercise",

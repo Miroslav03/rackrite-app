@@ -54,6 +54,7 @@ export type TemplateEditorScreenProps = {
     TemplateSessionController,
     | "discardTemplate"
     | "createTemplate"
+    | "updateTemplate"
     | "addExercise"
     | "removeExercise"
     | "addSet"
@@ -115,7 +116,7 @@ export function TemplateEditorScreen({
   const modalContent = getModalContent(activeOverlay, template);
   const exclusions = getExercisePickerExclusions(template);
   const isEditingDescription = activeOverlay.type === "description";
-  const canCreate = state.status === "create" && template.exercises.length > 0;
+  const canSave = !pending && template.exercises.length > 0;
 
   const optionsExercise =
     activeOverlay.type === "exerciseOptions"
@@ -288,13 +289,16 @@ export function TemplateEditorScreen({
     if (actions.removeExercise({ templateExerciseId }).success) closeOverlay();
   }
 
-  async function openCreateTemplateConfirmation() {
+  async function openSaveTemplateConfirmation() {
+    if (!canSave) return;
     if (!(await closeDescription())) return;
-    if (pending || !canCreate || !(await editor.closeSetEditor())) return;
+    if (!(await editor.closeSetEditor())) return;
 
     setActiveOverlay({
       type: "confirmationModal",
-      confirmation: { action: "createTemplate" },
+      confirmation: {
+        action: state.status === "create" ? "createTemplate" : "editTemplate",
+      },
     });
   }
 
@@ -346,11 +350,13 @@ export function TemplateEditorScreen({
       case "confirmationModal":
         switch (activeOverlay.confirmation.action) {
           case "createTemplate":
-            if (canCreate && (await closeDescription()))
+            if (canSave && (await closeDescription()))
               void actions.createTemplate();
             return;
 
           case "editTemplate":
+            if (canSave && (await closeDescription()))
+              void actions.updateTemplate();
             return;
         }
     }
@@ -452,7 +458,7 @@ export function TemplateEditorScreen({
                 variant="ghost"
                 intent="primary"
                 size="lg"
-                disabled={pending || !canCreate}
+                disabled={!canSave}
                 dimWhenDisabled={true}
                 accessibilityRole="button"
                 leftIcon={
@@ -463,7 +469,7 @@ export function TemplateEditorScreen({
                   />
                 }
                 textClassName="color-primarySoft"
-                onPress={openCreateTemplateConfirmation}
+                onPress={openSaveTemplateConfirmation}
               />
               <Button
                 title={view.discardButtonTitle}

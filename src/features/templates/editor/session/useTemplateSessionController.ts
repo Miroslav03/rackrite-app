@@ -3,10 +3,10 @@ import { useCallback, useReducer, useRef } from "react";
 import { getTemplateExerciseBySetId } from "@/domain/templates/editor/templates.selectors";
 import type {
   TemplateAggregate,
+  TemplateId,
   TemplateSetId,
 } from "@/domain/templates/editor/templates.types";
 
-import { isOperationPending } from "@/shared/state/operationState";
 import { failure, success, type Result } from "@/shared/types/result";
 import { toError } from "@/shared/utils/error";
 
@@ -17,8 +17,8 @@ import type {
   RemoveTemplateSetCommand,
   TemplateSessionActions,
   UpdateTemplateExerciseOrderCommand,
-  UpdateTemplateSetCommand,
   UpdateTemplateMetadataCommand,
+  UpdateTemplateSetCommand,
 } from "../actions/templateSessionActions";
 
 import { templatesSessionReducer } from "./templatesSession.reducer";
@@ -35,6 +35,8 @@ export type TemplateSessionController = {
   state: TemplateSessionState;
   createEmptyTemplate: () => void;
   createTemplate: () => Promise<Result<void>>;
+  editTemplate: (templateId: TemplateId) => Promise<Result<void>>;
+  updateTemplate: () => Promise<Result<void>>;
   discardTemplate: () => void;
   removeExercise: (
     command: RemoveTemplateExerciseCommand,
@@ -56,13 +58,6 @@ export const initialTemplateSessionState: TemplateSessionState = {
   status: "noActiveTemplate",
 };
 
-function isSessionPending(state: TemplateSessionState): boolean {
-  return (
-    (state.status === "create" || state.status === "edit") &&
-    isOperationPending(state.operation)
-  );
-}
-
 export function useTemplateSessionController(
   actions: TemplateSessionActions,
 ): TemplateSessionController {
@@ -72,6 +67,7 @@ export function useTemplateSessionController(
   );
 
   const stateRef = useRef(state);
+  const isActiveOperationRunningRef = useRef(false);
 
   // Commands in one render must build on the previous command's committed draft.
   const send = useCallback((event: TemplateSessionEvent) => {
@@ -80,8 +76,9 @@ export function useTemplateSessionController(
   }, []);
 
   const createEmptyTemplate = useCallback(() => {
-    if (isSessionPending(stateRef.current)) return;
+    if (isActiveOperationRunningRef.current) return;
 
+    isActiveOperationRunningRef.current = true;
     send({ type: "creationStarted" });
 
     try {
@@ -91,51 +88,121 @@ export function useTemplateSessionController(
       });
     } catch (error) {
       send({ type: "creationFailed", error: toError(error) });
+    } finally {
+      isActiveOperationRunningRef.current = false;
     }
   }, [actions, send]);
 
+  const editTemplate = useCallback(
+    async (templateId: TemplateId): Promise<Result<void>> => {
+      if (isActiveOperationRunningRef.current) {
+        return failure(
+          new Error("Another template operation is already running"),
+        );
+      }
+
+      isActiveOperationRunningRef.current = true;
+      send({ type: "editingStarted" });
+
+      try {
+        const template = await actions.loadTemplate(templateId);
+        send({ type: "editingSucceeded", template });
+
+        return success(undefined);
+      } catch (cause) {
+        const error = toError(cause);
+        send({ type: "editingFailed", error });
+
+        return failure(error);
+      } finally {
+        isActiveOperationRunningRef.current = false;
+      }
+    },
+    [actions, send],
+  );
+
   const discardTemplate = useCallback(() => {
-    if (isSessionPending(stateRef.current)) return;
+    if (isActiveOperationRunningRef.current) return;
 
     send({ type: "templateCleared" });
   }, [send]);
 
-  const createTemplate = useCallback(async (): Promise<Result<void>> => {
-    const current = stateRef.current;
+  const saveTemplate = useCallback(
+    async (mode: "create" | "edit"): Promise<Result<void>> => {
+      const current = stateRef.current;
 
-    if (current.status !== "create")
-      return failure(new Error("No template creation in progress"));
+      if (current.status !== mode) {
+        return failure(
+          new Error(
+            mode === "create"
+              ? "No template creation in progress"
+              : "No template editing in progress",
+          ),
+        );
+      }
 
-    if (isOperationPending(current.operation))
-      return failure(
-        new Error("Another template operation is already running"),
+      if (isActiveOperationRunningRef.current) {
+        return failure(
+          new Error("Another template operation is already running"),
+        );
+      }
+
+      isActiveOperationRunningRef.current = true;
+      send(
+        current.status === "create"
+          ? {
+              type: "createOperationStarted",
+              operation: { type: "createTemplate" },
+            }
+          : {
+              type: "editOperationStarted",
+              operation: { type: "editTemplate" },
+            },
       );
 
-    const template = current.activeTemplate;
-    const operation = { type: "createTemplate" } as const;
+      try {
+        if (current.status === "create") {
+          await actions.createTemplate(current.activeTemplate);
+        } else {
+          await actions.updateTemplate(
+            current.originalTemplate,
+            current.activeTemplate,
+          );
+        }
 
-    send({ type: "createOperationStarted", operation });
-
-    try {
-      await actions.createTemplate(template);
-
-      const latest = stateRef.current;
-      if (latest.status === "create" && latest.activeTemplate === template) {
         send({ type: "templateCleared" });
+        return success(undefined);
+      } catch (cause) {
+        const error = toError(cause);
+        send(
+          current.status === "create"
+            ? {
+                type: "createOperationFailed",
+                operation: { type: "createTemplate" },
+                error,
+              }
+            : {
+                type: "editOperationFailed",
+                operation: { type: "editTemplate" },
+                error,
+              },
+        );
+        return failure(error);
+      } finally {
+        isActiveOperationRunningRef.current = false;
       }
+    },
+    [actions, send],
+  );
 
-      return success(undefined);
-    } catch (cause) {
-      const error = toError(cause);
-      const latest = stateRef.current;
-
-      if (latest.status === "create" && latest.activeTemplate === template) {
-        send({ type: "createOperationFailed", operation, error });
-      }
-
-      return failure(error);
-    }
-  }, [actions, send]);
+  const createTemplate = useCallback(
+    () => saveTemplate("create"),
+    [saveTemplate],
+  );
+  const updateTemplate = useCallback(
+    () => saveTemplate("edit"),
+    [saveTemplate],
+  );
 
   const dismissOperationError = useCallback(
     (error: Error) => send({ type: "operationErrorDismissed", error }),
@@ -153,11 +220,12 @@ export function useTemplateSessionController(
         return failure(new Error("No active template"));
       }
 
-      if (isOperationPending(current.operation))
+      if (isActiveOperationRunningRef.current)
         return failure(
           new Error("Another template operation is already running"),
         );
 
+      isActiveOperationRunningRef.current = true;
       send({
         type:
           current.status === "create"
@@ -184,6 +252,8 @@ export function useTemplateSessionController(
           error,
         });
         return failure(error);
+      } finally {
+        isActiveOperationRunningRef.current = false;
       }
     },
     [send],
@@ -255,7 +325,7 @@ export function useTemplateSessionController(
       if (current.status !== "create" && current.status !== "edit")
         return failure(new Error("No active template"));
 
-      if (isOperationPending(current.operation))
+      if (isActiveOperationRunningRef.current)
         return failure(
           new Error("Another template operation is already running"),
         );
@@ -278,6 +348,8 @@ export function useTemplateSessionController(
     state,
     createEmptyTemplate,
     createTemplate,
+    editTemplate,
+    updateTemplate,
     discardTemplate,
     addExercise,
     removeExercise,

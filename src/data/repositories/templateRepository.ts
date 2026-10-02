@@ -233,10 +233,6 @@ export const updateTemplateAggregate: TemplateRepository["updateTemplateAggregat
       throw new Error("Cannot update a template using a different template ID");
     }
 
-    //mayve move this to acitons layer later
-    assertTemplateCanBeSaved(previous);
-    assertTemplateCanBeSaved(next);
-
     if (previous === next) return;
 
     const templateRow = templateToRow(next.template);
