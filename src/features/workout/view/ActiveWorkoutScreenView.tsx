@@ -39,7 +39,6 @@ import type { UpdateWorkoutMetadataCommand } from "@/features/workout/actions/up
 import type { UpdateSetCommand } from "@/features/workout/actions/updateSet";
 import type {
   ActiveWorkoutOperation,
-  OperationState,
   WorkoutSessionResult,
 } from "@/features/workout/session/workoutSession.types";
 import { DescriptionCard } from "@/shared/components/ui/DescriptionCard";
@@ -65,7 +64,10 @@ import { colors, spacing } from "@/shared/theme/tokens";
 import { ErrorNotifier } from "@/shared/components/feedback/ErrorNotifier/ErrorNotifier";
 import { getActiveWorkoutOperationErrorMessage } from "@/shared/components/feedback/ErrorNotifier/utils";
 import { useScrollVisibility } from "@/shared/context/ScrollVisibilityContext";
-import { isOperationPending } from "@/shared/state/operationState";
+import {
+  isOperationPending,
+  OperationState,
+} from "@/shared/state/operationState";
 
 import {
   getAddExerciseOperation,

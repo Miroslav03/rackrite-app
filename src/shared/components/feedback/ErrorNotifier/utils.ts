@@ -1,3 +1,4 @@
+import type { TemplateOperation } from "@/features/templates/details/controller/templates.types";
 import {
   CreateTemplateOperations,
   EditTemplateOperations,
@@ -103,5 +104,16 @@ export function getTemplateEditorOperationErrorMessage(
 
     case "updateSet":
       return "Couldn't update set. Try again.";
+  }
+}
+
+export function getTemplateDetailsOperationErrorMessage(
+  operation: TemplateOperation | ActiveWorkoutOperation | StartWorkoutOperation,
+): string {
+  switch (operation.type) {
+    case "deleteTemplate":
+      return "Couldn't delete template. Try again.";
+    default:
+      return getActiveWorkoutOperationErrorMessage(operation);
   }
 }

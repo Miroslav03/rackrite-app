@@ -1,10 +1,10 @@
-import { isOperationPending } from "@/shared/state/operationState";
+import {
+  isOperationPending,
+  OperationState,
+} from "@/shared/state/operationState";
 
 import { isCopyPreviousSetOperationPending } from "../workoutSession.selectors";
-import type {
-  ActiveWorkoutOperation,
-  OperationState,
-} from "../workoutSession.types";
+import type { ActiveWorkoutOperation } from "../workoutSession.types";
 
 describe("workout session selectors", () => {
   it("identifies a copy-previous operation for the matching exercise", () => {

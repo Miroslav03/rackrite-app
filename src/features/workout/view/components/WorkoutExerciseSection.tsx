@@ -4,26 +4,26 @@ import { memo, useCallback } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
 import type {
-    WorkoutExerciseAggregate,
-    WorkoutExerciseId,
-    WorkoutSetId,
+  WorkoutExerciseAggregate,
+  WorkoutExerciseId,
+  WorkoutSetId,
 } from "@/domain/workout/workout.types";
 
 import {
-    isAddSetOperationPending,
-    isCopyPreviousSetOperationPending,
+  isAddSetOperationPending,
+  isCopyPreviousSetOperationPending,
 } from "@/features/workout/session/workoutSession.selectors";
-import type {
-    ActiveWorkoutOperation,
-    OperationState,
-} from "@/features/workout/session/workoutSession.types";
+import type { ActiveWorkoutOperation } from "@/features/workout/session/workoutSession.types";
 import type { ActiveSetEditorPanelType } from "@/features/workout/view/components/ActiveWorkoutDock/activeWorkoutDock.types";
 
 import { ScreenSection } from "@/shared/components/layout/ScreenSection";
 import { SetCard } from "@/shared/components/set-editor/SetCard";
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
-import { isOperationPending } from "@/shared/state/operationState";
+import {
+  isOperationPending,
+  OperationState,
+} from "@/shared/state/operationState";
 import { colors } from "@/shared/theme/tokens";
 
 import { formatExerciseKind } from "@/features/exercises/view/utils/formatExerciseKind";

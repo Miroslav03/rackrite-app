@@ -13,12 +13,12 @@ import type { ExercisePickerSelectionOperation } from "@/features/exercises/view
 
 import type { ConfirmationModalOperation } from "@/shared/components/ui/ConfirmationModal";
 import type { DangerModalOperation } from "@/shared/components/ui/DangerModal";
-import { isOperationPending } from "@/shared/state/operationState";
-
-import type {
-  ActiveWorkoutOperation,
+import {
+  isOperationPending,
   OperationState,
-} from "../session/workoutSession.types";
+} from "@/shared/state/operationState";
+
+import type { ActiveWorkoutOperation } from "../session/workoutSession.types";
 
 import type { ActiveWorkoutOverlay } from "./ActiveWorkoutScreenView";
 import type { ActiveSetEditorPanel } from "./components/ActiveWorkoutDock/activeWorkoutDock.types";

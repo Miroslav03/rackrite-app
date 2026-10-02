@@ -16,13 +16,13 @@ import { Button } from "@/shared/components/ui/Button";
 export default function TemplateDetailsScreen() {
   const router = useRouter();
   const isFocused = useIsFocused();
-  const session = useWorkoutSession();
-
-  const { state, retry, dateReference } = useTemplateDetailsController(
+  const workoutSession = useWorkoutSession();
+  const templateSession = useTemplateDetailsController(
     templateDetailsActions,
     useLocalSearchParams<{ templateId: string }>().templateId,
     isFocused,
   );
+  const { state, retry, dateReference } = templateSession;
 
   function goBack() {
     if (router.canGoBack()) router.back();
@@ -65,7 +65,8 @@ export default function TemplateDetailsScreen() {
         <TemplateDetailsScreenView
           key={state.template.id}
           template={state.template}
-          session={session}
+          workoutSession={workoutSession}
+          templateSession={templateSession}
           dateReference={dateReference}
         />
       );

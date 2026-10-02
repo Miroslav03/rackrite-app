@@ -3,11 +3,13 @@ import type {
   WorkoutId,
 } from "@/domain/workout/workout.types";
 
-import { isOperationPending } from "@/shared/state/operationState";
+import {
+  isOperationPending,
+  OperationState,
+} from "@/shared/state/operationState";
 
 import type {
   ActiveWorkoutOperation,
-  OperationState,
   StartWorkoutOperation,
 } from "./workoutSession.types";
 

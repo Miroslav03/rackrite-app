@@ -8,10 +8,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { TemplateDetails } from "@/domain/templates/details/templates.types";
 
 import type { WorkoutSessionController } from "@/features/workout/session/useWorkoutSessionController";
-import { isStartWorkoutFromTemplatePending } from "@/features/workout/session/workoutSession.selectors";
 
 import { ErrorNotifier } from "@/shared/components/feedback/ErrorNotifier/ErrorNotifier";
-import { getActiveWorkoutOperationErrorMessage } from "@/shared/components/feedback/ErrorNotifier/utils";
+import { getTemplateDetailsOperationErrorMessage } from "@/shared/components/feedback/ErrorNotifier/utils";
 import { Screen } from "@/shared/components/layout/Screen";
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
@@ -19,8 +18,9 @@ import { DangerModal as DangerModalView } from "@/shared/components/ui/DangerMod
 import { DescriptionCard } from "@/shared/components/ui/DescriptionCard";
 import { ExerciseDetailsCard } from "@/shared/components/ui/ExerciseDetailsCard";
 import { Metric } from "@/shared/components/ui/Metric";
-import { isOperationPending } from "@/shared/state/operationState";
 import { colors, spacing } from "@/shared/theme/tokens";
+
+import type { TemplateDetailsController } from "../controller/useTemplateDetailsController";
 
 import { TemplateOptionsSheet } from "./components/TemplateOptionsSheet";
 import { createTemplateDetailsViewModel } from "./templateDetails.viewState.utils";
@@ -29,7 +29,11 @@ import { useTemplateDetailsScreenOverlay } from "./useTemplateDetailsScreenOverl
 type TemplateDetailsScreenViewProps = {
   template: TemplateDetails;
   dateReference: number;
-  session: Pick<
+  templateSession: Pick<
+    TemplateDetailsController,
+    "state" | "deleteTemplate" | "dismissOperationError"
+  >;
+  workoutSession: Pick<
     WorkoutSessionController,
     "state" | "startWorkoutFromTemplate" | "dismissOperationError"
   >;
@@ -38,7 +42,8 @@ type TemplateDetailsScreenViewProps = {
 export function TemplateDetailsScreenView({
   template: details,
   dateReference,
-  session,
+  workoutSession,
+  templateSession,
 }: TemplateDetailsScreenViewProps) {
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
@@ -47,6 +52,9 @@ export function TemplateDetailsScreenView({
     activeOverlay,
     modalContent,
     modalOperation,
+    canStartWorkout,
+    startPending,
+    errorOperation,
     closeOverlay,
     handleModalAction,
     handleRequestStartWorkout,
@@ -54,7 +62,8 @@ export function TemplateDetailsScreenView({
     handleTemplateDetailsOptionsSelected,
   } = useTemplateDetailsScreenOverlay({
     template: details,
-    workoutSession: session,
+    workoutSession,
+    templateSession,
   });
 
   const template = useMemo(
@@ -62,20 +71,13 @@ export function TemplateDetailsScreenView({
     [details, dateReference],
   );
 
-  const operation =
-    session.state.status === "active" ||
-    session.state.status === "noActiveWorkout"
-      ? session.state.operation
-      : null;
-
-  const startPending =
-    operation !== null && isStartWorkoutFromTemplatePending(operation);
-
   const startDisabled =
-    !isFocused ||
-    operation === null ||
-    isOperationPending(operation) ||
-    details.totalSets === 0;
+    !isFocused || !canStartWorkout || details.totalSets === 0;
+
+  const dismissOperationError =
+    errorOperation?.operation.type === "deleteTemplate"
+      ? templateSession.dismissOperationError
+      : workoutSession.dismissOperationError;
 
   return (
     <Screen
@@ -93,12 +95,12 @@ export function TemplateDetailsScreenView({
         </Pressable>
       }
     >
-      {operation && (
+      {errorOperation && (
         <ErrorNotifier
-          operation={operation}
+          operation={errorOperation}
           isFocused={isFocused}
-          onErrorDismissed={session.dismissOperationError}
-          getErrorMessage={getActiveWorkoutOperationErrorMessage}
+          onErrorDismissed={dismissOperationError}
+          getErrorMessage={getTemplateDetailsOperationErrorMessage}
         />
       )}
       <FlatList

@@ -11,6 +11,7 @@ import type { RestTimerAdjustmentSeconds } from "@/features/workout/actions/adju
 
 import type { Result } from "@/shared/types/result";
 
+import { OperationState } from "@/shared/state/operationState";
 import type { WorkoutSessionError } from "./workoutSession.errors";
 
 export type StartWorkoutOperation =
@@ -45,18 +46,6 @@ export type ActiveWorkoutOperation =
   | { type: "finishWorkout" };
 
 export type WorkoutSessionResult<TValue> = Result<TValue, WorkoutSessionError>;
-
-export type OperationState<TOperation> =
-  | { status: "idle" }
-  | {
-      status: "pending";
-      operation: TOperation;
-    }
-  | {
-      status: "error";
-      operation: TOperation;
-      error: Error;
-    };
 
 export type WorkoutSessionState =
   | { status: "loading" }

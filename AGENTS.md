@@ -72,6 +72,7 @@ SQLite is currently the local source of truth.
 
 ## UI and dependencies
 
+- Don't create tsx test files
 - Preserve RackRite's dark visual system and established component patterns.
 - Keep active, completed, disabled, and editable states distinct. Color must not
   be the only signal for important state.

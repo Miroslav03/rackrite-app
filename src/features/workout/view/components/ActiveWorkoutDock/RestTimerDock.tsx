@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+
 import { usePreventRemove } from "@react-navigation/native";
 
 import { useEffect, useRef } from "react";
@@ -11,10 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { RestTimerAdjustmentSeconds } from "@/features/workout/actions/adjustRestTimer";
-import type {
-  ActiveWorkoutOperation,
-  OperationState,
-} from "@/features/workout/session/workoutSession.types";
+import type { ActiveWorkoutOperation } from "@/features/workout/session/workoutSession.types";
 
 import { AppText } from "@/shared/components/ui/AppText";
 import { Button } from "@/shared/components/ui/Button";
@@ -24,7 +22,10 @@ import {
   measureView,
   useScrollVisibility,
 } from "@/shared/context/ScrollVisibilityContext";
-import { isOperationPending } from "@/shared/state/operationState";
+import {
+  isOperationPending,
+  OperationState,
+} from "@/shared/state/operationState";
 import { colors, spacing } from "@/shared/theme/tokens";
 
 type RestTimerDockProps = {

@@ -1,22 +1,28 @@
 import type { TemplateDetails } from "@/domain/templates/details/templates.types";
 
 import { formatExerciseKind } from "@/features/exercises/view/utils/formatExerciseKind";
-import {
+import type {
   ActiveWorkoutOperation,
   StartWorkoutOperation,
+  WorkoutSessionState,
 } from "@/features/workout/session/workoutSession.types";
 
-import { DangerModalOperation } from "@/shared/components/ui/DangerModal";
+import type { DangerModalOperation } from "@/shared/components/ui/DangerModal";
 import type { ExerciseDetails } from "@/shared/components/ui/ExerciseDetailsCard";
 import {
   isOperationPending,
-  OperationState,
+  type OperationState,
 } from "@/shared/state/operationState";
 import { SET_TYPE_CONFIG } from "@/shared/theme/setTypes";
 import { formatRelativeDay } from "@/shared/utils/formatRelativeDay";
 import { formatRpe } from "@/shared/utils/formatRpe";
 
-import { TemplateDetailsOverlay } from "./useTemplateDetailsScreenOverlay";
+import type {
+  TemplateDetailsState,
+  TemplateOperation,
+} from "../controller/templates.types";
+
+import type { TemplateDetailsOverlay } from "./useTemplateDetailsScreenOverlay";
 
 export function createTemplateDetailsViewModel(
   template: TemplateDetails,
@@ -42,6 +48,41 @@ export function createTemplateDetailsViewModel(
         rpe: formatRpe(set.rpe),
       })),
     })),
+  };
+}
+
+export function getTemplateDetailsOperations(
+  workoutState: WorkoutSessionState,
+  templateState: TemplateDetailsState,
+) {
+  //Type Narrow
+  const workoutOperation =
+    workoutState.status === "active" ||
+    workoutState.status === "noActiveWorkout"
+      ? workoutState.operation
+      : null;
+  const templateOperation =
+    templateState.status === "ready" ? templateState.operation : null;
+
+  const isPending =
+    workoutOperation?.status === "pending" ||
+    templateOperation?.status === "pending";
+
+  const errorOperation =
+    templateOperation?.status === "error"
+      ? templateOperation
+      : workoutOperation?.status === "error"
+        ? workoutOperation
+        : null;
+
+  return {
+    workoutOperation,
+    templateOperation,
+    canStartWorkout: workoutOperation !== null && !isPending,
+    startPending:
+      workoutOperation?.status === "pending" &&
+      workoutOperation.operation.type === "startWorkoutFromTemplate",
+    errorOperation,
   };
 }
 
@@ -74,27 +115,34 @@ export function getModalOperation(
   overlay: TemplateDetailsOverlay,
   workoutOperation: OperationState<
     ActiveWorkoutOperation | StartWorkoutOperation
-  >,
+  > | null,
+  templateOperation: OperationState<TemplateOperation> | null,
 ): DangerModalOperation {
-  if (!isOperationPending(workoutOperation)) {
+  if (overlay.type !== "dangerModal") {
     return { status: "idle" };
   }
 
-  switch (overlay.type) {
-    case "dangerModal":
-      switch (overlay.confirmation.action) {
-        /*   case "deleteTemplate":
-          return removePending
-            ? { status: "pending", label: "REMOVING..." }
-            : { status: "idle" }; */
-
-        case "startWorkoutFromTemplate":
-          return workoutOperation.operation.type === "startWorkoutFromTemplate"
-            ? { status: "pending", label: "STARTING..." }
-            : { status: "idle" };
+  switch (overlay.confirmation.action) {
+    case "deleteTemplate":
+      if (!templateOperation || !isOperationPending(templateOperation)) {
+        return { status: "idle" };
       }
 
-    default:
-      return { status: "idle" };
+      return templateOperation.operation.type === "deleteTemplate" &&
+        templateOperation.operation.templateId ===
+          overlay.confirmation.templateId
+        ? { status: "pending", label: "REMOVING..." }
+        : { status: "idle" };
+
+    case "startWorkoutFromTemplate":
+      if (!workoutOperation || !isOperationPending(workoutOperation)) {
+        return { status: "idle" };
+      }
+
+      return workoutOperation.operation.type === "startWorkoutFromTemplate" &&
+        workoutOperation.operation.templateId ===
+          overlay.confirmation.templateId
+        ? { status: "pending", label: "STARTING..." }
+        : { status: "idle" };
   }
 }

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { AppState } from "react-native";
 
-import type { TemplateDetails } from "@/domain/templates/details/templates.types";
 import type { TemplateId } from "@/domain/templates/editor/templates.types";
 
+import { failure, success, type Result } from "@/shared/types/result";
 import { toError } from "@/shared/utils/error";
 import {
   millisecondsUntilLocalMidnight,
@@ -12,11 +12,18 @@ import {
 
 import type { TemplateDetailsActions } from "../actions/templateDetailsActions";
 
-export type TemplateDetailsState =
-  | { status: "loading" }
-  | { status: "loadError"; error: Error }
-  | { status: "unavailable" }
-  | { status: "ready"; template: TemplateDetails };
+import {
+  initialTemplateDetailsState,
+  templateDetailsReducer,
+} from "./templates.reducer";
+import type {
+  TemplateDetailsEvent,
+  TemplateOperation,
+} from "./templates.types";
+
+export type TemplateDetailsController = ReturnType<
+  typeof useTemplateDetailsController
+>;
 
 export function useTemplateDetailsController(
   actions: TemplateDetailsActions,
@@ -24,43 +31,119 @@ export function useTemplateDetailsController(
   isFocused: boolean,
   now = Date.now,
 ) {
-  const [state, setState] = useState<TemplateDetailsState>({
-    status: "loading",
-  });
+  const [state, dispatch] = useReducer(
+    templateDetailsReducer,
+    initialTemplateDetailsState,
+  );
   const [dateReference, setDateReference] = useState(() =>
     startOfLocalDay(now()),
   );
 
-  const activeRef = useRef(false);
+  const isActiveOperationRunningRef = useRef(false);
+  const isScreenActiveRef = useRef(false);
+  const stateRef = useRef(state);
   const requestVersionRef = useRef(0);
 
+  // Commands between renders must read the latest committed state.
+  const send = useCallback((event: TemplateDetailsEvent) => {
+    stateRef.current = templateDetailsReducer(stateRef.current, event);
+    dispatch(event);
+  }, []);
+
   const loadDetails = useCallback(async () => {
-    if (!activeRef.current) return;
+    if (!isScreenActiveRef.current || isActiveOperationRunningRef.current)
+      return;
 
     const version = ++requestVersionRef.current;
 
     setDateReference(startOfLocalDay(now()));
 
     if (!templateId) {
-      setState({ status: "unavailable" });
+      send({ type: "loadSucceeded", template: null });
       return;
     }
 
-    setState({ status: "loading" });
+    send({ type: "loadStarted" });
     try {
       const template = await actions.loadDetails(templateId);
 
-      if (!activeRef.current || version !== requestVersionRef.current) return;
+      if (!isScreenActiveRef.current || version !== requestVersionRef.current)
+        return;
 
-      setState(
-        template ? { status: "ready", template } : { status: "unavailable" },
-      );
+      send({ type: "loadSucceeded", template });
     } catch (error) {
-      if (!activeRef.current || version !== requestVersionRef.current) return;
+      if (!isScreenActiveRef.current || version !== requestVersionRef.current)
+        return;
 
-      setState({ status: "loadError", error: toError(error) });
+      send({ type: "loadFailed", error: toError(error) });
     }
-  }, [actions, templateId, now]);
+  }, [actions, templateId, now, send]);
+
+  const executeTemplateOperation = useCallback(
+    async (
+      operation: TemplateOperation,
+      run: () => Promise<void>,
+    ): Promise<Result<void>> => {
+      const current = stateRef.current;
+
+      if (
+        !isScreenActiveRef.current ||
+        current.status !== "ready" ||
+        current.template.id !== templateId ||
+        current.template.id !== operation.templateId
+      ) {
+        return failure(
+          new Error("Template is not available for this operation"),
+        );
+      }
+
+      if (isActiveOperationRunningRef.current) {
+        return failure(
+          new Error("Another template operation is already running"),
+        );
+      }
+
+      isActiveOperationRunningRef.current = true;
+      send({ type: "operationStarted", operation });
+
+      try {
+        await run();
+
+        if (isScreenActiveRef.current) {
+          send({ type: "operationSucceeded", operation });
+        }
+
+        return success(undefined);
+      } catch (cause) {
+        const error = toError(cause);
+
+        if (isScreenActiveRef.current) {
+          send({ type: "operationFailed", operation, error });
+        }
+
+        return failure(error);
+      } finally {
+        isActiveOperationRunningRef.current = false;
+      }
+    },
+    [templateId, send],
+  );
+
+  const deleteTemplate = useCallback(
+    (id: TemplateId) =>
+      executeTemplateOperation({ type: "deleteTemplate", templateId: id }, () =>
+        actions.deleteTemplate(id),
+      ),
+    [actions, executeTemplateOperation],
+  );
+
+  const dismissOperationError = useCallback(
+    (error: Error) => {
+      if (!isScreenActiveRef.current) return;
+      send({ type: "operationErrorDismissed", error });
+    },
+    [send],
+  );
 
   useEffect(() => {
     if (!isFocused) return;
@@ -71,20 +154,21 @@ export function useTemplateDetailsController(
       clearTimeout(midnightTimer);
 
       midnightTimer = setTimeout(() => {
+        if (!isScreenActiveRef.current) return;
         setDateReference(startOfLocalDay(now()));
         scheduleMidnight();
       }, millisecondsUntilLocalMidnight(now()));
     }
 
     function resume() {
-      if (activeRef.current) return;
-      activeRef.current = true;
+      if (isScreenActiveRef.current) return;
+      isScreenActiveRef.current = true;
       void loadDetails();
       scheduleMidnight();
     }
 
     function suspend() {
-      activeRef.current = false;
+      isScreenActiveRef.current = false;
       requestVersionRef.current += 1;
       clearTimeout(midnightTimer);
     }
@@ -107,5 +191,23 @@ export function useTemplateDetailsController(
     };
   }, [isFocused, loadDetails, now]);
 
-  return { state, dateReference, retry: loadDetails };
+  useEffect(() => {
+    const current = stateRef.current;
+
+    if (
+      !isActiveOperationRunningRef.current &&
+      current.status === "ready" &&
+      current.template.id !== templateId
+    ) {
+      void loadDetails();
+    }
+  }, [state, templateId, loadDetails]);
+
+  return {
+    state,
+    dateReference,
+    retry: loadDetails,
+    deleteTemplate,
+    dismissOperationError,
+  };
 }

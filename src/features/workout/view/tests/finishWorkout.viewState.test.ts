@@ -6,11 +6,9 @@ import {
   addWorkoutSet,
   createEmptyWorkout,
 } from "@/domain/workout/workout.useCases";
-import type {
-  ActiveWorkoutOperation,
-  OperationState,
-} from "@/features/workout/session/workoutSession.types";
+import type { ActiveWorkoutOperation } from "@/features/workout/session/workoutSession.types";
 
+import { OperationState } from "@/shared/state/operationState";
 import type { ActiveWorkoutOverlay } from "../ActiveWorkoutScreenView";
 import {
   getModalContent,
