@@ -3,20 +3,19 @@ import type { ProgressAction, ProgressState } from "./progress.types";
 export const initialProgressState: ProgressState = {
   status: "loading",
   selectedLift: "bench",
-  metric: "performance",
 };
 
 export function progressReducer(
   state: ProgressState,
   action: ProgressAction,
 ): ProgressState {
-  const selection = { selectedLift: state.selectedLift, metric: state.metric };
+  const selection = {
+    selectedLift: state.selectedLift,
+  };
 
   switch (action.type) {
     case "liftSelected":
       return { ...state, selectedLift: action.family };
-    case "metricSelected":
-      return { ...state, metric: action.metric };
     case "refreshStarted":
       return state.status === "ready"
         ? {

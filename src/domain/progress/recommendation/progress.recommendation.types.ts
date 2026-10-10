@@ -1,4 +1,7 @@
-import type { BenchmarkTarget } from "../benchmark/progress.benchmark.types";
+import type {
+  BenchmarkTarget,
+  BenchmarkUnavailableReason,
+} from "../benchmark/progress.benchmark.types";
 import type { DiagnosisReason } from "../diagnosis/progress.diagnosis.types";
 import type { StatusReason } from "../status/progress.status.types";
 
@@ -24,5 +27,6 @@ export type RecommendationKind =
 export type LiftRecommendation = {
   kind: RecommendationKind; // Action category that the Next Action card translates into advice.
   reasons: readonly (StatusReason | DiagnosisReason)[]; // Status and diagnosis codes explaining the suggested action.
+  benchmarkUnavailableReason: BenchmarkUnavailableReason | null; // Why no specific target is offered; null when a benchmark is available.
   benchmark: BenchmarkTarget | null; // Optional weight-and-reps suggestion; null means no defensible target.
 };

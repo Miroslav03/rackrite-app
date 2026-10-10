@@ -4,7 +4,6 @@ import { DEFAULT_WEIGHT_INCREMENT_KG } from "@/domain/settings/settings.constant
 export const progressConfig = {
   // Bounded retrieval also permits a limited prior productive-period comparison.
   historyWeeks: 24,
-  chartWeeks: 8,
   contextDays: 56,
   trendDays: 42,
 
@@ -47,6 +46,11 @@ export const progressConfig = {
   adjustedRepresentativeFloor: 0.95,
   adjustedDayCoverage: 0.8,
   rpeCoverage: 0.7,
+  comparableMaximumReps: 6,
+  comparableDayCoverage: 0.8,
+  comparableRpeShift: 0.5,
+  hardSetRpe: 8,
+  workloadCoverageDifference: 0.1,
 
   // Evidence quality describes the observed pattern, not physiological certainty.
   strongDays: 12,
@@ -60,14 +64,14 @@ export const progressConfig = {
 
   // Causal hypotheses require converging competition-work and effort context.
   fatigueRpeRise: 0.5,
-  fatigueVolumeRise: 20,
+  hardSetsRisePercent: 20,
   frequencyChangePercent: 25,
   highEffortRpe: 9,
   highEffortShare: 0.5,
   highEffortShareRise: 0.2,
   highEffortDays: 3,
   missingWeeks: 2,
-  stimulusVolumeDrop: -20,
+  hardSetsDropPercent: -20,
 
   // Targets stay recent, familiar, corroborated, and below maximal effort.
   benchmarkLookbackDays: 21,

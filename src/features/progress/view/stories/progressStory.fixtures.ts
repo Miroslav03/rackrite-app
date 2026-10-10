@@ -75,11 +75,29 @@ export function previewOverview(
   change: (analysis: LiftAnalysis) => Partial<LiftAnalysis>,
   overview: ProgressOverview = recordedOverview,
 ): ProgressOverview {
-  const lift = (family: LiftFamily): LiftAnalysis => ({
-    ...overview.lifts[family],
-    ...change(overview.lifts[family]),
-    family,
-  });
+  const lift = (family: LiftFamily): LiftAnalysis => {
+    const original = overview.lifts[family];
+    const changed = change(original);
+    const trends = changed.trends;
+    return {
+      ...original,
+      ...changed,
+      family,
+      ...(trends
+        ? {
+            trends: {
+              ...trends,
+              strength: {
+                ...trends.strength,
+                ...trends.performance,
+                basis: trends.basis,
+              },
+              effort: { ...trends.effort, change: trends.rpeChange },
+            },
+          }
+        : {}),
+    };
+  };
 
   return {
     ...overview,

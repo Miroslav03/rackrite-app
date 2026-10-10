@@ -2,6 +2,10 @@ import { localCalendarDay } from "@/shared/utils/localCalendar";
 
 import type { LiftAnalysisCore } from "../analysis/progress.analysis.types";
 import type { ProgressConfig } from "../progress.config";
+import {
+  dailyBestSets,
+  normalizedDispersion,
+} from "../strength/progress.strength.utils";
 
 import type { BenchmarkReferences } from "./progress.benchmark.types";
 
@@ -34,52 +38,51 @@ export function selectBenchmarkReferences(
 ): BenchmarkReferences | null {
   const today = localCalendarDay(analysis.analysisTime);
 
-  const candidates = analysis.trends.contextDays
+  const days = analysis.trends.contextDays
     .filter((day) => today - day.day <= config.benchmarkLookbackDays)
-    .slice(-config.benchmarkWindowDays)
-    .flatMap((day) => {
-      const session = [...day.sessions].sort(
-        (a, b) =>
-          b.finishedAt - a.finishedAt || a.workoutId.localeCompare(b.workoutId),
-      )[0];
-      const reference =
-        analysis.trends.basis === "effort_adjusted"
-          ? session.adjustedRepresentative
-          : session.rawRepresentative;
-
-      return reference ? [reference] : [];
-    });
-
-  const counts = new Map<number, number>();
-
-  for (const set of candidates)
+    .slice(-config.benchmarkWindowDays);
+  const candidates = days.flatMap((day) =>
+    day.sessions.flatMap((session) => session.strengthSets),
+  );
+  const buckets: BenchmarkReferences[] = [];
+  for (
+    let reps = config.benchmarkMinimumReps;
+    reps <= config.benchmarkMaximumReps;
+    reps++
+  ) {
+    const sources = dailyBestSets(
+      candidates.filter((set) => set.reps === reps),
+    );
+    const reference = sources[sources.length - 1];
     if (
-      set.reps >= config.benchmarkMinimumReps &&
-      set.reps <= config.benchmarkMaximumReps
+      !reference ||
+      sources.length < config.benchmarkMinimumDays ||
+      today - localCalendarDay(reference.workoutFinishedAt) >
+        config.benchmarkRecentDays ||
+      localCalendarDay(reference.workoutFinishedAt) -
+        localCalendarDay(
+          sources[sources.length - config.benchmarkMinimumDays]
+            .workoutFinishedAt,
+        ) <
+        config.benchmarkSpanDays
     )
-      counts.set(set.reps, (counts.get(set.reps) ?? 0) + 1);
-
-  const reps = [...counts.entries()].find(
-    ([, count]) => count >= config.benchmarkMinimumDays,
-  )?.[0];
-
-  if (reps === undefined) return null;
-
-  const sources = candidates
-    .filter((set) => set.reps === reps)
-    .slice(-config.benchmarkMinimumDays);
-  const reference = sources[sources.length - 1];
-
-  if (
-    !reference ||
-    sources.length < config.benchmarkMinimumDays ||
-    today - localCalendarDay(reference.workoutFinishedAt) >
-      config.benchmarkRecentDays ||
-    localCalendarDay(reference.workoutFinishedAt) -
-      localCalendarDay(sources[0].workoutFinishedAt) <
-      config.benchmarkSpanDays
-  )
-    return null;
-
-  return { reps, sources, reference };
+      continue;
+    buckets.push({ reps, sources, reference });
+  }
+  buckets.sort(
+    (a, b) =>
+      localCalendarDay(b.reference.workoutFinishedAt) -
+        localCalendarDay(a.reference.workoutFinishedAt) ||
+      b.sources.length - a.sources.length ||
+      normalizedDispersion(a.sources) - normalizedDispersion(b.sources) ||
+      a.reps - b.reps ||
+      a.reference.setId.localeCompare(b.reference.setId),
+  );
+  const selected = buckets[0];
+  return selected
+    ? {
+        ...selected,
+        sources: selected.sources.slice(-config.benchmarkMinimumDays),
+      }
+    : null;
 }

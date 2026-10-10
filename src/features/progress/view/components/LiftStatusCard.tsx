@@ -1,9 +1,13 @@
-import { View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+
+import { useState } from "react";
+import { Pressable, View } from "react-native";
 
 import { AppText } from "@/shared/components/ui/AppText";
 import { Badge } from "@/shared/components/ui/Badge";
 import { SurfaceCard } from "@/shared/components/ui/SurfaceCard";
 import { colors } from "@/shared/theme/tokens";
+import { cn } from "@/shared/utils/cn";
 
 import type { ProgressViewModel } from "../progress.viewModel";
 
@@ -12,64 +16,147 @@ export function LiftStatusCard({
 }: {
   model: ProgressViewModel["status"];
 }) {
+  const [expandedNoteKey, setExpandedNoteKey] = useState<string | null>(null);
+
+  const estimateNote = model.estimatedMax !== null ? model.estimateNote : null;
+  const noteExpanded =
+    estimateNote !== null && expandedNoteKey === estimateNote;
+  const hasContentBelowSummary =
+    model.performance !== null || model.estimatedMax !== null;
+
   return (
     <SurfaceCard
-      className="rounded-2xl border border-outline/30 bg-surfacePanel"
+      className=" bg-surfacePanel"
       contentClassName="p-5"
       style={{ borderLeftWidth: 4, borderLeftColor: model.color }}
     >
-      <View className="flex-row flex-wrap items-center justify-between gap-2 border-b border-outline/20 pb-3">
-        <AppText
-          variant="title"
-          className="text-2xl tracking-tight font-extrabold uppercase text-foreground"
-        >
-          {model.title}
-        </AppText>
-        <View className="flex-row items-center gap-sm">
-          <AppText className="text-[9px] font-bold tracking-wider">
-            {model.evidence}
+      <View className="flex flex-row justify-between">
+        <View className="mb-2 flex-row items-center gap-2">
+          {estimateNote ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="About this estimated max"
+              accessibilityState={{ expanded: noteExpanded }}
+              hitSlop={12}
+              onPress={() =>
+                setExpandedNoteKey(noteExpanded ? null : estimateNote)
+              }
+            >
+              <Ionicons
+                name="information-circle-outline"
+                size={20}
+                color={colors.foreground}
+                accessible={false}
+              />
+            </Pressable>
+          ) : null}
+          <AppText variant="subtitle" className="text-base">
+            STRENGTH NOW
           </AppText>
-          <Badge
-            label={model.label}
-            accentColor={model.color}
-            tintColor={`${model.color}18`}
-            className="px-2 py-1"
-            textClassName="text-xs"
-            style={{ borderColor: `${model.color}60` }}
-          />
         </View>
+        <Badge
+          label={model.label}
+          accentColor={model.color}
+          tintColor={`${model.color}18`}
+          className="px-2 py-1"
+          textClassName="text-xs"
+          style={{ borderColor: `${model.color}60` }}
+        />
       </View>
-      <AppText className="mt-3 text-md font-semibold text-foreground">
+
+      {noteExpanded ? (
+        <SurfaceCard
+          style={{
+            borderRightWidth: 4,
+            borderRightColor: model.color,
+          }}
+          className="mb-3 mt-2 rounded bg-surfaceHigh py-0"
+          contentClassName="flex-row items-center gap-2 px-4 py-3"
+        >
+          <AppText
+            className="flex-1 text-md text-foreground font-medium"
+            accessibilityLiveRegion="polite"
+          >
+            {estimateNote}
+          </AppText>
+          <Ionicons
+            name="time-outline"
+            size={16}
+            color={colors.foreground}
+            accessible={false}
+          />
+        </SurfaceCard>
+      ) : null}
+
+      <AppText variant="title" className="border-b border-outline/20 pb-3">
+        {model.title}
+      </AppText>
+
+      {model.performance !== null ? (
+        <View className="mt-4 flex flex-col gap-xs">
+          <AppText
+            className="text-7xl font-black"
+            style={{ color: model.color }}
+          >
+            {model.performance}
+          </AppText>
+          {/*           <AppText variant="subtitle" className="text-sm font-bold">
+            {model.performanceLabel}
+          </AppText> */}
+        </View>
+      ) : null}
+
+      <AppText
+        className={cn(
+          "font-semibold text-foreground",
+          hasContentBelowSummary
+            ? "text-lg mt-2 border-b border-outline/20 pb-3"
+            : "text-base mt-2",
+        )}
+      >
         {model.summary}
       </AppText>
-      {model.estimateNote ? (
-        <AppText className="mt-2 text-sm">{model.estimateNote}</AppText>
-      ) : null}
-      <View className="mt-4 flex-row border-t border-outline/20 pt-3">
-        {[
-          {
-            value: model.performance,
-            label: "6-WEEK PERF",
-            color: model.color,
-          },
-          { value: model.estimatedMax, label: "EST. 1RM - KG" },
-          { value: model.count, label: "SESSIONS - 8 WEEKS" },
-        ].map((metric) => (
-          <View key={metric.label} className="min-w-0 flex-1 items-center px-1">
-            <AppText
-              className="text-center text-xl font-black text-foreground"
-              style={{
-                color: metric.color ?? colors.foreground,
-              }}
-            >
-              {metric.value}
+
+      {model.estimatedMax !== null ? (
+        <View className="mt-2 gap-2">
+          <AppText variant="subtitle" className="text-md font-bold">
+            Estimated max
+          </AppText>
+          <View className="flex flex-row items-end gap-sm">
+            <AppText className="text-5xl font-black text-foreground">
+              {model.estimatedMax}
+              <AppText className="text-xl font-bold text-foreground">
+                {" "}
+                KG
+              </AppText>
             </AppText>
-            <AppText className="text-center text-xs font-bold uppercase ">
-              {metric.label}
-            </AppText>
+            {model.estimateChange !== null ? (
+              <AppText
+                className="text-2xl font-extrabold"
+                style={{ color: model.color }}
+              >
+                {model.estimateChange}
+                <AppText
+                  className="text-sm font-bold"
+                  style={{ color: model.color }}
+                >
+                  {" "}
+                  KG
+                </AppText>
+              </AppText>
+            ) : null}
           </View>
-        ))}
-      </View>
+        </View>
+      ) : null}
+
+      {model.performance !== null ? (
+        <AppText
+          variant="subtitle"
+          className="mt-3 text-sm font-bold border-t border-outline/20 pt-3"
+        >
+          {model.basis}
+        </AppText>
+      ) : null}
     </SurfaceCard>
   );
 }

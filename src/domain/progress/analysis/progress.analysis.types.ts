@@ -9,7 +9,10 @@ import type { Measurement } from "../measurements/progress.measurements.types";
 import type { LiftRecommendation } from "../recommendation/progress.recommendation.types";
 import type { LiftSessionMetrics } from "../sessions/progress.sessions.types";
 import type { StatusAssessment } from "../status/progress.status.types";
-import type { LiftTrendMetrics } from "../trends/progress.trends.types";
+import type {
+  EstimateBasis,
+  LiftTrendMetrics,
+} from "../trends/progress.trends.types";
 
 /**
  * The measured facts and conclusions for one lift before a recommendation
@@ -23,15 +26,16 @@ export type LiftAnalysisCore = {
   status: StatusAssessment; // Selected performance label and whether it is confirmed.
   evidence: EvidenceAssessment; // How well the recorded history supports that status.
   diagnosis: LiftDiagnosis; // Possible explanation for the pattern, not a measured cause.
-  trends: LiftTrendMetrics; // Changes over time and the daily and weekly data behind them.
-  currentEstimatedMax: Measurement; // Median raw estimate from the latest three context days, or fewer if available, in kg.
+  trends: LiftTrendMetrics; // Changes over time, supporting daily history, and workload comparisons.
+  currentEstimatedMax: Measurement; // Best qualified raw or effort-adjusted estimate from the latest three context days, in kg.
+  currentEstimatedMaxBasis: EstimateBasis | null; // Formula supporting the selected estimate; null without performance.
   analyzedSessionCount: number; // Number of performance-bearing workouts in the selected eight-week context.
   facts: readonly EvidenceFact[]; // Measured changes with dates and source workout IDs for explanations.
 };
 
 /**
  * The complete analysis of one competition lift, including its next action.
- * The view model uses this coherent result to populate all four cards.
+ * The view model uses this coherent result to populate the progress cards.
  */
 export type LiftAnalysis = LiftAnalysisCore & {
   recommendation: LiftRecommendation; // Next Action decision, with an optional supported benchmark.

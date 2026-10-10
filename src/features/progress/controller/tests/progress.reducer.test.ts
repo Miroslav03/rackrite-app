@@ -2,10 +2,9 @@ import { initialProgressState, progressReducer } from "../progress.reducer";
 
 import { analyzeCompetitionLifts } from "@/domain/progress/analysis/progress.useCases";
 
-it("defaults to Bench / Performance and keeps selection through load outcomes", () => {
+it("defaults to Bench and keeps lift selection through load outcomes", () => {
   expect(initialProgressState).toMatchObject({
     selectedLift: "bench",
-    metric: "performance",
   });
 
   const selection = progressReducer(initialProgressState, {
@@ -28,8 +27,8 @@ it("defaults to Bench / Performance and keeps selection through load outcomes", 
     refresh: { status: "error" },
   });
   expect(
-    progressReducer(failed, { type: "metricSelected", metric: "volume" }),
-  ).toMatchObject({ metric: "volume", refresh: { status: "error" } });
+    progressReducer(failed, { type: "liftSelected", family: "squat" }),
+  ).toMatchObject({ selectedLift: "squat", refresh: { status: "error" } });
 });
 
 it("keeps a failed snapshot outdated through pending and interrupted retries until success", () => {

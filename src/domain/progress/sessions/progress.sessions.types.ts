@@ -60,6 +60,13 @@ export type LiftSessionMetrics = {
   rawRepresentative: RepresentativeSet | null;
   // The best qualifying set after considering RPE
   adjustedRepresentative: RepresentativeSet | null;
+  /**
+   * All eligible strength observations, retained for later matching and benchmarks.
+   * Completed, validated non-warmup sets with a supported raw estimate
+   * (currently 1–10 reps). Known RPE below 7 is excluded; unknown RPE is allowed.
+   * Includes sets that were not selected as the session's best representative.
+   */
+  strengthSets: readonly RepresentativeSet[];
 
   volume: number; // Sum of weight times reps across valid completed non-warmup sets, in kg.
 
@@ -68,6 +75,7 @@ export type LiftSessionMetrics = {
   invalidSetCount: number; // Examined sets rejected for invalid data, ownership, or conflicting identities.
 
   rpeSetCount: number; // Valid training sets with a valid recorded RPE, used to measure coverage.
+  hardSetCount: number; // Recorded RPE 8+ sets; missing effort never counts as easy work.
   highEffortSetCount: number; // Valid training sets at RPE 9–10 under the default configuration.
   typicalRpe: number | null; // Median valid recorded set RPE; null when none is available.
 

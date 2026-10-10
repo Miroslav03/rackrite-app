@@ -1,45 +1,44 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useMemo, useState } from "react";
-import { RefreshControl, ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView } from "react-native";
 
 import type { LiftFamily } from "@/domain/domain.types";
-import type { TrendMetric } from "@/domain/progress/trends/progress.trends.types";
 
 import { ErrorNotice } from "@/shared/components/feedback/ErrorNotice";
 import { Screen } from "@/shared/components/layout/Screen";
 import { ScreenHeader } from "@/shared/components/layout/ScreenHeader";
-import { SegmentedControl } from "@/shared/components/ui/SegmentedControl";
 import {
   FLOATING_ACTION_BUTTON_SIZE,
   FloatingActionButton,
   FloatingActionGroup,
 } from "@/shared/components/ui/FloatingActionButton";
+import { SegmentedControl } from "@/shared/components/ui/SegmentedControl";
 import { colors, spacing } from "@/shared/theme/tokens";
+
+import type { ProgressState } from "../controller/progress.types";
 
 import { LiftStatusCard } from "./components/LiftStatusCard";
 import { NextActionCard } from "./components/NextActionCard";
-import { PerformanceTrendCard } from "./components/PerformanceTrendCard";
 import { ProgressAnalysisInfoSheet } from "./components/ProgressAnalysisInfoSheet";
 import { WhyThisStatusCard } from "./components/WhyThisStatusCard";
 import { createProgressViewModel } from "./progress.viewModel";
-
-import type { ProgressState } from "../controller/progress.types";
 
 export function ProgressScreenView({
   state,
   onRefresh,
   onSelectLift,
-  onSelectMetric,
   onOpenActiveWorkout,
+  isFocused = true,
 }: {
   state: Extract<ProgressState, { status: "ready" }>;
   onRefresh: () => void;
   onSelectLift: (family: LiftFamily) => void;
-  onSelectMetric: (metric: TrendMetric) => void;
   onOpenActiveWorkout?: () => void;
+  isFocused?: boolean;
 }) {
   const [infoOpen, setInfoOpen] = useState(false);
+  const cardKey = `${state.selectedLift}:${isFocused}`;
 
   const refreshError =
     state.refresh.status === "error"
@@ -50,14 +49,8 @@ export function ProgressScreenView({
   const outdated = refreshError !== null;
 
   const model = useMemo(
-    () =>
-      createProgressViewModel(
-        state.overview,
-        state.selectedLift,
-        state.metric,
-        outdated,
-      ),
-    [state.overview, state.selectedLift, state.metric, outdated],
+    () => createProgressViewModel(state.overview, state.selectedLift, outdated),
+    [state.overview, state.selectedLift, outdated],
   );
 
   return (
@@ -81,8 +74,9 @@ export function ProgressScreenView({
       >
         <ScreenHeader
           title="Progress"
-          subtitle="Performance analytics and trends"
+          subtitle="Strength, evidence and your next benchmark"
         />
+
         {refreshError ? (
           <ErrorNotice
             message="Couldn't refresh Progress. These results are outdated; benchmarks are hidden until refresh succeeds."
@@ -90,6 +84,7 @@ export function ProgressScreenView({
             onRetry={onRefresh}
           />
         ) : null}
+
         <SegmentedControl
           accessibilityLabel="Competition lift"
           value={state.selectedLift}
@@ -103,26 +98,12 @@ export function ProgressScreenView({
             accessibilityLabel: `${option.label}, ${option.status}`,
           }))}
         />
-        <LiftStatusCard model={model.status} />
-        <NextActionCard model={model.action} />
+
+        <LiftStatusCard key={`status:${cardKey}`} model={model.status} />
+        <NextActionCard key={`action:${cardKey}`} model={model.action} />
         <WhyThisStatusCard model={model.why} onInfo={() => setInfoOpen(true)} />
-        <View className="gap-4">
-          <SegmentedControl
-            accessibilityLabel="Trend metric"
-            value={state.metric}
-            onChange={onSelectMetric}
-            options={[
-              { value: "performance", label: "Performance" },
-              { value: "e1rm", label: "E1RM" },
-              { value: "volume", label: "Volume" },
-            ]}
-          />
-          <PerformanceTrendCard
-            key={`${state.selectedLift}:${state.metric}:${state.overview.analysisTime}`}
-            model={model.chart}
-          />
-        </View>
       </ScrollView>
+
       {onOpenActiveWorkout ? (
         <FloatingActionGroup>
           <FloatingActionButton
@@ -139,6 +120,7 @@ export function ProgressScreenView({
           </FloatingActionButton>
         </FloatingActionGroup>
       ) : null}
+
       {infoOpen ? (
         <ProgressAnalysisInfoSheet
           open

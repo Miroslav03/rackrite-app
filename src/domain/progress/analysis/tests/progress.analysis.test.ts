@@ -107,6 +107,109 @@ it("keeps missing performance distinct from zero change", () => {
   expect(result.trends.performance.change.status).toBe("unavailable");
 });
 
+it("accounts for remaining reps in the estimated max", () => {
+  const result = analyzeCompetitionLifts(
+    [exposure(0, { sets: [{ weight: 112.5, reps: 1, rpe: 8 }] })],
+    atDay(0),
+  ).lifts.bench;
+
+  expect(result.currentEstimatedMax.status).toBe("available");
+  if (result.currentEstimatedMax.status === "available") {
+    expect(result.currentEstimatedMax.value).toBeCloseTo(119.117647);
+  }
+});
+
+it("retains a recent heavy estimate after a lighter workout", () => {
+  const result = analyzeCompetitionLifts(
+    [
+      exposure(0, { sets: [{ weight: 90, reps: 6, rpe: 7 }] }),
+      exposure(4, { sets: [{ weight: 112.5, reps: 1, rpe: 8 }] }),
+      exposure(7, { sets: [{ weight: 92.5, reps: 6, rpe: 7 }] }),
+    ],
+    atDay(7),
+  ).lifts.bench;
+
+  expect(result.currentEstimatedMax.status).toBe("available");
+  if (result.currentEstimatedMax.status === "available") {
+    expect(result.currentEstimatedMax.value).toBeCloseTo(119.117647);
+  }
+});
+
+it("preserves the heavy estimate when workouts share a calendar day", () => {
+  const result = analyzeCompetitionLifts(
+    [
+      exposure(0, {
+        id: "heavy",
+        sets: [{ weight: 112.5, reps: 1, rpe: 8 }],
+      }),
+      exposure(0, {
+        id: "lighter",
+        sets: [{ weight: 85, reps: 6, rpe: 7 }],
+      }),
+    ],
+    atDay(0),
+  ).lifts.bench;
+
+  expect(result.currentEstimatedMax.status).toBe("available");
+  if (result.currentEstimatedMax.status === "available") {
+    expect(result.currentEstimatedMax.value).toBeCloseTo(119.117647);
+  }
+});
+
+it.each([
+  { weight: 112.5, reps: 1, rpe: null, expected: 112.5 },
+  { weight: 100, reps: 10, rpe: 7, expected: 133.333333 },
+])(
+  "falls back to raw performance without a supported effort estimate: %o",
+  (set) => {
+    const result = analyzeCompetitionLifts(
+      [exposure(0, { sets: [set] })],
+      atDay(0),
+    ).lifts.bench;
+
+    expect(result.currentEstimatedMax.status).toBe("available");
+    if (result.currentEstimatedMax.status === "available") {
+      expect(result.currentEstimatedMax.value).toBeCloseTo(set.expected);
+    }
+  },
+);
+
+it("keeps the estimated max above a stronger raw observation with missing effort", () => {
+  const result = analyzeCompetitionLifts(
+    [
+      exposure(0, {
+        sets: [
+          { weight: 104, reps: 1, rpe: null },
+          { weight: 100, reps: 1, rpe: 10 },
+        ],
+      }),
+    ],
+    atDay(0),
+  ).lifts.bench;
+
+  expect(result.currentEstimatedMax).toEqual({
+    status: "available",
+    value: 104,
+  });
+});
+
+it("expires an older best estimate after three newer performance days", () => {
+  const result = analyzeCompetitionLifts(
+    [
+      exposure(0, { sets: [{ weight: 125, reps: 1, rpe: 8 }] }),
+      ...[4, 7, 11].map((day) =>
+        exposure(day, { sets: [{ weight: 100, reps: 1, rpe: 8 }] }),
+      ),
+    ],
+    atDay(11),
+  ).lifts.bench;
+
+  expect(result.currentEstimatedMax.status).toBe("available");
+  if (result.currentEstimatedMax.status === "available") {
+    expect(result.currentEstimatedMax.value).toBeCloseTo(105.882353);
+  }
+});
+
 it("produces identical analysis for reordered input and does not mutate it", () => {
   const input = series(Array(16).fill(100)),
     snapshot = JSON.stringify(input);
@@ -137,7 +240,7 @@ it("identifies rising effort and competition workload as possible fatigue, not m
       sets: Array.from({ length: i < 14 ? 2 : 4 }, () => ({
         weight: 100,
         reps: 5,
-        rpe: i < 14 ? 7 : 9,
+        rpe: i < 14 ? 8 : 9,
       })),
     }),
   );
@@ -229,7 +332,7 @@ it("requires renewed comparable confirmation after effort coverage changes", () 
   ];
   const result = analyzeCompetitionLifts(withEffort, atDay(84)).lifts.bench;
 
-  expect(result.trends.basis).toBe("effort_adjusted");
+  expect(result.trends.basis).toBe("matched_reps_rpe");
   expect(analyzeCompetitionLifts([...withEffort].reverse(), atDay(84))).toEqual(
     analyzeCompetitionLifts(withEffort, atDay(84)),
   );

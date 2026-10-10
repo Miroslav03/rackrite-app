@@ -11,6 +11,7 @@ one lift.
 | ----------------- | ------------------------------------------------------------------------ | --------------------------- |
 | `history/`        | What completed competition-lift records can analysis read?               | `progress.history.types.ts` |
 | `performance/`    | What strength estimate can weight, reps, and optional RPE support?       | `progress.performance.ts`   |
+| `strength/`       | Which same-rep/similar-effort observations can be compared directly?     | `deriveStrengthComparison`  |
 | `sessions/`       | What represents one competition lift in one workout?                     | `deriveLiftSessions`        |
 | `trends/`         | How do daily performance, effort, and weekly workload compare over time? | `deriveLiftTrends`          |
 | `status/`         | Is the recorded pattern sufficient and confirmed?                        | `assessLiftStatus`          |
@@ -19,6 +20,17 @@ one lift.
 | `recommendation/` | Which action category fits the assessment?                               | `recommendLiftAction`       |
 | `benchmark/`      | Is there a defensible load/repetition target?                            | `generateBenchmarkTarget`   |
 | `analysis/`       | How do these results form one coherent overview?                         | `analyzeCompetitionLifts`   |
+
+`strength/` also owns exact-load matched effort, deterministic daily bucket selection,
+and weighted medians. Session summaries retain eligible observations rather than
+only the best formula representatives. Normalized daily strength observations
+support status and evidence within the analysis context. Matched effort retains
+its contributing source sets so evidence facts can trace their workout history.
+
+`StrengthComparison` uses normalized baseline-100 values; raw and adjusted
+`TrendComparison` values remain in kilograms. The view displays normalized
+strength as percentage change, effort in RPE points and hard work in sets/week.
+Benchmark decisions include explicit withholding reasons and reference metadata.
 
 `measurements/` owns available/unavailable measurements, percentage changes,
 and median calculation. Multiple modules use those numerical operations.

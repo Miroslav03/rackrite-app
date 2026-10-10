@@ -1,15 +1,16 @@
-import { addLocalCalendarDays } from "@/shared/utils/localCalendar";
-
+import {
+  addLocalCalendarDays,
+  localCalendarDay,
+} from "@/shared/utils/localCalendar";
 import { percentChange } from "../measurements/progress.measurements";
+import type { AnalysisWindow } from "../measurements/progress.measurements.types";
+import { median } from "../measurements/progress.measurements.utils";
 import type { ProgressConfig } from "../progress.config";
 import type { LiftSessionMetrics } from "../sessions/progress.sessions.types";
+import { supportingDayCount } from "../status/progress.status.utils";
 import { deriveLiftTrends } from "../trends/progress.trends";
 import type { LiftTrendMetrics } from "../trends/progress.trends.types";
-import {
-  comparePerformance,
-  deriveDailyPerformance,
-} from "../trends/progress.trends.utils";
-
+import { rpeCoverage } from "../trends/progress.trends.utils";
 import type { LiftDiagnosis } from "./progress.diagnosis.types";
 
 export const uncertain: LiftDiagnosis = {
@@ -19,96 +20,103 @@ export const uncertain: LiftDiagnosis = {
   referenceWindow: null,
 };
 
+function typicalEffort(sessions: readonly LiftSessionMetrics[]): number | null {
+  const days = new Map<number, number[]>();
+  for (const session of sessions) {
+    if (session.typicalRpe === null) continue;
+    const day = localCalendarDay(session.finishedAt);
+    const values = days.get(day) ?? [];
+    values.push(session.typicalRpe);
+    days.set(day, values);
+  }
+  return median(
+    [...days.values()].flatMap((values) => {
+      const value = median(values);
+      return value === null ? [] : [value];
+    }),
+  );
+}
+
 export function compareProductiveWorkload(
   trends: LiftTrendMetrics,
   sessions: readonly LiftSessionMetrics[],
   config: ProgressConfig,
-): LiftDiagnosis {
-  const days = deriveDailyPerformance(sessions);
+) {
+  if (
+    trends.recentWeeklyHardSets === null ||
+    trends.recentWeeklyFrequency === null
+  )
+    return null;
+  const recentStart = addLocalCalendarDays(
+    trends.workloadWindow.through + 1,
+    -config.trendDays / 2,
+  );
+  const recent = sessions.filter(
+    (session) =>
+      session.finishedAt >= recentStart &&
+      session.finishedAt <= trends.workloadWindow.through,
+  );
+  const recentRpe = typicalEffort(recent);
+  if (recentRpe === null || rpeCoverage(recent) < config.rpeCoverage)
+    return null;
+  const earliest = sessions[0]?.finishedAt;
+  if (earliest === undefined) return null;
 
-  for (
-    let index = 0;
-    index < config.historyWeeks / (config.trendDays / 7) - 1;
-    index++
-  ) {
-    const end = addLocalCalendarDays(
-      trends.workloadWindow.from,
-      -index * config.trendDays,
-    );
+  for (let offset = 0; offset < config.historyWeeks; offset++) {
+    const end = addLocalCalendarDays(trends.workloadWindow.from, -offset * 7);
     const start = addLocalCalendarDays(end, -config.trendDays);
+    if (start < earliest) break;
     const period = sessions.filter(
-      (session) =>
-        session.finishedAt >= start &&
-        session.finishedAt < end &&
-        session.validSetCount > 0,
+      (session) => session.finishedAt >= start && session.finishedAt < end,
     );
-    const comparison = comparePerformance(days, end, trends.basis, config);
-    const priorTrends = deriveLiftTrends(period, end - 1, config);
-
+    const prior = deriveLiftTrends(period, end - 1, config);
     if (
-      priorTrends.conflictingSignals ||
-      (trends.basis === "effort_adjusted" &&
-        priorTrends.basis !== "effort_adjusted")
-    )
-      continue;
-
-    // Never call a period productive from an incomparable gap or a single outlier.
-    const periodDays = days.filter(
-      (day) => day.finishedAt >= start && day.finishedAt < end,
-    );
-
-    if (
-      comparison.change.status !== "available" ||
-      comparison.change.value <
-        config.progressPercent - config.comparisonEpsilon ||
-      periodDays.length < config.minimumDays
-    )
-      continue;
-
-    if (
-      periodDays[periodDays.length - 1].day - periodDays[0].day <
+      prior.basis !== trends.basis ||
+      prior.conflictingSignals ||
+      prior.maxGapDays > config.regularGapDays ||
+      prior.days.length < config.minimumDays ||
+      prior.days[prior.days.length - 1].day - prior.days[0].day <
         config.minimumSpanDays ||
-      periodDays
-        .slice(1)
-        .some((day, i) => day.day - periodDays[i].day > config.regularGapDays)
+      prior.performance.change.status !== "available" ||
+      prior.performance.change.value <
+        config.progressPercent - config.comparisonEpsilon ||
+      supportingDayCount(prior, "progressing", config.supportWindow, config) <
+        config.supportDays
     )
       continue;
-
-    const volume =
-      period.reduce((sum, session) => sum + session.volume, 0) /
+    if (
+      prior.strength.buckets.length &&
+      !prior.strength.buckets.some((bucket) =>
+        trends.strength.buckets.some((current) => current.key === bucket.key),
+      )
+    )
+      continue;
+    const coverage = rpeCoverage(period);
+    if (
+      coverage < config.rpeCoverage ||
+      Math.abs(coverage - rpeCoverage(recent)) >
+        config.workloadCoverageDifference + config.comparisonEpsilon
+    )
+      continue;
+    const referenceRpe = typicalEffort(period);
+    if (referenceRpe === null) continue;
+    const hardSets =
+      period.reduce((sum, session) => sum + session.hardSetCount, 0) /
       (config.trendDays / 7);
-    const frequency = period.length / (config.trendDays / 7);
-    const volumeChange = percentChange(volume, trends.recentWeeklyVolume);
-    const frequencyChange = percentChange(
-      frequency,
-      trends.recentWeeklyFrequency,
-    );
-
-    if (
-      volumeChange.status === "available" &&
-      volumeChange.value <= config.stimulusVolumeDrop
-    )
-      return {
-        kind: "insufficient_stimulus",
-        evidence: "moderate",
-        reasons: ["lower_historical_workload"],
-        referenceWindow: { from: start, through: end - 1 },
-      };
-
-    if (
-      frequencyChange.status === "available" &&
-      frequencyChange.value <= -config.frequencyChangePercent
-    )
-      return {
-        kind: "insufficient_stimulus",
-        evidence: "moderate",
-        reasons: ["lower_historical_frequency"],
-        referenceWindow: { from: start, through: end - 1 },
-      };
-
-    // The closest qualifying productive block owns the comparison.
-    return uncertain;
+    const frequency =
+      new Set(
+        period
+          .filter((session) => session.validSetCount > 0)
+          .map((session) => localCalendarDay(session.finishedAt)),
+      ).size /
+      (config.trendDays / 7);
+    const window: AnalysisWindow = { from: start, through: end - 1 };
+    return {
+      window,
+      hardSetsChange: percentChange(hardSets, trends.recentWeeklyHardSets),
+      frequencyChange: percentChange(frequency, trends.recentWeeklyFrequency),
+      rpeChange: recentRpe - referenceRpe,
+    };
   }
-
-  return uncertain;
+  return null;
 }

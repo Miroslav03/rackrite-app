@@ -21,7 +21,7 @@ export function assessLiftStatus(
   let pending: LiftStatus | null = null;
   let confirmations = 0;
   let lastProgressDay = -Infinity;
-  let previousBasis = trends.basis;
+  let previousBasis = trends.strength.cohortKey;
   let confirmed = false;
 
   for (const checkpoint of deriveDailyPerformance(sessions)) {
@@ -39,7 +39,7 @@ export function assessLiftStatus(
       continue;
     }
 
-    if (previousBasis !== current.basis) {
+    if (previousBasis !== current.strength.cohortKey) {
       pending = null;
       confirmations = 0;
       status = "stable";
@@ -47,7 +47,7 @@ export function assessLiftStatus(
       lastProgressDay = -Infinity;
     }
 
-    previousBasis = current.basis;
+    previousBasis = current.strength.cohortKey;
 
     const candidate = candidateStatus(
       current,

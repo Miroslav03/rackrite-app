@@ -21,7 +21,7 @@ export type DiagnosisKind =
  */
 export type DiagnosisReason =
   | "rising_effort"
-  | "rising_volume"
+  | "rising_hard_sets"
   | "rising_frequency"
   | "frequent_high_effort"
   | "training_gaps"

@@ -35,12 +35,20 @@ export function createEvidenceFacts(
 ): EvidenceFact[] {
   return [
     {
-      metric: "performance",
+      metric: "strength",
       change: trends.performance.change,
       window: trends.performance.window,
-      workoutIds: trends.days.flatMap((day) =>
-        day.sessions.map((session) => session.workoutId),
-      ),
+      workoutIds: [
+        ...new Set(
+          trends.strength.daily
+            .filter(
+              (day) =>
+                day.finishedAt >= trends.performance.window.from &&
+                day.finishedAt <= trends.performance.window.through,
+            )
+            .flatMap((day) => day.sources.map((set) => set.workoutId)),
+        ),
+      ],
     },
     {
       metric: "e1rm",
@@ -63,10 +71,35 @@ export function createEvidenceFacts(
         )
         .map((session) => session.workoutId),
     },
-    ...(["volume", "frequency"] as const).map((metric) => ({
+    ...(trends.effort.basis === "matched"
+      ? [
+          {
+            metric: "matched_effort" as const,
+            change: trends.effort.change,
+            window: trends.performance.window,
+            workoutIds: [
+              ...new Set(
+                trends.effort.sources
+                  .filter(
+                    (set) =>
+                      set.workoutFinishedAt >= trends.performance.window.from &&
+                      set.workoutFinishedAt <=
+                        trends.performance.window.through,
+                  )
+                  .map((set) => set.workoutId),
+              ),
+            ],
+          },
+        ]
+      : []),
+    ...(["volume", "frequency", "hard_sets"] as const).map((metric) => ({
       metric,
       change:
-        metric === "volume" ? trends.volumeChange : trends.frequencyChange,
+        metric === "volume"
+          ? trends.volumeChange
+          : metric === "hard_sets"
+            ? trends.hardSetsChange
+            : trends.frequencyChange,
       window: trends.workloadWindow,
       workoutIds: sessions
         .filter(

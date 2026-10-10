@@ -1,21 +1,22 @@
 import { deriveLiftSessions } from "../../sessions/progress.sessions";
+import { progressConfig } from "../../progress.config";
 import {
   comparePerformance,
+  compareWeeklyWorkload,
   deriveDailyPerformance,
+  groupLiftWeeks,
 } from "../progress.trends.utils";
 import { deriveLiftTrends } from "../progress.trends";
 import { atDay, exposure, series } from "../../tests/progress.test.helpers";
 
 it("keeps one daily signal for multiple completed workouts", () => {
   const history = [exposure(0), exposure(0, { id: "evening" })];
-  const trends = deriveLiftTrends(
-    deriveLiftSessions(history, "bench", atDay(1)),
-    atDay(1),
-  );
+  const sessions = deriveLiftSessions(history, "bench", atDay(1));
+  const trends = deriveLiftTrends(sessions, atDay(1));
 
   expect(trends.days).toHaveLength(1);
   expect(trends.days[0].sessions).toHaveLength(2);
-  expect(trends.weekly.at(-1)?.volume).toBe(1000);
+  expect(groupLiftWeeks(sessions, atDay(1), 1)[0].volume).toBe(1000);
 });
 
 it("never fills an adjusted series with raw estimates", () => {
@@ -28,7 +29,7 @@ it("never fills an adjusted series with raw estimates", () => {
     atDay(60),
   );
 
-  expect(trends.basis).toBe("load_reps");
+  expect(trends.basis).toBe("matched_reps");
   expect(trends.days.some((day) => day.adjusted === null)).toBe(true);
   expect(trends.rpeChange).toMatchObject({
     status: "unavailable",
@@ -37,18 +38,36 @@ it("never fills an adjusted series with raw estimates", () => {
 });
 
 it("marks the current week partial and keeps unknown weeks empty", () => {
-  const trends = deriveLiftTrends(
-    deriveLiftSessions([exposure(0)], "bench", atDay(1)),
-    atDay(1),
-  );
+  const sessions = deriveLiftSessions([exposure(0)], "bench", atDay(1));
+  const trends = deriveLiftTrends(sessions, atDay(1));
+  const weeks = groupLiftWeeks(sessions, atDay(1), 7);
 
-  expect(trends.weekly).toHaveLength(8);
-  expect(trends.weekly[0].volume).toBeNull();
-  expect(trends.weekly.at(-1)).toMatchObject({ partial: true, volume: 500 });
+  expect(weeks[0].volume).toBeNull();
+  expect(weeks.at(-1)).toMatchObject({ partial: true, volume: 500 });
   expect(trends.volumeChange).toMatchObject({
     status: "unavailable",
     reason: "incomplete_period",
   });
+});
+
+it("excludes the current partial week's workload from complete-period comparisons", () => {
+  const history = series(Array(24).fill(100), [], 3, 3);
+  const original = deriveLiftSessions(history, "bench", atDay(69));
+  const extra = exposure(69, {
+    id: "partial_week",
+    sets: Array.from({ length: 20 }, () => ({ weight: 200, reps: 3, rpe: 9 })),
+  });
+  const extended = deriveLiftSessions([...history, extra], "bench", atDay(69));
+
+  expect(deriveLiftTrends(extended, atDay(69)).hardSetsChange).toEqual(
+    deriveLiftTrends(original, atDay(69)).hardSetsChange,
+  );
+  expect(compareWeeklyWorkload(extended, atDay(69), progressConfig)).toEqual(
+    compareWeeklyWorkload(original, atDay(69), progressConfig),
+  );
+  expect(groupLiftWeeks(extended, atDay(69), 1)[0].hardSets).toBe(
+    (groupLiftWeeks(original, atDay(69), 1)[0].hardSets ?? 0) + 20,
+  );
 });
 
 it("compares calendar halves with an inclusive start and exclusive end", () => {

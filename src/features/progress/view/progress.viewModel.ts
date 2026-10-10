@@ -1,8 +1,16 @@
+import { Ionicons } from "@expo/vector-icons";
+
+import type { ComponentProps } from "react";
+
 import type { LiftFamily } from "@/domain/domain.types";
 import type {
   LiftAnalysis,
   ProgressOverview,
 } from "@/domain/progress/analysis/progress.analysis.types";
+import type {
+  BenchmarkTarget,
+  BenchmarkUnavailableReason,
+} from "@/domain/progress/benchmark/progress.benchmark.types";
 import type { DiagnosisKind } from "@/domain/progress/diagnosis/progress.diagnosis.types";
 import type {
   Measurement,
@@ -13,10 +21,12 @@ import type {
   LiftStatus,
   StatusReason,
 } from "@/domain/progress/status/progress.status.types";
-import type { TrendMetric } from "@/domain/progress/trends/progress.trends.types";
+import type { PerformanceBasis } from "@/domain/progress/trends/progress.trends.types";
 
-import type { BarChartPoint } from "@/shared/components/charts/BarChart";
 import { colors } from "@/shared/theme/tokens";
+
+export type EvidenceRowId = "strength" | "effort" | "hard_sets" | "frequency";
+type IoniconName = NonNullable<ComponentProps<typeof Ionicons>["name"]>;
 
 const number = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
 const load = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
@@ -38,6 +48,16 @@ const titles: Record<LiftFamily, string> = {
   deadlift: "DEADLIFT",
 };
 
+export const evidenceIcons: Record<
+  EvidenceRowId,
+  { name: IoniconName; color: string }
+> = {
+  strength: { name: "stats-chart-outline", color: colors.successBorder },
+  effort: { name: "barbell-outline", color: colors.primarySoft },
+  hard_sets: { name: "flame-outline", color: colors.warning },
+  frequency: { name: "pulse-outline", color: "#A78BFA" },
+};
+
 const appearances: Record<LiftStatus, { color: string }> = {
   learning: { color: colors.muted },
   progressing: { color: colors.success },
@@ -48,13 +68,15 @@ const appearances: Record<LiftStatus, { color: string }> = {
 };
 
 const missing: Record<UnavailableReason, string> = {
-  no_history: "No recent sessions",
-  no_performance: "No eligible performance sets",
-  insufficient_history: "More comparable sessions needed",
-  missing_rpe: "RPE not recorded",
-  partial_rpe: "Partial RPE history",
-  invalid_baseline: "No valid comparison baseline",
-  incomplete_period: "More complete weeks needed",
+  no_history: "No recent workouts logged for this lift",
+  no_performance: "No sets available for a reliable strength comparison",
+  insufficient_history:
+    "Log more similar sets across several weeks to compare results",
+  missing_rpe: "No effort ratings (RPE) logged for these sets",
+  partial_rpe:
+    "More consistent RPE logging is needed for a reliable comparison",
+  invalid_baseline: "There is no usable earlier value to compare with",
+  incomplete_period: "More full weeks of training history are needed",
 };
 
 const learning: Record<StatusReason, string> = {
@@ -76,31 +98,39 @@ const learning: Record<StatusReason, string> = {
 
 const diagnoses: Record<DiagnosisKind, { title: string; description: string }> =
   {
-    none: { title: "", description: "" },
+    none: {
+      title: "",
+      description: "",
+    },
+
     fatigue: {
-      title: "POSSIBLE ACCUMULATED FATIGUE",
+      title: "HIGHER TRAINING STRESS",
       description:
-        "This pattern is consistent with accumulated fatigue: effort and recorded competition workload have risen while performance has flattened or declined.",
+        "Effort and hard competition work have increased while performance has stopped improving or started to decline.",
     },
+
     excessive_intensity: {
-      title: "FREQUENT HIGH-EFFORT WORK",
+      title: "TOO MUCH HIGH-EFFORT WORK",
       description:
-        "Repeated RPE 9–10 work accompanies flat or declining performance. A lower-stress exposure may help clarify the pattern.",
+        "Repeated RPE 9–10 sets appear alongside flat or declining performance. Reducing effort temporarily may help.",
     },
+
     insufficient_stimulus: {
-      title: "LOWER RECORDED TRAINING DEMAND",
+      title: "LOWER TRAINING LOAD",
       description:
-        "Competition workload or frequency is lower than in your most recent comparable productive period.",
+        "Your recent competition-lift workload or training frequency is lower than during your previous productive period.",
     },
+
     inconsistent_training: {
-      title: "GAPS IN RECORDED EXPOSURES",
+      title: "INCONSISTENT TRAINING",
       description:
-        "Gaps in competition-lift exposures limit a continuous performance comparison.",
+        "Training gaps make it harder to compare your performance reliably over time.",
     },
+
     insufficient_evidence: {
-      title: "CAUSE NOT YET CLEAR",
+      title: "CAUSE NOT CLEAR YET",
       description:
-        "RackRite does not yet have enough evidence to identify a likely cause.",
+        "There is not enough consistent evidence yet to identify what is affecting your performance.",
     },
   };
 
@@ -109,39 +139,39 @@ const recommendations: Record<
   { title: string; description: string }
 > = {
   continue_approach: {
-    title: "KEEP YOUR CURRENT APPROACH",
+    title: "KEEP GOING",
     description:
-      "Your recorded training supports maintaining your current approach. No meaningful adjustment is recommended.",
+      "Your recent training is working. No meaningful change is needed right now.",
   },
   monitor: {
-    title: "MONITOR BEFORE CHANGING YOUR PROGRAM",
+    title: "WAIT AND WATCH",
     description:
-      "Watch your next two comparable competition sessions before making a major adjustment.",
+      "Complete two more comparable sessions before making a major change.",
   },
   reduce_stress: {
-    title: "CONSIDER LOWERING TRAINING STRESS",
+    title: "REDUCE TRAINING STRESS",
     description:
-      "If your goal is to improve this lift, consider temporarily reducing hard competition work and reassessing with a lower-stress exposure.",
+      "Ease back on hard competition-lift work for a short period, then reassess.",
   },
   review_stimulus: {
-    title: "REVIEW YOUR RECENT WORKLOAD",
+    title: "REVIEW YOUR WORKLOAD",
     description:
-      "If your goal is to improve this lift, consider gradually returning toward previously productive workload. Change one variable at a time.",
+      "Your recent workload may not be enough to drive progress. Adjust one variable at a time.",
   },
   restore_consistency: {
-    title: "REBUILD CONSISTENT EXPOSURES",
+    title: "REBUILD CONSISTENCY",
     description:
-      "Keep logging comparable competition-lift sessions so RackRite can assess a continuous training period.",
+      "Train and log this lift more consistently so RackRite can identify a reliable trend.",
   },
   gather_evidence: {
-    title: "KEEP LOGGING COMPARABLE SESSIONS",
+    title: "KEEP LOGGING",
     description:
-      "Gather more comparable training history before making a major change. RPE is optional.",
+      "More comparable sessions are needed before making a confident training change. RPE is optional.",
   },
   reassess: {
-    title: "REASSESS WITH A CONSERVATIVE BENCHMARK",
+    title: "RESET AND REASSESS",
     description:
-      "Performance has repeatedly declined. Review recent training and use a lower-stress comparable exposure before increasing demands.",
+      "Performance has declined repeatedly. Use a lighter benchmark before increasing the load again.",
   },
 };
 
@@ -152,21 +182,16 @@ export function formatChange(value: number, unit = "%"): string {
 }
 
 export type EvidenceRowViewModel = {
-  id: string;
+  id: EvidenceRowId;
   label: string;
   value: string;
   note: string | null;
-  direction: string;
-  color: string;
-  fraction: number | null;
 };
 
 function evidenceRow(
-  id: string,
+  id: EvidenceRowId,
   label: string,
   measurement: Measurement,
-  scale: number,
-  neutral = false,
   unit = "%",
 ): EvidenceRowViewModel {
   if (measurement.status === "unavailable")
@@ -175,9 +200,6 @@ function evidenceRow(
       label,
       value: "—",
       note: missing[measurement.reason],
-      direction: "",
-      color: colors.muted,
-      fraction: null,
     };
 
   const value = measurement.value;
@@ -187,15 +209,6 @@ function evidenceRow(
     label,
     value: formatChange(value, unit),
     note: null,
-    direction: Math.abs(value) < 0.05 ? "−" : value > 0 ? "↑" : "↓",
-    color: neutral
-      ? colors.primarySoft
-      : value > 0
-        ? colors.success
-        : value < 0
-          ? colors.error
-          : colors.muted,
-    fraction: Math.max(-1, Math.min(1, value / scale)),
   };
 }
 
@@ -208,112 +221,206 @@ function statusSummary(analysis: LiftAnalysis): string {
     case "progressing":
       return `Your ${name} performance appears to be improving consistently.`;
     case "stable":
-      return `Your recent ${name} performance is holding steady. Maintaining strength can be intentional.`;
+      return `Your recent ${name} performance is holding steady.`;
     case "stalling":
       return `Your ${name} progress appears to be slowing across recent sessions.`;
     case "plateaued":
-      return `Your recorded ${name} performance has shown no meaningful progression across the recent training period.`;
+      return `Your ${name} performance has shown no meaningful progression across the recent training period.`;
     case "regressing":
       return `Recent ${name} performance is consistently below your earlier baseline.`;
   }
 }
 
-function chartViewModel(analysis: LiftAnalysis, metric: TrendMetric) {
-  const { trends } = analysis;
-  const performanceValue = (week: (typeof trends.weekly)[number]) =>
-    trends.basis === "effort_adjusted" ? week.adjusted : week.raw;
-  const reference = trends.performance.baseline;
+function getTargetExplanation(target: BenchmarkTarget): string {
+  const reference = `${load.format(target.referenceWeight)} KG × ${target.reps}`;
 
-  const points: BarChartPoint[] = trends.weekly.map((week, index) => {
-    const rawValue =
-      metric === "volume"
-        ? week.volume
-        : metric === "e1rm"
-          ? week.raw
-          : performanceValue(week);
-    const value =
-      rawValue === null
-        ? null
-        : metric === "performance"
-          ? reference !== null && reference > 0
-            ? (rawValue / reference) * 100
-            : null
-          : rawValue;
-    const formatted =
-      value === null
-        ? "No data"
-        : `${number.format(value)} ${metric === "performance" ? "index" : metric === "volume" ? "kg volume" : "kg estimated 1RM"}`;
+  switch (target.intent) {
+    case "progress":
+      return `${target.sources.length} comparable sessions support increasing from ${reference}. Your recorded effort suggests there is room to add weight.`;
 
-    return {
-      id: String(week.startsAt),
-      label: `W${index + 1}`,
-      value,
-      partial: week.partial,
-      description: `${date.format(week.startsAt)}–${date.format(week.endsAt)}: ${formatted}${week.partial ? " · Incomplete week" : ""}`,
-    };
-  });
+    case "reduce_stress":
+      switch (target.reason) {
+        case "repeated_decline":
+          return `Recent comparable sessions show a repeated strength decline, so the next target is reduced from ${reference}.`;
 
-  const change =
-    metric === "volume"
-      ? trends.volumeChange
-      : metric === "e1rm"
-        ? trends.raw.change
-        : trends.performance.change;
-  const label =
-    metric === "performance"
-      ? "PERFORMANCE TREND"
-      : metric === "e1rm"
-        ? "ESTIMATED 1RM TREND"
-        : "COMPETITION VOLUME";
+        case "high_effort_reference":
+          return `Your latest ${reference} was harder than the target effort, so the next target is slightly reduced.`;
 
-  return {
-    title: label,
-    points,
-    delta:
-      change.status === "available"
-        ? `6W ${formatChange(change.value)}`
-        : "BUILDING HISTORY",
-    color:
-      metric === "volume" || change.status !== "available"
-        ? colors.primarySoft
-        : change.value > 0
-          ? colors.success
-          : change.value < 0
-            ? colors.error
-            : colors.muted,
-    emptyMessage:
-      metric === "volume"
-        ? "No eligible competition volume in these weeks."
-        : metric === "performance" && reference === null
-          ? "More history is needed for a comparison baseline. View E1RM for early estimates."
-          : "No eligible performance points in these weeks.",
-    basis:
-      metric !== "performance"
-        ? metric === "volume"
-          ? "Completed non-warmup competition sets"
-          : "Estimated from load and repetitions"
-        : `${trends.basis === "effort_adjusted" ? "Includes recorded effort" : "Based on load and repetitions"} · Index 100 = earlier comparison period`,
-  };
+        default:
+          return `Recent sessions around ${reference} have been consistently harder than expected, so the next target is slightly reduced.`;
+      }
+
+    case "repeat":
+      switch (target.reason) {
+        case "effort_headroom_unknown":
+          return `Repeat ${reference}. More consistent RPE data is needed before increasing the load.`;
+
+        default:
+          return `Repeat ${reference}. Recent strength and effort do not yet support increasing the load.`;
+      }
+  }
 }
+
+export const strengthBasisLabels: Record<PerformanceBasis, string> = {
+  matched_reps_rpe: "Compared at similar reps & RPE",
+  matched_reps: "Compared at similar reps",
+  effort_adjusted: "Estimated using load, reps & RPE",
+  load_reps: "Estimated using load & reps",
+};
+
+const withheld: Record<BenchmarkUnavailableReason, string> = {
+  learning:
+    "Keep logging similar competition sets for a few more weeks before setting a benchmark.",
+  weak_evidence:
+    "More consistent training data is needed before RackRite can suggest a specific target.",
+  training_gaps:
+    "Log your competition lift more consistently before setting a new benchmark.",
+  stale_history:
+    "Log some recent comparable sets before setting a new benchmark.",
+  conflicting_signals:
+    "Your recent performance is mixed. More comparable sets are needed before setting a target.",
+  comparable_exposures:
+    "Log at least three comparable sessions using the same 2–6 rep range across seven or more days.",
+  outlier:
+    "Your latest performance differs too much from your recent trend. Another comparable session is needed.",
+  effort_capacity:
+    "There is not enough reliable effort data yet to recommend a lower load.",
+  rounding_limits:
+    "A safe load adjustment cannot be made with the available plate increments.",
+};
 
 export function createProgressViewModel(
   overview: ProgressOverview,
   family: LiftFamily,
-  metric: TrendMetric,
   outdated = false,
 ) {
   const analysis = overview.lifts[family];
+  const { trends } = analysis;
   const appearance = appearances[analysis.status.value];
   const target = outdated ? null : analysis.recommendation.benchmark;
   const explanation = diagnoses[analysis.diagnosis.kind];
+  const performance = trends.performance.change;
 
   const supported = analysis.evidence.supportingDays;
   const considered = analysis.evidence.consideredDays;
   const evidenceSummary =
     analysis.status.value === "learning"
-      ? "The available history is not yet sufficient for a reliable classification."
-      : `${supported} of the latest ${considered} performance days support this assessment against the earlier baseline.`;
-  const performance = analysis.trends.performance.change;
+      ? "More similar workouts are needed to assess your strength trend reliably."
+      : `${supported} of ${considered} recent training days support this status when compared with your earlier results.`;
+
+  const basis = strengthBasisLabels[trends.basis];
+
+  const estimateComparison =
+    analysis.currentEstimatedMaxBasis === "effort_adjusted"
+      ? trends.adjusted
+      : trends.raw;
+  const estimateChange =
+    analysis.currentEstimatedMax.status === "available" &&
+    estimateComparison.change.status === "available" &&
+    estimateComparison.baseline !== null
+      ? Math.round(
+          (analysis.currentEstimatedMax.value - estimateComparison.baseline) *
+            10,
+        ) /
+          10 ===
+        0
+        ? null
+        : `${formatChange(
+            Math.round(
+              (analysis.currentEstimatedMax.value -
+                estimateComparison.baseline) *
+                10,
+            ) / 10,
+            "",
+          )}`
+      : null;
+
+  const strengthRow = evidenceRow(
+    "strength",
+    trends.strength.buckets.length
+      ? "Comparable strength"
+      : "Estimated strength trend",
+    performance,
+  );
+  strengthRow.note =
+    performance.status === "available"
+      ? `${evidenceSummary} ${basis}.`
+      : strengthRow.note;
+
+  const effortRow = evidenceRow(
+    "effort",
+    "Effort",
+    trends.effort.change,
+    " RPE",
+  );
+  effortRow.note =
+    trends.effort.change.status === "available"
+      ? trends.effort.basis === "matched"
+        ? `The same weight and reps felt ${trends.effort.change.value < -0.05 ? "easier" : trends.effort.change.value > 0.05 ? "harder" : "about the same"}, based on your logged RPE.`
+        : "This compares your usual logged RPE. There aren't enough sets at the same weight and reps for a direct comparison."
+      : effortRow.note;
+
+  const workRow = evidenceRow(
+    "hard_sets",
+    "Hard competition work",
+    trends.hardSetsChange,
+  );
+  if (
+    trends.baselineWeeklyHardSets !== null &&
+    trends.recentWeeklyHardSets !== null
+  ) {
+    const weeklySets =
+      trends.baselineWeeklyHardSets === trends.recentWeeklyHardSets
+        ? `You averaged ${number.format(trends.recentWeeklyHardSets)} hard sets per week in both periods (RPE 8+).`
+        : `You averaged ${number.format(trends.recentWeeklyHardSets)} hard sets per week, compared with ${number.format(trends.baselineWeeklyHardSets)} before (RPE 8+).`;
+    const coverage =
+      trends.baselineWorkloadRpeCoverage === trends.recentWorkloadRpeCoverage
+        ? `You logged RPE for ${number.format(trends.recentWorkloadRpeCoverage * 100)}% of sets in both periods.`
+        : `You logged RPE for ${number.format(trends.recentWorkloadRpeCoverage * 100)}% of sets, compared with ${number.format(trends.baselineWorkloadRpeCoverage * 100)}% before.`;
+    workRow.note = `${weeklySets} ${coverage}${trends.hardSetsChange.status === "unavailable" ? ` ${missing[trends.hardSetsChange.reason]}.` : ""}`;
+  }
+  const consistencyRow = evidenceRow(
+    "frequency",
+    "Consistency",
+    trends.frequencyChange,
+  );
+  const hasHistory = trends.contextDays.length > 0;
+  consistencyRow.value = !hasHistory
+    ? "—"
+    : analysis.diagnosis.kind === "inconsistent_training"
+      ? "Gaps recorded"
+      : analysis.status.value === "learning"
+        ? "Building history"
+        : "Consistent";
+  if (trends.recentWeeklyFrequency === null) {
+    consistencyRow.note = hasHistory
+      ? "More full weeks of training history are needed to compare how often you log this lift."
+      : "No recent training logged for this lift.";
+  } else {
+    const frequency =
+      trends.baselineWeeklyFrequency === trends.recentWeeklyFrequency
+        ? `You logged this lift on an average of ${number.format(trends.recentWeeklyFrequency)} days per week in both periods.`
+        : `You logged this lift on an average of ${number.format(trends.recentWeeklyFrequency)} days per week, compared with ${number.format(trends.baselineWeeklyFrequency ?? 0)} before.`;
+    const gap = `Longest gap between logged training days: ${trends.maxGapDays} ${trends.maxGapDays === 1 ? "day" : "days"}.`;
+    const weeksWithoutTraining =
+      trends.missingCompleteWeeks === 0
+        ? "No full weeks without a logged session."
+        : `${trends.missingCompleteWeeks} full ${trends.missingCompleteWeeks === 1 ? "week" : "weeks"} without a logged session.`;
+    consistencyRow.note = `${frequency} ${gap} ${weeksWithoutTraining}`;
+  }
+  const referenceDates = target?.sources.length
+    ? `${date.format(target.sources[0].workoutFinishedAt)}–${date.format(target.sources[target.sources.length - 1].workoutFinishedAt)}`
+    : null;
+
+  /*   const targetExplanation = target
+    ? target.intent === "progress"
+      ? `${target.sources.length} comparable exposures support one increment from ${load.format(target.referenceWeight)} KG × ${target.reps}, with recorded effort headroom.`
+      : target.intent === "reduce_stress"
+        ? `${target.reason === "repeated_decline" ? "Repeated strength decline supports" : target.reason === "high_effort_reference" ? "Your latest reference exceeded the target effort range, supporting" : "The recorded higher-stress pattern supports"} a conservative reduction from ${load.format(target.referenceWeight)} KG × ${target.reps}.`
+        : target.reason === "effort_headroom_unknown"
+          ? `Repeat the established ${load.format(target.referenceWeight)} KG × ${target.reps}. Effort headroom is unknown without consistent RPE.`
+          : `Repeat the established ${load.format(target.referenceWeight)} KG × ${target.reps}. Current strength and effort do not support an increase yet.`
+    : null; */
 
   return {
     family,
@@ -329,88 +436,96 @@ export function createProgressViewModel(
       summary: statusSummary(analysis),
       ...appearance,
       evidence: `${analysis.evidence.level.toUpperCase()} EVIDENCE`,
+      basis,
       performance:
         performance.status === "available"
           ? formatChange(performance.value)
-          : "—",
+          : null,
+      /*       performanceLabel: trends.strength.buckets.length
+        ? "Strength vs similar sets" // stronger, like-for-like evidence
+        : "Estimated strength", // fallback, formula-derived */
       estimatedMax:
         analysis.currentEstimatedMax.status === "available"
           ? number.format(analysis.currentEstimatedMax.value)
-          : "—",
-      count: String(analysis.analyzedSessionCount),
-      estimateNote:
-        analysis.trends.contextDays.length > 0 &&
-        analysis.trends.contextDays.length < 3
-          ? "Early estimate from limited history"
           : null,
+      estimateChange,
+      estimateNote:
+        analysis.status.reason === "stale_history"
+          ? "Estimate may be stale"
+          : trends.contextDays.length > 0 &&
+              trends.contextDays.length < 3 &&
+              analysis.currentEstimatedMax.status === "available"
+            ? "Based on limited history"
+            : null,
     },
     action: {
       ...recommendations[analysis.recommendation.kind],
+      unavailable: outdated
+        ? "These results are outdated. Refresh successfully to see a benchmark."
+        : analysis.recommendation.benchmarkUnavailableReason
+          ? withheld[analysis.recommendation.benchmarkUnavailableReason]
+          : "No specific target is supported by this history.",
       benchmark: target
         ? {
             label:
               target.intent === "progress"
-                ? "NEXT PERFORMANCE TARGET"
-                : "NEXT BENCHMARK",
-            value: `${load.format(target.weight)} KG × ${target.reps}`,
-            rpe: target.rpe
-              ? `TARGET RPE ${target.rpe.min}–${target.rpe.max}`
-              : null,
-            explanation:
-              target.intent === "progress"
-                ? "A small increase supported by repeated performance and recorded effort."
+                ? "INCREASE"
                 : target.intent === "reduce_stress"
-                  ? "A lower-stress exposure for comparison; this is not a complete workout."
-                  : target.rpe
-                    ? "Repeat a familiar workload to keep the comparison useful."
-                    : "Repeat a familiar workload. Effort headroom is unknown without RPE.",
+                  ? "REDUCE"
+                  : "REPEAT",
+            value: `${load.format(target.weight)} KG × ${target.reps}`,
+            weight: load.format(target.weight),
+            reps: target.reps,
+            rpe: target.rpe ? `RPE ${target.rpe.min}–${target.rpe.max}` : null,
+            /*    delta:
+              target.loadChange === 0
+                ? "Same load"
+                : formatChange(target.loadChange, " KG"), */
+            delta:
+              target.loadChange === 0
+                ? {
+                    type: "same" as const,
+                    label: "",
+                  }
+                : {
+                    type: "change" as const,
+                    value: formatChange(target.loadChange, ""),
+                    unit: "KG",
+                  },
+            evidence: `${target.evidence.toUpperCase()} EVIDENCE`,
+            basis: strengthBasisLabels[target.basis],
+            explanation: getTargetExplanation(target),
+            sources: referenceDates
+              ? `${target.sources.length} reference days · ${referenceDates}`
+              : null,
           }
         : null,
-      footer: `Continue monitoring your next two comparable competition-${liftLabels[family].toLowerCase()} sessions.`,
     },
     why: {
-      rows: [
-        evidenceRow("performance", "Performance", performance, 10),
-        evidenceRow("e1rm", "Estimated 1RM", analysis.trends.raw.change, 10),
-        evidenceRow(
-          "rpe",
-          "Typical recorded RPE",
-          analysis.trends.rpeChange,
-          2,
-          true,
-          "",
-        ),
-        evidenceRow(
-          "volume",
-          "Weekly competition volume",
-          analysis.trends.volumeChange,
-          50,
-          true,
-        ),
-      ],
-      summary: evidenceSummary,
+      title:
+        analysis.status.value === "learning"
+          ? "LEARNING"
+          : analysis.status.value.toUpperCase(),
+      rows: [strengthRow, effortRow, workRow, consistencyRow],
       diagnosis: explanation.title
         ? {
             ...explanation,
             evidence: `${analysis.diagnosis.evidence.toUpperCase()} EVIDENCE`,
+            reference: analysis.diagnosis.referenceWindow
+              ? `Reference period: ${date.format(analysis.diagnosis.referenceWindow.from)} – ${date.format(analysis.diagnosis.referenceWindow.through)}`
+              : null,
           }
         : null,
     },
-    chart: chartViewModel(analysis, metric),
     methods: [
       `Analysis updated ${new Date(overview.analysisTime).toLocaleString("en-US")}.`,
-      `Performance compares medians from two 21-day periods: ${date.format(analysis.trends.performance.window.from)}–${date.format(analysis.trends.performance.window.through)}. Status also considers up to eight weeks of continuous exposures.`,
-      "One workout creates one exposure. Multiple workouts on a day share one daily median for status evidence.",
-      "Estimated 1RM uses the Brzycki formula for 1–10 reps. It is an estimate, not a tested maximum. Known effort below RPE 7 is excluded from strength estimation.",
-      analysis.trends.basis === "effort_adjusted"
-        ? "Performance includes an RIR estimate from recorded RPE. Both comparison periods meet coverage requirements; missing adjusted points remain empty."
-        : "Performance uses load and repetitions. RPE is optional; incomplete effort history is not filled in.",
-      `Weekly workload compares the latest three complete weeks with the preceding three: ${date.format(analysis.trends.workloadWindow.from)}–${date.format(analysis.trends.workloadWindow.through)}. The current week is excluded.`,
-      "Evidence bars start at a central zero marker. Full-scale ranges are ±10% performance/estimated 1RM, ±2 RPE points, and ±50% volume. These are change scales, not confidence percentages.",
-      "The chart uses actual zero-based heights. Volume increases are neutral: more work does not automatically mean better training.",
-      "Only recorded competition lifts are included. Variations, accessories, technique changes, recovery, and training intentions may affect the picture. Diagnoses are hypotheses.",
-      "Benchmarks are optional comparable exposures, not complete workouts. Changed loads use 2.5 kg steps. No intervention is tracked or applied automatically.",
-      "Plateaued describes sustained flat recorded performance. Maintaining strength may be your intention.",
+      `Strength compares two 21-day periods: ${date.format(trends.performance.window.from)}–${date.format(trends.performance.window.through)}. Active basis: ${basis}.`,
+      "Direct comparisons match repetitions from 1–6 and, when effort is available, RPE bands 7–8, above 8–9, and above 9–10. Each bucket needs three days in both periods; matched observations must cover at least 80% of performance days. Daily loads use medians across periods; bucket changes use a count-weighted median.",
+      "Several sets or workouts on a day count once for strength evidence and exposure frequency. Matched effort compares daily median RPE at the same load and repetitions.",
+      "Estimated max uses the best qualified raw or effort-adjusted estimate from the latest three performance days. Recorded RPE adds estimated reps in reserve to Brzycki, bounded to ten effective repetitions; unsupported effort estimates fall back to raw load and reps. The kilogram comparison uses the earlier baseline from the same formula. It is not a tested maximum. Known effort below RPE 7 is excluded from strength estimation.",
+      `Workload compares three complete weeks with the preceding three: ${date.format(trends.workloadWindow.from)}–${date.format(trends.workloadWindow.through)}. Hard sets have recorded RPE 8+; very hard sets have RPE 9+. Missing RPE is not easy work. Comparisons require at least 70% coverage in both periods, within ten percentage points.`,
+      "Only recorded competition lifts are included. Variations, accessories, technique, recovery and training intentions can affect the picture. Diagnoses describe patterns, not measured causes. A lower-work explanation needs a comparable personal productive period within the last 24 weeks.",
+      "Benchmarks are optional comparison targets, not workouts. Changed loads use 2.5 kg steps with conservative caps. No target is saved or applied automatically. Stable strength may be intentional.",
     ],
   };
 }

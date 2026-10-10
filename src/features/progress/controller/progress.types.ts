@@ -1,8 +1,9 @@
 import type { LiftFamily } from "@/domain/domain.types";
 import type { ProgressOverview } from "@/domain/progress/analysis/progress.analysis.types";
-import type { TrendMetric } from "@/domain/progress/trends/progress.trends.types";
 
-type Selection = { selectedLift: LiftFamily; metric: TrendMetric };
+type Selection = {
+  selectedLift: LiftFamily;
+};
 
 type RefreshState =
   | { status: "idle" }
@@ -21,5 +22,4 @@ export type ProgressAction =
   | { type: "refreshSucceeded"; overview: ProgressOverview }
   | { type: "refreshFailed"; error: Error }
   | { type: "interrupted" }
-  | { type: "liftSelected"; family: LiftFamily }
-  | { type: "metricSelected"; metric: TrendMetric };
+  | { type: "liftSelected"; family: LiftFamily };

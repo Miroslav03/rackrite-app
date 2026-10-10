@@ -9,18 +9,13 @@ export const progressStoryMeta = {
   argTypes: {
     scenario: { control: false, table: { disable: true } },
     initialLift: { control: "radio", options: ["squat", "bench", "deadlift"] },
-    initialMetric: {
-      control: "radio",
-      options: ["performance", "e1rm", "volume"],
-    },
     onSelectLift: { action: "Selected lift" },
-    onSelectMetric: { action: "Selected metric" },
     onRefresh: { action: "Completed simulated refresh" },
   },
   parameters: {
     layout: "fullscreen",
     noSafeArea: true,
-    controls: { include: ["initialLift", "initialMetric"] },
+    controls: { include: ["initialLift"] },
   },
 } satisfies Meta<typeof ProgressStoryHost>;
 
@@ -33,7 +28,7 @@ export function createProgressStory(
 
   return {
     name: scenario.title,
-    args: { scenario, initialMetric: scenario.metric ?? "performance" },
+    args: { scenario },
     parameters: { notes: scenario.description },
   };
 }

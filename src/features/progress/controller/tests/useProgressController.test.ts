@@ -97,17 +97,14 @@ it("loads on focus, preserves selection during a request, and switches without r
   await view.focus(true);
   await act(async () => {
     view.get().selectLift("squat");
-    view.get().selectMetric("volume");
     pending.resolve(snapshot());
   });
   expect(view.get().state).toMatchObject({
     status: "ready",
     selectedLift: "squat",
-    metric: "volume",
   });
   await act(async () => {
     view.get().selectLift("deadlift");
-    view.get().selectMetric("e1rm");
   });
   expect(actions.loadOverview).toHaveBeenCalledTimes(1);
 });

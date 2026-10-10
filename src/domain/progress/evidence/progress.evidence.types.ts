@@ -36,7 +36,15 @@ export type EvidenceAssessment = {
  * presenting an unsupported status label.
  */
 export type EvidenceFact = {
-  metric: "performance" | "e1rm" | "rpe" | "volume" | "frequency"; // Which measurement this fact describes.
+  // Which part of training this change describes: strength, effort or workload.
+  metric:
+    | "strength"
+    | "e1rm"
+    | "rpe"
+    | "matched_effort"
+    | "hard_sets"
+    | "volume"
+    | "frequency";
   change: Measurement; // Measured change, or why it is unavailable; RPE uses points, others use percent.
   window: AnalysisWindow; // Comparison dates that this measured change describes.
   workoutIds: readonly Workout["id"][]; // Source workouts used to trace the fact back to recorded history.

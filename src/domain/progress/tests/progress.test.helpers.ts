@@ -11,11 +11,11 @@ export const START = new Date(2026, 0, 5, 12).getTime();
  * the details relevant to a scenario while the fixture fills in defaults.
  */
 export type FixtureSet = {
-  weight?: number | null;
-  reps?: number | null;
-  rpe?: number | null;
-  type?: SetType;
-  finished?: boolean;
+  weight?: number | null; // Test set's load in kg; null represents a missing load.
+  reps?: number | null; // Test set's completed reps; null represents missing reps.
+  rpe?: number | null; // Test set's effort rating; null represents unrecorded effort.
+  type?: SetType; // Test set's role, such as working, top, backoff or warmup.
+  finished?: boolean; // False creates an unfinished set; omitted values create a completed set.
 };
 
 export function exposure(

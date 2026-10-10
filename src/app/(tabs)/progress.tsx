@@ -11,6 +11,7 @@ import { FullScreenLoader } from "@/shared/components/feedback/FullScreenLoader"
 
 export default function ProgressScreen() {
   const router = useRouter();
+  const isFocused = useIsFocused();
   const session = useWorkoutSession();
 
   const openActiveWorkout = useCallback(
@@ -18,9 +19,9 @@ export default function ProgressScreen() {
     [router],
   );
 
-  const { state, refresh, selectLift, selectMetric } = useProgressController(
+  const { state, refresh, selectLift } = useProgressController(
     progressActions,
-    useIsFocused(),
+    isFocused,
   );
 
   switch (state.status) {
@@ -36,10 +37,10 @@ export default function ProgressScreen() {
     case "ready":
       return (
         <ProgressScreenView
+          isFocused={isFocused}
           state={state}
           onRefresh={refresh}
           onSelectLift={selectLift}
-          onSelectMetric={selectMetric}
           onOpenActiveWorkout={
             session.state.status === "active" ? openActiveWorkout : undefined
           }

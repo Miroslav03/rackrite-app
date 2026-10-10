@@ -72,11 +72,7 @@ export function cardModel(
   analysis: Partial<LiftAnalysis> = {},
   trends: Partial<LiftTrendMetrics> = {},
 ) {
-  return createProgressViewModel(
-    overviewWith(analysis, trends),
-    "bench",
-    "performance",
-  );
+  return createProgressViewModel(overviewWith(analysis, trends), "bench");
 }
 
 export function benchmark(
@@ -84,6 +80,10 @@ export function benchmark(
 ): BenchmarkTarget {
   return {
     intent: "progress",
+    referenceWeight: 100,
+    loadChange: 2.5,
+    evidence: "strong",
+    basis: "matched_reps_rpe",
     weight: 102.5,
     reps: 3,
     rpe: { min: 7, max: 8 },

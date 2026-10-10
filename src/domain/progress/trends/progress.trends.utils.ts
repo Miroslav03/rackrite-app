@@ -17,6 +17,7 @@ import type { LiftSessionMetrics } from "../sessions/progress.sessions.types";
 import type {
   ComparisonHistory,
   DailyPerformance,
+  EstimateBasis,
   PerformanceBasis,
   TrendComparison,
   WeeklyLiftMetrics,
@@ -33,7 +34,7 @@ function finiteValues(
 
 export function dailyValue(
   day: DailyPerformance,
-  basis: PerformanceBasis,
+  basis: EstimateBasis,
 ): number | null {
   return basis === "load_reps" ? day.raw : day.adjusted;
 }
@@ -90,7 +91,7 @@ function summarizePerformanceDay(
 export function comparePerformance(
   days: readonly DailyPerformance[],
   endExclusive: number,
-  basis: PerformanceBasis,
+  basis: EstimateBasis,
   config: ProgressConfig = progressConfig,
 ): TrendComparison {
   const startsAt = addLocalCalendarDays(endExclusive, -config.trendDays);
@@ -132,7 +133,7 @@ export function comparePerformance(
   };
 }
 
-function rpeCoverage(sessions: readonly LiftSessionMetrics[]): number {
+export function rpeCoverage(sessions: readonly LiftSessionMetrics[]): number {
   const valid = sessions.reduce(
     (sum, session) => sum + session.validSetCount,
     0,
@@ -157,7 +158,6 @@ function effortShare(sessions: readonly LiftSessionMetrics[]): number | null {
 
 export function groupLiftWeeks(
   sessions: readonly LiftSessionMetrics[],
-  days: readonly DailyPerformance[],
   analysisTime: number,
   count: number,
 ): WeeklyLiftMetrics[] {
@@ -176,23 +176,33 @@ export function groupLiftWeeks(
         session.finishedAt < endExclusive &&
         session.validSetCount > 0,
     );
-    const weeklyDays = days.filter(
-      (day) => day.finishedAt >= startsAt && day.finishedAt < endExclusive,
-    );
-
     return {
       startsAt,
-      endsAt: endExclusive - 1,
       partial: endExclusive > analysisTime,
-      raw: median(weeklyDays.map((day) => day.raw)),
-      adjusted: median(finiteValues(weeklyDays.map((day) => day.adjusted))),
       volume:
         weeklySessions.length ||
         (firstTrainingFinishedAt !== undefined &&
           startsAt > firstTrainingFinishedAt)
           ? weeklySessions.reduce((sum, session) => sum + session.volume, 0)
           : null,
-      exposures: weeklySessions.length,
+      exposures: new Set(
+        weeklySessions.map((session) => localCalendarDay(session.finishedAt)),
+      ).size,
+      hardSets: weeklySessions.some((session) => session.rpeSetCount > 0)
+        ? weeklySessions.reduce((sum, session) => sum + session.hardSetCount, 0)
+        : weeklySessions.length === 0 &&
+            firstTrainingFinishedAt !== undefined &&
+            startsAt > firstTrainingFinishedAt
+          ? 0
+          : null,
+      validSets: weeklySessions.reduce(
+        (sum, session) => sum + session.validSetCount,
+        0,
+      ),
+      rpeSets: weeklySessions.reduce(
+        (sum, session) => sum + session.rpeSetCount,
+        0,
+      ),
     };
   });
 }
@@ -256,7 +266,6 @@ export function selectComparisonHistory(
     );
 
   return {
-    allPerformanceDays,
     days,
     contextDays,
     endExclusive,
@@ -305,11 +314,14 @@ export function compareRecordedEffort(
     rpeAdequate && baselineRpe !== null && recentRpe !== null
       ? available(recentRpe - baselineRpe)
       : unavailable(hasRpe ? "partial_rpe" : "missing_rpe");
+
   const baselineHighEffortShare = effortShare(baselineSessions),
     recentHighEffortShare = rpeAdequate ? effortShare(recentSessions) : null;
 
   return {
     rpeChange,
+    baselineTypicalRpe: rpeAdequate ? baselineRpe : null,
+    recentTypicalRpe: rpeAdequate ? recentRpe : null,
     rpeAdequate,
     recentHighEffortShare,
     highEffortShareChange:
@@ -337,7 +349,7 @@ export function selectPerformanceBasis(
   adjusted: TrendComparison,
   rpeAdequate: boolean,
   config: ProgressConfig,
-): PerformanceBasis {
+): EstimateBasis {
   const adjustedAdequate =
     adjusted.change.status === "available" &&
     rpeAdequate &&
@@ -351,15 +363,13 @@ export function selectPerformanceBasis(
 
 export function compareWeeklyWorkload(
   sessions: readonly LiftSessionMetrics[],
-  allPerformanceDays: readonly DailyPerformance[],
   analysisTime: number,
   config: ProgressConfig,
 ) {
   const allWeeks = groupLiftWeeks(
     sessions,
-    allPerformanceDays,
     analysisTime,
-    config.historyWeeks + 1,
+    config.trendDays / 7 + 1,
   );
 
   const completeWeeks = allWeeks
@@ -395,7 +405,50 @@ export function compareWeeklyWorkload(
       .slice(weeksPerHalf)
       .reduce((sum, week) => sum + week.exposures, 0) / weeksPerHalf;
 
+  const baselineWeeks = completeWeeks.slice(0, weeksPerHalf);
+  const recentWeeks = completeWeeks.slice(weeksPerHalf);
+
+  const coverage = (weeks: readonly WeeklyLiftMetrics[]) => {
+    const valid = weeks.reduce((sum, week) => sum + week.validSets, 0);
+    return valid
+      ? weeks.reduce((sum, week) => sum + week.rpeSets, 0) / valid
+      : 0;
+  };
+  const hardSets = (weeks: readonly WeeklyLiftMetrics[]) =>
+    weeks.some((week) => week.hardSets === null)
+      ? null
+      : weeks.reduce((sum, week) => sum + (week.hardSets ?? 0), 0) /
+        weeksPerHalf;
+
+  const baselineWorkloadRpeCoverage = coverage(baselineWeeks);
+  const recentWorkloadRpeCoverage = coverage(recentWeeks);
+
+  const comparableCoverage =
+    baselineWorkloadRpeCoverage >= config.rpeCoverage &&
+    recentWorkloadRpeCoverage >= config.rpeCoverage &&
+    Math.abs(baselineWorkloadRpeCoverage - recentWorkloadRpeCoverage) <=
+      config.workloadCoverageDifference + config.comparisonEpsilon;
+
+  const baselineWeeklyHardSets = hasCompleteWorkloadHistory
+    ? hardSets(baselineWeeks)
+    : null;
+  const recentWeeklyHardSets = hasCompleteWorkloadHistory
+    ? hardSets(recentWeeks)
+    : null;
+
   return {
+    baselineWorkloadRpeCoverage,
+    recentWorkloadRpeCoverage,
+    baselineWeeklyHardSets,
+    recentWeeklyHardSets,
+    baselineWeeklyFrequency: hasCompleteWorkloadHistory
+      ? baselineWeeklyFrequency
+      : null,
+    hardSetsChange: !hasCompleteWorkloadHistory
+      ? unavailable("incomplete_period")
+      : !comparableCoverage
+        ? unavailable("partial_rpe")
+        : percentChange(baselineWeeklyHardSets, recentWeeklyHardSets),
     volumeChange: hasCompleteWorkloadHistory
       ? percentChange(baselineWeeklyVolume, recentWeeklyVolume)
       : unavailable("incomplete_period"),
@@ -419,7 +472,6 @@ export function compareWeeklyWorkload(
         week.startsAt > firstTrainingFinishedAt &&
         week.exposures === 0,
     ).length,
-    weekly: allWeeks.slice(-config.chartWeeks),
   };
 }
 

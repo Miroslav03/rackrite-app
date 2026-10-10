@@ -11,9 +11,17 @@ import type {
   DailyPerformance,
   LiftTrendMetrics,
 } from "../trends/progress.trends.types";
-import { dailyValue } from "../trends/progress.trends.utils";
 
 import type { LiftStatus, StatusReason } from "./progress.status.types";
+
+export function strengthValue(
+  trends: LiftTrendMetrics,
+  day: DailyPerformance,
+): number | null {
+  return (
+    trends.strength.daily.find((point) => point.day === day.day)?.value ?? null
+  );
+}
 
 export function supportingDayCount(
   trends: LiftTrendMetrics,
@@ -26,7 +34,7 @@ export function supportingDayCount(
   if (baseline === null || baseline <= 0) return 0;
 
   return trends.days.slice(-count).filter((day) => {
-    const value = dailyValue(day, trends.basis);
+    const value = strengthValue(trends, day);
 
     if (value === null) return false;
 
@@ -108,7 +116,7 @@ function isPlateau(trends: LiftTrendMetrics, config: ProgressConfig): boolean {
         (day) =>
           day.day >= blockEnd - config.plateauBlockDays && day.day < blockEnd,
       )
-      .map((day) => dailyValue(day, trends.basis))
+      .map((day) => strengthValue(trends, day))
       .filter((value): value is number => value !== null);
 
     if (values.length < config.plateauBlockMinimumDays) return false;
@@ -162,7 +170,7 @@ export function candidateStatus(
 
   const recent = trends.days
     .slice(-config.supportWindow * 2)
-    .map((day) => dailyValue(day, trends.basis));
+    .map((day) => strengthValue(trends, day));
   const before = median(
     recent
       .slice(0, config.supportWindow)

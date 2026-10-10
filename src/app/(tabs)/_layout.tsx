@@ -20,10 +20,10 @@ const tabIcons = {
     active: "trending-up",
     inactive: "trending-up-outline",
   },
-  tools: {
+  /*   tools: {
     active: "construct",
     inactive: "construct-outline",
-  },
+  }, */
 } as const;
 
 type TabRouteName = keyof typeof tabIcons;
@@ -70,7 +70,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="templates" options={{ title: "Templates" }} />
       <Tabs.Screen name="history" options={{ title: "History" }} />
       <Tabs.Screen name="progress" options={{ title: "Progress" }} />
-      <Tabs.Screen name="tools" options={{ title: "Tools" }} />
+      {/*    <Tabs.Screen name="tools" options={{ title: "Tools" }} /> */}
     </Tabs>
   );
 }

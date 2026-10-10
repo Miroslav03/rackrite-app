@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 
 import type { LiftFamily } from "@/domain/domain.types";
-import type { TrendMetric } from "@/domain/progress/trends/progress.trends.types";
 
 import { toError } from "@/shared/utils/error";
 import { millisecondsUntilLocalMidnight } from "@/shared/utils/localCalendar";
@@ -60,11 +59,6 @@ export function useProgressController(
     (family: LiftFamily) => commit({ type: "liftSelected", family }),
     [commit],
   );
-  const selectMetric = useCallback(
-    (metric: TrendMetric) => commit({ type: "metricSelected", metric }),
-    [commit],
-  );
-
   useEffect(() => {
     if (!isFocused) return;
 
@@ -115,5 +109,5 @@ export function useProgressController(
     };
   }, [commit, isFocused, load, now]);
 
-  return { state, refresh, selectLift, selectMetric };
+  return { state, refresh, selectLift };
 }

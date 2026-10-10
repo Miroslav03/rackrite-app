@@ -105,6 +105,7 @@ export function deriveLiftSessions(
 
       rawRepresentative: null,
       adjustedRepresentative: null,
+      strengthSets: [],
 
       volume: 0,
 
@@ -113,6 +114,7 @@ export function deriveLiftSessions(
       invalidSetCount: 0,
 
       rpeSetCount: 0,
+      hardSetCount: 0,
       highEffortSetCount: 0,
       typicalRpe: null,
 
@@ -145,6 +147,7 @@ export function deriveLiftSessions(
     const seen = new Set<string>();
     const rpes: number[] = [];
     const adjustedCandidates: RepresentativeSet[] = [];
+    const strengthSets: RepresentativeSet[] = [];
 
     for (const source of sources) {
       const { set, entry } = source;
@@ -201,6 +204,10 @@ export function deriveLiftSessions(
 
         result.rpeSetCount++;
 
+        if (rpe >= config.hardSetRpe) {
+          result.hardSetCount++;
+        }
+
         if (rpe >= config.highEffortRpe) {
           result.highEffortSetCount++;
         }
@@ -240,6 +247,7 @@ export function deriveLiftSessions(
         rawEstimate,
         adjustedEstimate,
       };
+      strengthSets.push(representative);
 
       if (
         result.rawRepresentative === null ||
@@ -281,6 +289,7 @@ export function deriveLiftSessions(
     }
 
     result.issues = [...new Set(result.issues)];
+    result.strengthSets = strengthSets;
 
     sessions.push(result);
   }

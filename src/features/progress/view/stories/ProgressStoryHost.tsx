@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { LiftFamily } from "@/domain/domain.types";
-import type { TrendMetric } from "@/domain/progress/trends/progress.trends.types";
 import { Button } from "@/shared/components/ui/Button";
 import { ProgressScreenView } from "../ProgressScreenView";
 import type { ProgressStoryScenario } from "./progressStory.scenarios";
@@ -8,16 +7,14 @@ import type { ProgressStoryScenario } from "./progressStory.scenarios";
 type Props = {
   scenario: ProgressStoryScenario;
   initialLift?: LiftFamily;
-  initialMetric?: TrendMetric;
   onSelectLift?: (lift: LiftFamily) => void;
-  onSelectMetric?: (metric: TrendMetric) => void;
   onRefresh?: () => void;
 };
 
 export function ProgressStoryHost(props: Props) {
   return (
     <ScenarioPreview
-      key={`${props.scenario.id}:${props.initialLift}:${props.initialMetric}`}
+      key={`${props.scenario.id}:${props.initialLift}`}
       {...props}
     />
   );
@@ -26,15 +23,10 @@ export function ProgressStoryHost(props: Props) {
 function ScenarioPreview({
   scenario,
   initialLift = "bench",
-  initialMetric,
   onSelectLift,
-  onSelectMetric,
   onRefresh,
 }: Props) {
   const [selectedLift, selectLift] = useState<LiftFamily>(initialLift);
-  const [metric, selectMetric] = useState<TrendMetric>(
-    initialMetric ?? scenario.metric ?? "performance",
-  );
   const [refresh, setRefresh] = useState(scenario.refresh);
   const error = new Error("Simulated Storybook refresh failure");
   const pending = refresh === "pending" || refresh === "retrying";
@@ -57,7 +49,6 @@ function ScenarioPreview({
         state={{
           status: "ready",
           selectedLift,
-          metric,
           overview: scenario.overview,
           refresh: pending
             ? {
@@ -72,10 +63,6 @@ function ScenarioPreview({
         onSelectLift={(lift) => {
           selectLift(lift);
           onSelectLift?.(lift);
-        }}
-        onSelectMetric={(nextMetric) => {
-          selectMetric(nextMetric);
-          onSelectMetric?.(nextMetric);
         }}
       />
     </>

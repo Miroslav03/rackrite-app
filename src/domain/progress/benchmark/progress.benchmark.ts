@@ -5,7 +5,10 @@ import { type ProgressConfig, progressConfig } from "../progress.config";
 import type { RecommendationKind } from "../recommendation/progress.recommendation.types";
 import type { RepresentativeSet } from "../sessions/progress.sessions.types";
 
-import type { BenchmarkTarget } from "./progress.benchmark.types";
+import type {
+  BenchmarkDecision,
+  BenchmarkTarget,
+} from "./progress.benchmark.types";
 import {
   roundLoadDown,
   selectBenchmarkReferences,
@@ -15,22 +18,28 @@ export function generateBenchmarkTarget(
   analysis: LiftAnalysisCore,
   recommendation: RecommendationKind,
   config: ProgressConfig = progressConfig,
-): BenchmarkTarget | null {
-  if (
-    analysis.status.value === "learning" ||
-    analysis.evidence.level === "weak" ||
-    analysis.diagnosis.kind === "inconsistent_training" ||
-    analysis.trends.conflictingSignals
-  )
-    return null;
+): BenchmarkDecision {
+  if (analysis.status.reason === "stale_history")
+    return { status: "unavailable", reason: "stale_history" };
+  if (analysis.trends.conflictingSignals)
+    return { status: "unavailable", reason: "conflicting_signals" };
+  if (analysis.status.value === "learning")
+    return { status: "unavailable", reason: "learning" };
+  if (analysis.evidence.level === "weak")
+    return { status: "unavailable", reason: "weak_evidence" };
+  if (analysis.diagnosis.kind === "inconsistent_training")
+    return { status: "unavailable", reason: "training_gaps" };
 
   const references = selectBenchmarkReferences(analysis, config);
-  if (references === null) return null;
+
+  if (references === null)
+    return { status: "unavailable", reason: "comparable_exposures" };
 
   const { reps, sources, reference } = references;
 
   const performance = (set: RepresentativeSet) =>
-    analysis.trends.basis === "effort_adjusted"
+    analysis.trends.basis === "effort_adjusted" ||
+    analysis.trends.basis === "matched_reps_rpe"
       ? set.adjustedEstimate
       : set.rawEstimate;
 
@@ -46,7 +55,7 @@ export function generateBenchmarkTarget(
     latest === null ||
     Math.abs(latest / typical - 1) * 100 > config.benchmarkOutlierPercent
   )
-    return null;
+    return { status: "unavailable", reason: "outlier" };
 
   const adjusted = sources
     .map((set) => set.adjustedEstimate)
@@ -61,7 +70,27 @@ export function generateBenchmarkTarget(
     ? { min: config.benchmarkMinimumRpe, max: config.benchmarkMaximumRpe }
     : null;
 
-  const base = { reps, sources, rpe: targetRpe };
+  function target(
+    intent: BenchmarkTarget["intent"],
+    weight: number,
+    reason: BenchmarkTarget["reason"],
+  ): BenchmarkDecision {
+    return {
+      status: "available",
+      target: {
+        reps,
+        sources,
+        rpe: targetRpe,
+        intent,
+        weight,
+        reason,
+        referenceWeight: reference.weight,
+        loadChange: weight - reference.weight,
+        evidence: analysis.evidence.level,
+        basis: analysis.trends.basis,
+      },
+    };
+  }
 
   if (
     analysis.status.value === "regressing" ||
@@ -80,7 +109,7 @@ export function generateBenchmarkTarget(
 
     // Partial effort observations cannot establish a formula-supported reduced target.
     if (sources.some((set) => set.rpe !== null) && effortLimit === null)
-      return null;
+      return { status: "unavailable", reason: "effort_capacity" };
 
     const ceiling = Math.min(
       reference.weight * (1 - config.benchmarkReductionFraction),
@@ -94,14 +123,27 @@ export function generateBenchmarkTarget(
       weight <
         reference.weight * (1 - config.benchmarkMaximumReductionFraction) - 1e-8
     )
-      return null;
+      return { status: "unavailable", reason: "rounding_limits" };
 
-    return { ...base, intent: "reduce_stress", weight, reason: "lower_stress" };
+    return target(
+      "reduce_stress",
+      weight,
+      analysis.status.value === "regressing"
+        ? "repeated_decline"
+        : recommendation === "reduce_stress"
+          ? "lower_stress"
+          : "high_effort_reference",
+    );
   }
 
   if (
     analysis.status.value === "progressing" &&
     recommendation === "continue_approach" &&
+    !(
+      analysis.trends.effort.basis === "matched" &&
+      analysis.trends.effort.change.status === "available" &&
+      analysis.trends.effort.change.value > 0
+    ) &&
     effortKnown &&
     capacity !== null &&
     reference.rpe !== null &&
@@ -127,19 +169,13 @@ export function generateBenchmarkTarget(
         weight > reference.weight &&
         weight - reference.weight <= config.weightIncrement + 1e-8
       )
-        return {
-          ...base,
-          intent: "progress",
-          weight,
-          reason: "supported_progression",
-        };
+        return target("progress", weight, "supported_progression");
     }
   }
 
-  return {
-    ...base,
-    intent: "repeat",
-    weight: reference.weight,
-    reason: effortKnown ? "comparable_repeat" : "effort_headroom_unknown",
-  };
+  return target(
+    "repeat",
+    reference.weight,
+    effortKnown ? "comparable_repeat" : "effort_headroom_unknown",
+  );
 }

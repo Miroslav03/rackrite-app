@@ -3,18 +3,23 @@ import type {
   Measurement,
 } from "../measurements/progress.measurements.types";
 import type { LiftSessionMetrics } from "../sessions/progress.sessions.types";
+import type {
+  EffortComparison,
+  StrengthComparison,
+} from "../strength/progress.strength.types";
 
 /**
- * Which strength estimate drives a comparison: weight and reps alone, or
- * weight and reps adjusted for recorded effort. One basis keeps raw and
- * adjusted values from being mixed into the same performance series.
+ * Which formula supplies a strength estimate: weight and reps alone,
+ * or weight and reps adjusted using recorded RPE.
  */
-export type PerformanceBasis = "load_reps" | "effort_adjusted";
+export type EstimateBasis = "load_reps" | "effort_adjusted";
+
 /**
- * The three chart choices. A shared set of names lets presentation select
- * performance, estimated 1RM, or volume from the already-derived trends.
+ * How strength is compared over time. Sets can be matched by reps and,
+ * when available, similar RPE. Otherwise a formula estimate is used.
  */
-export type TrendMetric = "performance" | "e1rm" | "volume";
+export type PerformanceBasis =
+  EstimateBasis | "matched_reps" | "matched_reps_rpe";
 
 /**
  * One competition lift summarized for one local calendar day. Raw and
@@ -37,37 +42,37 @@ export type DailyPerformance = {
  */
 export type TrendComparison = {
   window: AnalysisWindow; // Six-week period covered by this comparison.
-  baseline: number | null; // Median estimate in the earlier half, in kg; null without usable values.
-  recent: number | null; // Median estimate in the recent half, in kg; null without usable values.
+  baseline: number | null; // Earlier reference value: kg for estimates, 100 for normalized strength; null when unavailable.
+  recent: number | null; // Recent value: kg for estimates, 100 + percentage change for normalized strength; null when unavailable.
   change: Measurement; // Percentage change between medians, or why comparison is unavailable.
   baselineDays: number; // Number of usable daily values in the earlier half.
   recentDays: number; // Number of usable daily values in the recent half.
 };
 
 /**
- * One calendar week of strength estimates, competition volume, and exposure
- * count. It supplies chart points and workload comparisons; the partial flag
- * identifies a week that is still in progress.
+ * One calendar week of competition workload and exposure counts. The partial
+ * flag identifies a week that is still in progress and cannot be compared.
  */
 export type WeeklyLiftMetrics = {
   startsAt: number; // Monday at local midnight, as a millisecond timestamp.
-  endsAt: number; // Last included millisecond before the following Monday.
   partial: boolean; // True for an unfinished week, which is excluded from workload comparisons.
-  raw: number | null; // Median raw daily estimate that week, in kg; null without performance data.
-  adjusted: number | null; // Median available adjusted daily estimate, in kg; null without values.
   volume: number | null; // Weekly valid competition volume in kg; null for unknown history, zero for an empty recorded period.
-  exposures: number; // Workouts with valid training for this lift; not set count or distinct days.
+  exposures: number; // Distinct local days with valid competition training.
+  hardSets: number | null; // Number of valid sets with recorded RPE 8+ this week; null when the count is unknown.
+  validSets: number; // Number of valid completed non-warmup sets, including sets outside the strength-estimate rep range.
+  rpeSets: number; // Number of those valid sets with a usable recorded RPE.
 };
 
 /**
- * The combined trends for one lift: daily and weekly summaries, comparisons,
- * and comparability checks. Status, evidence, and diagnosis rules reuse these
- * facts, and the view model uses them to build evidence rows and charts.
+ * The combined trends for one lift: daily history, comparisons, and
+ * comparability checks. Status, evidence, diagnosis, and evidence rows reuse
+ * these facts.
  */
 export type LiftTrendMetrics = {
   // Which estimates should the analysis use?
-  basis: PerformanceBasis; // "load_reps" or "effort_adjusted"
-
+  basis: PerformanceBasis; // Direct comparison or explicitly selected formula fallback.
+  strength: StrengthComparison; // Earlier versus recent strength, with the matching sets or formula used to compare it.
+  effort: EffortComparison; // Earlier versus recent RPE at matching loads and reps, or typical RPE when matching is unavailable.
   // Supporting daily history
   days: readonly DailyPerformance[]; // Six-week performance days
   contextDays: readonly DailyPerformance[]; // Up to 8 weeks in the current continuous segment
@@ -75,7 +80,7 @@ export type LiftTrendMetrics = {
   // Strength comparisons: earlier median versus recent median
   raw: TrendComparison; // Weight-and-reps comparison
   adjusted: TrendComparison; // Effort-adjusted comparison
-  performance: TrendComparison; // The selected raw OR adjusted comparison
+  performance: TrendComparison; // Selected strength comparison, normalized to baseline 100.
 
   // Recorded effort
   rpeChange: Measurement; // Change in typical RPE, in points
@@ -86,10 +91,18 @@ export type LiftTrendMetrics = {
 
   // Recorded workload
   volumeChange: Measurement; // Percentage change in average weekly volume
-  frequencyChange: Measurement; // Percentage change in weekly workout exposures
+  frequencyChange: Measurement; // Percentage change in distinct training days/week.
   workloadWindow: AnalysisWindow; // Dates of the complete-week comparison
   recentWeeklyVolume: number | null; // Actual recent average weekly volume
   recentWeeklyFrequency: number | null; // Actual recent average exposures per week
+  baselineWeeklyFrequency: number | null; // Average distinct training days per week in the earlier workload period; null without complete history.
+  baselineWeeklyHardSets: number | null; // Average recorded RPE 8+ sets per week in the earlier workload period; null when unknown.
+  recentWeeklyHardSets: number | null; // Average recorded RPE 8+ sets per week in the recent workload period; null when unknown.
+  baselineWorkloadRpeCoverage: number; // Share of valid sets with recorded RPE in the earlier workload period, from 0 to 1.
+  recentWorkloadRpeCoverage: number; // Share of valid sets with recorded RPE in the recent workload period, from 0 to 1.
+  hardSetsChange: Measurement; // Percentage change in average weekly hard sets, or why the periods cannot be compared.
+  baselineTypicalRpe: number | null; // Median of usable session RPEs in the earlier strength period; null without enough effort history.
+  recentTypicalRpe: number | null; // Median of usable session RPEs in the recent strength period; null without enough effort history.
   missingCompleteWeeks: number; // Complete weeks without recorded exposures
 
   // Comparability and continuity
@@ -97,9 +110,6 @@ export type LiftTrendMetrics = {
   repetitionShift: boolean; // Did representative reps change substantially?
   gapReset: boolean; // Did a long break start a new analysis segment?
   maxGapDays: number; // Largest performance-day gap in the current context
-
-  // Chart data
-  weekly: readonly WeeklyLiftMetrics[]; // Eight weekly summaries, including the current partial week
 };
 
 /**
@@ -117,8 +127,6 @@ Recent half:                      August 23–September 12
 */
 
 export type ComparisonHistory = {
-  allPerformanceDays: DailyPerformance[]; // All available performance days
-
   contextDays: DailyPerformance[]; // Selected 8-week context
   days: DailyPerformance[]; // Selected 6-week context
 

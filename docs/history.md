@@ -213,7 +213,7 @@ History should NOT:
 - become a heavy analytics dashboard
 - contain cluttered charts
 
-Charts and deep metrics belong in Progress, not in History.
+Detailed progress analysis belongs in Progress, not in History.
 
 ---
 

@@ -6,7 +6,7 @@ export const colors = {
 
   surface: "#101419",
   surfacePanel: "#141921",
-  warning: "#F59E0B",
+  warning: "#D6A84B",
   surfaceLow: "#181C21",
   surfaceHigh: "#252A31",
   surfaceHighest: "#31353B",
@@ -14,10 +14,10 @@ export const colors = {
   foreground: "#E0E2EA",
   muted: "#C3C6D7",
 
-  primary: "#2563EB",
+  primary: "#2866eb",
   primarySoft: "#B4C5FF",
 
-  success: "#22C55E",
+  success: "#68DD82",
   successBorder: "#79DB8D",
   successSurface: "#131F1D",
 

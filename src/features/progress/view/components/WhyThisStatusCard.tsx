@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { Pressable, View } from "react-native";
 
@@ -6,7 +6,8 @@ import { AppText } from "@/shared/components/ui/AppText";
 import { SurfaceCard } from "@/shared/components/ui/SurfaceCard";
 import { colors } from "@/shared/theme/tokens";
 
-import type { ProgressViewModel } from "../progress.viewModel";
+import { Badge } from "@/shared/components/ui/Badge";
+import { evidenceIcons, type ProgressViewModel } from "../progress.viewModel";
 
 export function WhyThisStatusCard({
   model,
@@ -17,84 +18,120 @@ export function WhyThisStatusCard({
 }) {
   return (
     <SurfaceCard
-      className="rounded-2xl border border-outline/30 bg-surfacePanel"
+      className=" bg-surfacePanel"
       contentClassName="p-5"
-      style={{ borderLeftWidth: 4, borderLeftColor: colors.outline }}
+      style={{ borderLeftWidth: 4, borderLeftColor: "#7C8FD6" }}
     >
-      <View className=" flex-row items-center justify-between border-b border-outline/20 pb-3">
-        <AppText
-          variant="title"
-          className="text-2xl tracking-tight font-extrabold uppercase text-foreground"
-        >
-          WHY THIS STATUS
-        </AppText>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="How lift analysis works"
-          onPress={onInfo}
-          hitSlop={12}
-          className="h-8 w-8 items-center justify-center"
-        >
-          <Ionicons
-            name="information-circle-outline"
-            size={20}
-            color={colors.muted}
+      <View className="flex flex-row justify-between">
+        <View className="flex flex-row items-center">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="How lift analysis works"
+            onPress={onInfo}
+            hitSlop={12}
+            className="h-8 w-8"
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color={colors.muted}
+            />
+          </Pressable>
+          <AppText variant="subtitle" className="mb-2 text-base">
+            WHY
+          </AppText>
+        </View>
+
+        {model.diagnosis && (
+          <Badge
+            label={model.diagnosis.evidence}
+            accentColor={colors.foreground}
+            tintColor={`${colors.foreground}18`}
+            className="px-2 py-1"
+            textClassName="text-xs"
+            style={{ borderColor: `${colors.foreground}60` }}
           />
-        </Pressable>
+        )}
       </View>
-      {model.rows.map((row, index) => (
-        <View
-          key={row.id}
-          className="py-3"
-          style={
-            index
-              ? { borderTopWidth: 1, borderTopColor: `${colors.outline}26` }
-              : undefined
-          }
-        >
-          <View className="mb-2 flex-row items-center justify-between gap-2">
-            <AppText className="min-w-0 flex-1 text-md font-bold uppercase tracking-wide text-foreground">
-              {row.label}
-            </AppText>
-            <AppText className="text-sm font-bold">
-              {row.direction} {row.value}
+
+      <View className="border-b border-outline/20 pb-3">
+        <AppText variant="title">{model.title}</AppText>
+
+        {model.diagnosis?.reference ? (
+          <View className="mt-2 flex-row items-center gap-sm">
+            <Ionicons
+              name="calendar-outline"
+              size={15}
+              color={colors.primary}
+              accessible={false}
+            />
+            <AppText className="min-w-0 flex-1 text-base">
+              {model.diagnosis.reference}
             </AppText>
           </View>
-          {row.note ? (
-            <AppText className="text-sm">{row.note}</AppText>
-          ) : (
-            <View
-              importantForAccessibility="no"
-              className="h-1.5 overflow-hidden rounded-full bg-surfaceHigh"
-            >
-              <View
-                className="absolute h-full w-px bg-muted/60"
-                style={{ left: "50%" }}
+        ) : null}
+      </View>
+
+      <View className="flex-row items-center justify-between"></View>
+      {model.rows.map((row, index) => {
+        const icon = evidenceIcons[row.id];
+        const badgeColor =
+          row.id === "strength" && row.value.startsWith("-")
+            ? colors.error
+            : icon.color;
+
+        return (
+          <View
+            key={row.id}
+            className="mt-4"
+            style={
+              index
+                ? {
+                    borderTopWidth: 1,
+                    borderTopColor: `${colors.outline}26`,
+                    paddingTop: 10,
+                  }
+                : undefined
+            }
+          >
+            <View className="mb-2 flex-row items-center gap-2">
+              <View className="min-w-0 flex-1 flex-row items-center gap-sm">
+                <Ionicons name={icon.name} size={20} color={icon.color} />
+                <AppText className="min-w-0 flex-1 text-xl font-bold uppercase text-foreground">
+                  {row.label}
+                </AppText>
+              </View>
+
+              <Badge
+                label={row.value}
+                accentColor={badgeColor}
+                tintColor={`${badgeColor}18`}
+                className="shrink-0 self-center px-2 py-1"
+                textClassName="text-sm"
               />
-              {row.fraction !== null ? (
-                <View
-                  className="absolute h-full rounded-full"
-                  style={{
-                    backgroundColor: row.color,
-                    width: `${Math.abs(row.fraction) * 50}%`,
-                    left: `${50 + Math.min(0, row.fraction) * 50}%`,
-                  }}
-                />
-              ) : null}
             </View>
-          )}
-        </View>
-      ))}
-      <AppText className="mt-2 text-sm leading-5">{model.summary}</AppText>
+            {row.note ? (
+              <AppText className="text-sm">{row.note}</AppText>
+            ) : null}
+          </View>
+        );
+      })}
+
       {model.diagnosis ? (
-        <View className="mt-3 border-t border-outline/20 pt-3">
-          <AppText className="text-[10px] font-bold tracking-wide text-foreground">
-            {model.diagnosis.title}
-          </AppText>
-          <AppText className="mt-1 text-[9px] font-bold tracking-wide">
-            {model.diagnosis.evidence}
-          </AppText>
-          <AppText className="mt-2 text-xs leading-5">
+        <View className="mt-4 border-t border-outline/20 pt-3">
+          <View className="flex-row items-center gap-sm">
+            <MaterialCommunityIcons
+              name="brain"
+              size={20}
+              color={colors.primarySoft}
+              accessible={false}
+            />
+            <AppText className="min-w-0 flex-1 text-xl font-bold uppercase text-foreground">
+              {model.diagnosis.title}
+            </AppText>
+          </View>
+
+          <AppText className="mt-2 text-sm leading-5">
             {model.diagnosis.description}
           </AppText>
         </View>

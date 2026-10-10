@@ -8,7 +8,6 @@ import type {
   LiftStatus,
   StatusReason,
 } from "@/domain/progress/status/progress.status.types";
-import type { TrendMetric } from "@/domain/progress/trends/progress.trends.types";
 
 import {
   available,
@@ -18,15 +17,18 @@ import {
   recordedOverview,
   withTrends,
 } from "./progressStory.fixtures";
+import { benchAlgorithmScenarios } from "./benchAlgorithm.fixtures";
+import { describeBenchCheckpoint } from "./benchAlgorithm.results";
+import { describeAlgorithmCheckpoint } from "./algorithmScenario.results";
+import { steadySquatScenario } from "./squatAlgorithm.fixtures";
 
 /** One named, deterministic visual example; all three lifts are available in each preview. */
 export type ProgressStoryScenario = {
-  id: string; // Stable key used by stories and to reset local chart/sheet interactions.
+  id: string; // Stable key used by stories and to reset local sheet interactions.
   group: string; // Catalog section describing the card or behavior being inspected.
   title: string; // Human-readable scenario name.
   description: string; // What to look for when inspecting the real cards.
   overview: ProgressOverview; // In-memory analysis snapshot; never written to SQLite.
-  metric?: TrendMetric; // Initial chart tab, which remains editable in the preview.
   refresh?: "pending" | "error" | "retrying"; // Simulated refresh state; no repository request is made.
 };
 
@@ -102,7 +104,12 @@ const statusScenarios: ProgressStoryScenario[] = entries(statuses).map(
         ? emptyOverview
         : previewOverview((a) => ({
             status: { value, reason: "confirmed_trend", confirmed: true },
-            recommendation: { kind: action, reasons: [], benchmark: null },
+            recommendation: {
+              kind: action,
+              reasons: [],
+              benchmarkUnavailableReason: "weak_evidence",
+              benchmark: null,
+            },
             diagnosis: {
               kind: "none",
               evidence: "weak",
@@ -159,6 +166,12 @@ const benchmarkScenarios: ProgressStoryScenario[] = Object.entries(
   description:
     "Inspect target load, repetitions, optional RPE and explanation. Loads in this visual fixture are intentionally identical across lift tabs.",
   overview: previewOverview((a) => ({
+    diagnosis: {
+      kind: target.intent === "reduce_stress" ? "fatigue" : "none",
+      evidence: "moderate",
+      reasons: [],
+      referenceWindow: null,
+    },
     status: {
       value:
         target.intent === "progress"
@@ -192,8 +205,13 @@ const benchmarkScenarios: ProgressStoryScenario[] = Object.entries(
           ? "reduce_stress"
           : "continue_approach",
       reasons: [],
+      benchmarkUnavailableReason: null,
       benchmark: {
         ...target,
+        referenceWeight: 100,
+        loadChange: target.weight - 100,
+        evidence: a.evidence.level,
+        basis: a.trends.basis,
         reps: 3,
         sources: a.sessions
           .slice(-3)
@@ -211,18 +229,23 @@ const benchmarkScenarios: ProgressStoryScenario[] = Object.entries(
   })),
 }));
 
-const chartCases: Record<string, readonly (number | null)[]> = {
-  Empty: [null, null, null, null, null, null, null, null],
-  "Single point": [null, null, null, null, null, null, null, 120],
-  "Missing weeks": [100, null, 105, null, 110, 115, null, 120],
-  "Equal values": [100, 100, 100, 100, 100, 100, 100, 100],
-  "Zero volume": [0, 0, 0, 0, 0, 0, 0, 0],
-  "Extreme value": [100, 101, 99, 100, 1000000, 102, 98, 100],
-  Rising: [100, 102, 104, 106, 108, 110, 112, 114],
-  Falling: [114, 112, 110, 108, 106, 104, 102, 100],
-};
-
 export const progressStoryScenarios: readonly ProgressStoryScenario[] = [
+  ...benchAlgorithmScenarios.flatMap((scenario) =>
+    scenario.checkpoints.map((checkpoint) => ({
+      id: `bench-scenario-${scenario.number}-week-${checkpoint.week}-day-${checkpoint.day}`,
+      group: `Algorithm scenarios/Bench/Scenario ${scenario.number}`,
+      title: `Week ${checkpoint.week} · ${checkpoint.label}`,
+      description: describeBenchCheckpoint(scenario, checkpoint),
+      overview: checkpoint.overview,
+    })),
+  ),
+  ...steadySquatScenario.checkpoints.map((checkpoint) => ({
+    id: `squat-scenario-1-week-${checkpoint.week}-day-${checkpoint.day}`,
+    group: "Algorithm scenarios/Squat/Scenario 1",
+    title: `Week ${checkpoint.week} · ${checkpoint.label}`,
+    description: describeAlgorithmCheckpoint(steadySquatScenario, checkpoint),
+    overview: checkpoint.overview,
+  })),
   {
     id: "recorded",
     group: "Overview",
@@ -236,7 +259,7 @@ export const progressStoryScenarios: readonly ProgressStoryScenario[] = [
     group: "Overview",
     title: "Empty history",
     description:
-      "All four cards remain present without sessions, estimates or benchmarks.",
+      "All three cards remain present without sessions, estimates or benchmarks.",
     overview: emptyOverview,
   },
   {
@@ -244,9 +267,8 @@ export const progressStoryScenarios: readonly ProgressStoryScenario[] = [
     group: "Overview",
     title: "Early estimate",
     description:
-      "One workout per lift: inspect the early-history note, missing comparison and E1RM point.",
+      "One workout per lift: inspect the early-history note, missing strength comparison and recorded effort.",
     overview: earlyOverview,
-    metric: "e1rm",
   },
   ...statusScenarios,
   ...entries(evidenceLevels).map(([level, supportingDays]) => ({
@@ -282,7 +304,7 @@ export const progressStoryScenarios: readonly ProgressStoryScenario[] = [
         rpeChange: available(
           kind === "fatigue" || kind === "excessive_intensity" ? 1 : 0,
         ),
-        volumeChange: available(
+        hardSetsChange: available(
           kind === "fatigue" ? 25 : kind === "insufficient_stimulus" ? -25 : 0,
         ),
       },
@@ -306,7 +328,12 @@ export const progressStoryScenarios: readonly ProgressStoryScenario[] = [
         reasons: [],
         referenceWindow: null,
       },
-      recommendation: { kind: action, reasons: [], benchmark: null },
+      recommendation: {
+        kind: action,
+        reasons: [],
+        benchmarkUnavailableReason: "weak_evidence",
+        benchmark: null,
+      },
     })),
   })),
   ...entries(recommendations).map(([kind, value]) => ({
@@ -322,7 +349,12 @@ export const progressStoryScenarios: readonly ProgressStoryScenario[] = [
           value === "learning" ? "insufficient_history" : "confirmed_trend",
         confirmed: value !== "learning",
       },
-      recommendation: { kind, reasons: [], benchmark: null },
+      recommendation: {
+        kind,
+        reasons: [],
+        benchmarkUnavailableReason: "weak_evidence",
+        benchmark: null,
+      },
     })),
   })),
   ...benchmarkScenarios,
@@ -331,7 +363,7 @@ export const progressStoryScenarios: readonly ProgressStoryScenario[] = [
     group: "Unavailable measurements",
     title,
     description:
-      "Four unavailable rows retain their labels and reasons, with no fabricated zero values.",
+      "Unavailable measurements retain their labels and reasons; consistency uses its own recorded facts.",
     overview: withTrends((t) => ({
       performance: {
         ...t.performance,
@@ -339,70 +371,9 @@ export const progressStoryScenarios: readonly ProgressStoryScenario[] = [
       },
       raw: { ...t.raw, change: { status: "unavailable", reason } },
       rpeChange: { status: "unavailable", reason },
-      volumeChange: { status: "unavailable", reason },
+      hardSetsChange: { status: "unavailable", reason },
     })),
   })),
-  ...[-1, 0, 1].map((direction) => ({
-    id: `bars-${direction}`,
-    group: "Evidence bars",
-    title:
-      direction === 0
-        ? "Zero / negative zero"
-        : direction > 0
-          ? "Positive and clamped"
-          : "Negative and clamped",
-    description:
-      "Performance ±15%, E1RM ±5%, RPE ±3 points, volume ±75%. Fills clamp at ±10%, ±2 and ±50%; effort and volume remain neutral.",
-    overview: withTrends((t) => ({
-      performance: { ...t.performance, change: available(direction * 15) },
-      raw: { ...t.raw, change: available(direction * 5) },
-      rpeChange: available(direction ? direction * 3 : -0.001),
-      volumeChange: available(direction * 75),
-    })),
-  })),
-  ...Object.entries(chartCases).map(
-    ([title, values]): ProgressStoryScenario => ({
-      id: `chart-${title.toLowerCase().replaceAll(" ", "-")}`,
-      group: "Charts",
-      title,
-      metric: title === "Zero volume" ? "volume" : "performance",
-      description:
-        "Switch all three chart metrics; press bars for dates and values. W8 is partial. Heights use a zero baseline.",
-      overview: withTrends((t) => ({
-        basis: "load_reps",
-        performance: {
-          ...t.performance,
-          baseline: 100,
-          change:
-            title === "Empty" || title === "Single point"
-              ? { status: "unavailable", reason: "insufficient_history" }
-              : available(
-                  title === "Rising" ? 4 : title === "Falling" ? -4 : 0,
-                ),
-        },
-        weekly: t.weekly.map((w, i) => ({
-          ...w,
-          raw: values[i],
-          adjusted: values[i],
-          volume: values[i] === null ? null : values[i] * 100,
-        })),
-      })),
-    }),
-  ),
-  {
-    id: "adjusted",
-    group: "Charts",
-    title: "Adjusted with missing points",
-    description:
-      "Performance leaves unrecorded adjusted weeks empty. E1RM still shows raw values for those weeks.",
-    overview: withTrends((t) => ({
-      basis: "effort_adjusted",
-      weekly: t.weekly.map((w, i) => ({
-        ...w,
-        adjusted: i % 2 ? null : w.adjusted,
-      })),
-    })),
-  },
   {
     id: "stale",
     group: "Refresh",
@@ -429,19 +400,5 @@ export const progressStoryScenarios: readonly ProgressStoryScenario[] = [
       "Both the spinner and outdated warning remain visible. The benchmark stays hidden until you complete the simulated refresh.",
     overview: benchmarkScenarios[0].overview,
     refresh: "retrying",
-  },
-  {
-    id: "chart-no-baseline",
-    group: "Charts",
-    title: "Missing comparison baseline",
-    description:
-      "Performance has no valid baseline, so its chart is empty. Switch to E1RM to see available early estimates.",
-    overview: withTrends((t) => ({
-      performance: {
-        ...t.performance,
-        baseline: null,
-        change: { status: "unavailable", reason: "invalid_baseline" },
-      },
-    })),
   },
 ];

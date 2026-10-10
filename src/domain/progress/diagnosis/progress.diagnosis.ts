@@ -67,19 +67,26 @@ export function diagnoseLift(
   )
     return uncertain;
 
+  const productive = compareProductiveWorkload(trends, sessions, config);
+  const effortChange = productive
+    ? productive.rpeChange
+    : trends.effort.change.status === "available"
+      ? trends.effort.change.value
+      : null;
+  const hardSetsChange = productive?.hardSetsChange ?? trends.hardSetsChange;
   const effortRise =
     trends.rpeAdequate &&
-    trends.rpeChange.status === "available" &&
-    trends.rpeChange.value >= config.fatigueRpeRise;
+    effortChange !== null &&
+    effortChange >= config.fatigueRpeRise;
 
   if (
     effortRise &&
-    trends.volumeChange.status === "available" &&
-    trends.volumeChange.value >= config.fatigueVolumeRise
+    hardSetsChange.status === "available" &&
+    hardSetsChange.value >= config.hardSetsRisePercent
   ) {
     const fatigueReasons: DiagnosisReason[] = [
       "rising_effort",
-      "rising_volume",
+      "rising_hard_sets",
     ];
 
     if ((trends.highEffortShareChange ?? 0) >= config.highEffortShareRise) {
@@ -97,7 +104,7 @@ export function diagnoseLift(
       kind: "fatigue",
       evidence: "moderate",
       reasons: fatigueReasons,
-      referenceWindow: trends.workloadWindow,
+      referenceWindow: productive?.window ?? trends.workloadWindow,
     };
   }
 
@@ -118,10 +125,31 @@ export function diagnoseLift(
     Math.abs(delta) > config.neutralPercent + config.comparisonEpsilon ||
     !trends.rpeAdequate ||
     effortRise ||
-    trends.recentWeeklyVolume === null ||
+    trends.recentWeeklyHardSets === null ||
     trends.recentWeeklyFrequency === null
   )
     return uncertain;
 
-  return compareProductiveWorkload(trends, sessions, config);
+  if (!productive) return uncertain;
+  if (
+    productive.hardSetsChange.status === "available" &&
+    productive.hardSetsChange.value <= config.hardSetsDropPercent
+  )
+    return {
+      kind: "insufficient_stimulus",
+      evidence: "moderate",
+      reasons: ["lower_historical_workload"],
+      referenceWindow: productive.window,
+    };
+  if (
+    productive.frequencyChange.status === "available" &&
+    productive.frequencyChange.value <= -config.frequencyChangePercent
+  )
+    return {
+      kind: "insufficient_stimulus",
+      evidence: "moderate",
+      reasons: ["lower_historical_frequency"],
+      referenceWindow: productive.window,
+    };
+  return uncertain;
 }
