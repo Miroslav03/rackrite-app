@@ -6,6 +6,18 @@ import type {
 } from "../trends/progress.trends.types";
 
 /**
+ * Best raw and effort-adjusted performances for one exact rep count in one
+ * workout. Both representatives retain their original eligible source sets.
+ */
+export type WorkoutRepObservation = {
+  reps: number; // Exact performed repetition count, from 1 through 10.
+  rawRepresentative: RepresentativeSet; // Highest actual load within this rep group.
+  adjustedRepresentative: RepresentativeSet | null; // Highest valid stored adjusted estimate; null when none qualifies.
+  eligibleSetCount: number; // Eligible strength sets in this rep group, including unknown RPE.
+  adjustedEligibleSetCount: number; // Sets with a valid adjusted estimate in this rep group.
+};
+
+/**
  * One local day's observation for strength evidence or internal effort
  * comparisons. The containing comparison determines the value's units.
  */

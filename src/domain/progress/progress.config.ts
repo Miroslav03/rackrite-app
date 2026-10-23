@@ -12,6 +12,14 @@ export const progressConfig = {
   minimumHalfDays: 3,
   minimumSpanDays: 21,
 
+  // Independent exact-rep lanes use their own minimum; legacy limits stay separate.
+  repLaneMinimumHalfDays: 2,
+
+  // V1 agreement heuristics in percentage points, tunable independently of status rules.
+  repLaneMinorOppositionPercent: 3,
+  repLaneMajorOppositionPercent: 5,
+  repLaneUnevenSpreadPercent: 10,
+
   // Entry thresholds need repeated directional support against the earlier median.
   // Ignore binary floating-point noise at exact percentage boundaries, without rounding metrics.
   comparisonEpsilon: 1e-9,
