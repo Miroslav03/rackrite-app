@@ -880,6 +880,15 @@ it.each([NaN, Infinity, 0, -1])(
   },
 );
 
+it("compares supported rep counts within the configured 1–10 range", () => {
+  const days = [1, 9, 10, 11, 12].flatMap((reps) =>
+    laneDays([{ reps }, { reps }], [{ reps }, { reps }]),
+  );
+  const trends = deriveRepLaneTrends(days, WINDOW);
+  expect(trends.map((lane) => lane.reps)).toEqual([1, 9, 10]);
+  expect(trends.every((lane) => lane.change.status === "available")).toBe(true);
+});
+
 it("ignores unsupported rep counts", () => {
   const days = [0, 11, 1.5].flatMap((reps) =>
     laneDays([{ reps }, { reps }], [{ reps }, { reps }]),

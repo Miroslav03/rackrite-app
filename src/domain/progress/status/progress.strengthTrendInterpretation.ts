@@ -71,18 +71,18 @@ export function interpretStrengthTrend(
   if (lastPerformance === null)
     return conclude("building_history", "no_performance");
 
-  const historyReason = historyContext?.hadTrainingGap
-    ? "training_gap"
-    : "insufficient_history";
-  if (selected.method === "building_history") {
-    return conclude("building_history", historyReason);
-  }
-
   if (
     localCalendarDay(analysisTime) - localCalendarDay(lastPerformance) >
     config.strengthTrendStaleDays
   ) {
     return conclude("building_history", "stale_history");
+  }
+
+  const historyReason = historyContext?.hadTrainingGap
+    ? "training_gap"
+    : "insufficient_history";
+  if (selected.method === "building_history") {
+    return conclude("building_history", historyReason);
   }
 
   const { trend } = selected;

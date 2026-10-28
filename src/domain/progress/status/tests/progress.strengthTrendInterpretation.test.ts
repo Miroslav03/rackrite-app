@@ -350,15 +350,32 @@ describe("history availability and invalid selections", () => {
     ).toBe("progressing");
   });
 
-  it("respects Building History before interpreting freshness or any percentage", () => {
+  it("reports known stale history even without a selectable comparison", () => {
     const data = input(building);
     data.analysisTime = atDay(100);
     expect(interpretStrengthTrend(data)).toMatchObject({
       status: "building_history",
-      reason: "insufficient_history",
+      reason: "stale_history",
       selected: building,
     });
   });
+
+  it.each([false, true])(
+    "checks freshness before insufficient-history reasons with gap context %s",
+    (hadTrainingGap) => {
+      const data = {
+        ...input(building),
+        historyContext: { hadTrainingGap },
+        analysisTime: atDay(55),
+      };
+      expect(interpretStrengthTrend(data).reason).toBe(
+        hadTrainingGap ? "training_gap" : "insufficient_history",
+      );
+      expect(
+        interpretStrengthTrend({ ...data, analysisTime: atDay(56) }).reason,
+      ).toBe("stale_history");
+    },
+  );
 
   it.each<UnavailableReason>([
     "no_history",

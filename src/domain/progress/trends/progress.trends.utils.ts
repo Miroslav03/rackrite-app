@@ -207,11 +207,12 @@ export function groupLiftWeeks(
   });
 }
 
-export function selectComparisonHistory(
+/** Latest continuous performance segment before any context or comparison bounds. */
+export function selectLatestPerformanceSegment(
   sessions: readonly LiftSessionMetrics[],
   analysisTime: number,
   config: ProgressConfig,
-): ComparisonHistory {
+): Pick<ComparisonHistory, "days" | "gapReset"> {
   const allPerformanceDays = deriveDailyPerformance(
     sessions.filter((session) => session.finishedAt <= analysisTime),
   );
@@ -225,7 +226,22 @@ export function selectComparisonHistory(
     )
       latestSegmentStartIndex = index;
 
-  const continuousDays = allPerformanceDays.slice(latestSegmentStartIndex);
+  return {
+    days: allPerformanceDays.slice(latestSegmentStartIndex),
+    gapReset: latestSegmentStartIndex > 0,
+  };
+}
+
+export function selectComparisonHistory(
+  sessions: readonly LiftSessionMetrics[],
+  analysisTime: number,
+  config: ProgressConfig,
+): ComparisonHistory {
+  const { days: continuousDays, gapReset } = selectLatestPerformanceSegment(
+    sessions,
+    analysisTime,
+    config,
+  );
   const latestDay = continuousDays[continuousDays.length - 1];
   const endExclusive = addLocalCalendarDays(
     startOfLocalDay(latestDay?.finishedAt ?? analysisTime),
@@ -273,7 +289,7 @@ export function selectComparisonHistory(
     comparisonSessions,
     baselineSessions,
     recentSessions,
-    gapReset: latestSegmentStartIndex > 0,
+    gapReset,
     maxGapDays,
   };
 }

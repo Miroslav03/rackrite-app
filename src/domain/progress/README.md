@@ -5,6 +5,13 @@ function builds an overview for squat, bench, and deadlift. Follow
 `analyzeLift` in `analysis/progress.analysis.utils.ts` to see the steps for
 one lift.
 
+The separate pure API `analyzeStrengthTrends` in
+`analysis/progress.strengthTrendAnalysis.ts` connects the new Steps 1–7.
+It returns interpreted selections, the latest history segment, and the selected
+comparable window's original rep-lane measurements for future presentation.
+Its windows follow the last eligible lift day; the supplied analysis time only
+controls eligibility and freshness. Production still uses `analyzeCompetitionLifts`.
+
 ## Reading order
 
 | Folder            | Question it answers                                                      | Main entry                  |
