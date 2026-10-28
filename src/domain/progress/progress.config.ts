@@ -15,6 +15,9 @@ export const progressConfig = {
   // Independent exact-rep lanes use their own minimum; legacy limits stay separate.
   repLaneMinimumHalfDays: 2,
 
+  // Cross-rep estimated-strength fallbacks require more daily observations.
+  fallbackMinimumHalfDays: 3,
+
   // V1 agreement heuristics in percentage points, tunable independently of status rules.
   repLaneMinorOppositionPercent: 3,
   repLaneMajorOppositionPercent: 5,
