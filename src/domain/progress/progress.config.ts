@@ -18,6 +18,9 @@ export const progressConfig = {
   // Cross-rep estimated-strength fallbacks require more daily observations.
   fallbackMinimumHalfDays: 3,
 
+  // Freshness for the new interpretation layer; legacy staleDays stays separate.
+  strengthTrendStaleDays: 14,
+
   // V1 agreement heuristics in percentage points, tunable independently of status rules.
   repLaneMinorOppositionPercent: 3,
   repLaneMajorOppositionPercent: 5,
